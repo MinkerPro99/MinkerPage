@@ -1,0 +1,3 @@
+nohup: Eingabe wird ignoriert
+/home/minkerpro99/Webpage/https_server.py:15: DeprecationWarning: ssl.wrap_socket() is deprecated, use SSLContext.wrap_socket()
+  httpd.socket = ssl.wrap_socket(

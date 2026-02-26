@@ -1,0 +1,1467 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" type="image/png" href="/img/1kIcon.png">
+  <link rel="manifest" href="/calendar-manifest.json">
+  <meta name="theme-color" content="#232329">
+  <meta name="description" content="A dark-themed study calendar with Google Calendar integration">
+  <title>Study Calendar</title>
+
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+
+  <!-- Google Fonts for better typography -->
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+  <!-- FullCalendar CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css" rel="stylesheet" />
+
+  <style>
+    * {
+      color-scheme: dark;
+    }
+
+    html {
+      background-color: #1f1f1f;
+    }
+
+    body {
+      background-color: transparent;
+      color: #ffffff;
+      font-family: 'Roboto', sans-serif;
+      margin: 0;
+      padding: 0;
+      position: relative;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      width: 80vmin;
+      height: 80vmin;
+      transform: translate(-50%, -50%);
+      background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024"><path fill="lightgray" d="M583 204c9.35060866 2.15783277 17.59170736 6.53315296 26 11l2.23876953 1.18603516C645.21350922 234.31224355 677.39153742 259.37043331 701 290l2.4140625 3.0390625c36.49530355 46.18237243 55.76433721 102.84360116 68.0703125 159.74609375 2.9925508 13.65541019 7.2725487 25.92616245 13.26171875 38.56152344 1.17648689 2.48949757 2.31472067 4.99253905 3.44140625 7.50488281 8.40178952 18.52379804 19.02881532 35.91639176 29.3190918 53.43237305l1.69262695 2.8840332 1.49487305 2.53979492L822 560l1.23754883 2.11450195C824 564 824 564 823 567c-8.63371779-5.23328704-17.07238948-10.664057-25.3125-16.5-11.41917336-8.08562586-23.07095646-15.80980361-34.73291016-23.53808594-2.45222843-1.62833479-4.89933501-3.2635792-7.34130859-4.90722656-8.080918-5.43802227-16.27829659-10.6723681-24.52734375-15.8515625-3.50547972-2.20235277-6.99886476-4.42242854-10.484375-6.65625C677.45153319 471.89570969 633.41595733 446.62542339 582 439l-2.12011719-.31469727c-38.37536108-4.96911726-77.58305707 3.2512806-112.37255859 19.47729493l-2.44873047 1.13818359-2.21313477 1.0559082L461 461l-2-1c5.05402681-5.3645131 10.530036-10.08162463 16.31640625-14.64111328 1.26328863-1.01964393 2.5016095-2.07034927 3.7265625-3.13574219C486.23668874 436.12730332 494.00511677 431.96280151 502.375 427.75l2.19351196-1.11566162c27.58038456-14.01367023 56.51314708-25.17426296 85.41244507-36.15045166l3.58544922-1.36279297 3.12719727-1.17797852C598.92450889 387.20444688 598.92450889 387.20444688 600 386c-37.06409475-25.57012038-77.00896041-41.17572499-122.43017578-41.953125-2.32578588-.04242361-4.64766379-.11736972-6.97216797-.203125C436.68456401 343.04344104 401.03595401 358.71919883 376 381l-2.60546875 2.2421875C353.61378524 400.5391182 340.21553045 422.68857255 337 449c-1.69527643 28.12491393 7.86713134 56.3228359 26 78 12.23711203 13.68315186 26.78506015 23.57301372 43 32l3.39453125 1.796875c7.91786553 3.94535928 16.1107358 6.91615076 24.48046875 9.765625l3.08911133 1.06640625c26.77839241 8.84819404 55.13542332 13.55408602 82.68457031 19.40673828C583.6345304 604.63929818 645.49492858 622.60420318 697 665l1.70703125 1.40380859C716.34326905 680.99020679 734.96808845 698.46472789 744 720l-1 3-3.33984375-2.16015625c-27.87222266-17.7222225-55.06887202-23.09869123-87.7265625-16.01953125C650.28715022 705.20545651 648.64243106 705.59808905 647 706l-2.06591797.50292969C621.67318044 712.4960959 600.99523082 727.64579586 583 743c-1.0607513.88725298-2.12197389 1.77394271-3.18359375 2.66015625C565.29360359 757.85704947 551.79487423 771.1162992 538.375 784.5l-1.7064209 1.69830322c-5.51858487 5.49863527-10.98220853 11.0006757-16.04504394 16.9286499-3.73517143 4.30920831-7.73388586 8.3856571-11.66259766 12.51757813C504.52167798 820.33232074 500.21400812 825.10898324 496 830l-1.60693359 1.85888672c-1.53020699 1.7733553-3.05606171 3.55035487-4.58056641 5.32861328l-1.53710938 1.78710938c-2.23958476 2.6113965-4.42206244 5.21711348-6.51367187 7.95117187L480 849h-2l.21875-1.96484375C481.69108127 810.33454377 477.00770519 772.9880868 454 743c-1.63877289-1.69410123-3.30652895-3.3605759-5-5l-2.40234375-2.5078125C439.57633723 728.24367634 432.06622344 722.04771545 424 716l-2.18945312-1.65332031c-2.34772035-1.76928201-4.7025889-3.52856838-7.06054688-5.28417969l-2.12304688-1.58911133c-7.55307472-5.56863647-15.39856322-10.70288113-23.22137451-15.88088989-6.18596494-4.09512355-12.36236594-8.20469983-18.54010009-12.31222534-1.54731425-1.02815284-3.0951745-2.05548442-4.64355469-3.08203125-8.12349781-5.38681334-16.18231948-10.80560299-24.02392578-16.59765625-2.61820972-1.9065848-5.32477586-3.63804393-8.07299805-5.35058594C311.40262228 639.1997317 294.47087599 615.84666066 282 592l-1.02539062-1.91064453c-24.12065318-45.0013907-33.09144004-99.90457299-18.51025391-149.34863281C270.78706167 414.04308073 284.77640067 392.10235352 304 372l2.6484375-2.80859375C331.35549082 343.65112386 365.11760491 325.6032468 398 313c-4.0697847-4.32665474-8.52216694-7.81262197-13.3125-11.3125l-2.5012207-1.83007812C364.1442566 286.774905 345.4678359 274.84329831 326 264l-2.7890625-1.56103516c-36.67584365-20.3428157-76.99734052-33.18106202-117.01538086-45.20727539C198.58171391 214.92176671 191.28174225 212.20910115 184 209v-1c81.93781483 1.39776272 165.14427498 19.1961192 373.61328125 103.6171875 2.82148995 1.6347094 5.67538109 3.20355265 8.53588867 4.76855469C584.22467964 326.32185241 601.23180719 338.025809 618 350c1.45304292 1.03396952 2.90616447 2.06782857 4.359375 3.1015625C625.57796155 355.3940611 628.79095669 357.69416425 632 360l.79296875-1.71875c1.30484335-2.4661117 2.84366619-4.55171777 4.51953125-6.78125 10.23872379-14.53856205 13.41834654-31.75419374 11.21875-49.22265625C644.42741325 279.04669644 632.67062606 259.13196953 618 241l-1.46044922-1.81103516c-9.7066466-11.92211554-20.46512737-23.27383718-32.31689453-33.08740234L583 205zm102 197c3.89948368 13.32808602 16.48108844 25.75269544 26.33984375 35.28515625 2.70128299 2.79026643 5.0345251 5.86104118 7.4296875 8.9140625 2.94842381 3.70231151 6.01393947 7.2979338 9.08398437 10.89941406 3.020102 3.5499812 5.97309478 7.14578624 8.89648438 10.77636719 3.49082165 4.28818559 7.07303009 8.48258279 11.25 12.125h1c-1.11928414-23.50496687-12.46247679-43.37088891-29.3125-59.25C711.28193492 412.64797175 696.40146055 401 685 401M313 553c4.41164496 35.73432415 43.81716637 69.32934187 70 90 1.14950437.92836805 2.29787239 1.85814428 3.4453125 2.7890625 12.13627684 9.82307517 24.66408284 19.09008725 37.2421875 28.3359375C431.20479376 679.65129191 438.65085622 685.25156014 446 691l2.6640625 2.07421875C454.67180368 697.80787241 460.4072889 702.78304918 466 708l2.5 2.30078125c6.40634339 6.11605595 11.52093964 12.76373453 16.42626953 20.09619141.91249515 1.36231086 1.84813785 2.7090716 2.78857422 4.05224609C498.67285038 751.10422618 501.89032043 771.48494545 503 791c2.13023651-2.76423079 4.03654465-5.58501967 5.85546875-8.5625l1.62329102-2.64550781L512.1875 777c4.79085516-7.77565753 9.61946111-15.48479089 14.8125-23l1.29003906-1.87060547C538.56316017 737.27656029 549.37982884 722.82977926 561 709l1.36962891-1.64306641C584.64650634 680.67674683 584.64650634 680.67674683 598 674c-1.17624386-3.52873158-1.62575654-3.68843284-4.8125-5.3125-5.00595869-2.32450683-10.0734949-3.99278321-15.3515625-5.55859375l-2.65855408-.79168701C566.0055649 659.64703374 556.74482669 657.41394847 547.4375 655.25c-1.81605118-.42782034-3.63196586-.85622045-5.44775391-1.28515625-9.32774287-2.19842504-18.66532291-4.35210966-28.00927734-6.48046875C437.1696632 629.95775202 437.1696632 629.95775202 402 613l-2.13818359-1.01513672C377.32199195 601.25695346 356.483961 587.57151903 337 572l-2.88671875-2.30078125c-5.52543343-4.46196088-10.8318039-9.09835682-16.01953125-13.94921875-2.06668358-1.94418031-2.06668358-1.94418031-5.09375-2.75"/></svg>');
+      background-size: cover;
+      background-repeat: no-repeat;
+      background-position: center;
+      opacity: 0.35;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .calendar-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      min-height: 100vh;
+      background-color: rgba(31, 31, 31, 0.5);
+      position: relative;
+      z-index: 1;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+      flex-wrap: wrap;
+      gap: 15px;
+    }
+
+    .header h1 {
+      color: #ffffff;
+      font-weight: 700;
+      margin: 0;
+    }
+
+    .login-btn, .logout-btn {
+      background: linear-gradient(135deg, #0650f1 0%, #ba06f1 100%);
+      border: none;
+      color: white;
+      padding: 10px 25px;
+      border-radius: 25px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .login-btn:hover, .logout-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 20px rgba(6, 80, 241, 0.4);
+      color: white;
+      text-decoration: none;
+    }
+
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 15px;
+      background-color: rgba(43, 43, 64, 0.3);
+      border-radius: 15px;
+    }
+
+    .user-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+
+    .user-name {
+      color: #ffffff;
+      font-size: 14px;
+    }
+
+    .login-screen {
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background-color: rgba(31, 31, 31, 0.5);
+    }
+
+    .login-card {
+      border-radius: 20px;
+      background-color: rgba(43, 43, 64, 0.2);
+      box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+      padding: 50px;
+      text-align: center;
+      backdrop-filter: blur(10px);
+    }
+
+    .login-card h2 {
+      color: #ffffff;
+      margin-bottom: 30px;
+      font-weight: 700;
+    }
+
+    .login-card p {
+      color: #b0b0b0;
+      margin-bottom: 30px;
+    }
+
+    /* FullCalendar Dark Mode Styling */
+    .fc {
+      background-color: transparent;
+      color: #ffffff;
+    }
+
+    .fc .fc-button-primary {
+      background-color: #0650f1;
+      border-color: #0650f1;
+    }
+
+    .fc .fc-button-primary:hover {
+      background-color: #ba06f1;
+      border-color: #ba06f1;
+    }
+
+    .fc .fc-button-primary.fc-button-active {
+      background-color: #ba06f1;
+      border-color: #ba06f1;
+    }
+
+    .fc .fc-col-header-cell {
+      background-color: #2a2a3a;
+      border-color: #3a3a4a;
+      color: #ffffff;
+      font-weight: 600;
+    }
+
+    .fc .fc-daygrid-day {
+      background-color: rgba(31, 31, 31, 0.3);
+      border-color: #3a3a4a;
+    }
+
+    .fc .fc-daygrid-day-number {
+      color: #ffffff;
+      padding: 8px;
+    }
+
+    .fc .fc-daygrid-day.fc-day-other {
+      background-color: #161616;
+      opacity: 0.5;
+    }
+
+    .fc .fc-daygrid-day.fc-day-today {
+      background-color: rgba(6, 80, 241, 0.15);
+      border-color: #0650f1;
+    }
+
+    .fc .fc-event {
+      background-color: #0650f1;
+      border-color: #0650f1;
+      border-radius: 8px;
+    }
+
+    .fc .fc-event:hover {
+      background-color: #ba06f1;
+      border-color: #ba06f1;
+    }
+
+    .fc .fc-event-title {
+      color: #ffffff;
+      font-weight: 500;
+      padding: 2px 4px;
+    }
+
+    .fc .fc-timegrid-slot {
+      height: 3em;
+    }
+
+    .fc .fc-timegrid-cell {
+      border-color: #3a3a4a;
+    }
+
+    .fc .fc-timegrid-cell-label {
+      color: #808080;
+      font-size: 0.85em;
+    }
+
+    .fc .fc-daygrid-body {
+      border-color: #3a3a4a;
+    }
+
+    .fc .fc-popover {
+      background-color: #2a2a3a;
+      border-color: #3a3a4a;
+    }
+
+    #calendar {
+      background-color: #1f1f1f;
+      padding: 20px;
+      border-radius: 10px;
+      margin-bottom: 30px;
+      min-height: 700px !important;
+    }
+
+    .fc .fc-popover-header {
+      background-color: #3a3a4a;
+      color: #ffffff;
+    }
+
+    .fc .fc-popover-body {
+      color: #ffffff;
+    }
+
+    .fc-theme-standard td, .fc-theme-standard th {
+      border-color: #3a3a4a;
+    }
+
+    .events-list {
+      background-color: rgba(43, 43, 64, 0.2);
+      border-radius: 15px;
+      padding: 20px;
+      margin-top: 30px;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .events-list h3 {
+      color: #ffffff;
+      margin-bottom: 15px;
+      font-weight: 600;
+    }
+
+    .event-item {
+      background-color: rgba(6, 80, 241, 0.1);
+      border-left: 3px solid #0650f1;
+      padding: 12px;
+      margin-bottom: 10px;
+      border-radius: 5px;
+      color: #e0e0e0;
+      font-size: 14px;
+    }
+
+    .event-item-time {
+      color: #808080;
+      font-size: 12px;
+      margin-top: 5px;
+    }
+
+    .loading {
+      text-align: center;
+      color: #b0b0b0;
+      padding: 40px 20px;
+    }
+
+    .spinner {
+      border: 4px solid rgba(6, 80, 241, 0.2);
+      border-top: 4px solid #0650f1;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 20px;
+    }
+
+    #calendar {
+      min-height: 600px;
+      background-color: #1f1f1f;
+    }
+
+    .error-message {
+      background-color: rgba(239, 3, 38, 0.15);
+      border-left: 3px solid #ef0326;
+      color: #ff6b6b;
+      padding: 15px;
+      border-radius: 5px;
+      margin-bottom: 20px;
+    }
+
+    .success-message {
+      background-color: rgba(6, 80, 241, 0.15);
+      border-left: 3px solid #0650f1;
+      color: #7dd3fc;
+      padding: 15px;
+      border-radius: 5px;
+      margin-bottom: 20px;
+    }
+
+    /* Scrollbar styling */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 10px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: rgba(6, 80, 241, 0.5);
+      border-radius: 10px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(6, 80, 241, 0.8);
+    }
+
+    .install-btn:hover {
+      background-color: rgba(6, 80, 241, 0.1) !important;
+      border-color: #ba06f1 !important;
+      color: #ba06f1 !important;
+      transition: all 0.3s ease;
+    }
+
+    @media (max-width: 768px) {
+      .login-card {
+        padding: 30px 20px;
+      }
+
+      .header {
+        justify-content: center;
+      }
+
+      .fc-col-header-cell {
+        font-size: 0.75em;
+      }
+
+      .fc-daygrid-day-number {
+        font-size: 0.85em;
+      }
+    }
+
+    /* Mobile-specific improvements */
+    @media (max-width: 600px) {
+      .calendar-container {
+        padding: 12px;
+        min-height: auto;
+      }
+
+      .header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+      }
+
+      .header h1 {
+        font-size: 1.25rem;
+        margin-bottom: 0;
+      }
+
+      #userSection {
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      #calendar {
+        padding: 8px;
+        border-radius: 8px;
+        min-height: 480px;
+      }
+
+      .events-list {
+        margin-top: 16px;
+        max-height: 240px;
+        padding: 12px;
+      }
+
+      .fc .fc-button, .fc .fc-button-primary {
+        padding: 8px 10px;
+        font-size: 0.9rem;
+        border-radius: 8px;
+      }
+
+      .fc .fc-col-header-cell {
+        font-size: 0.72em;
+      }
+
+      .login-card {
+        padding: 20px;
+        width: 92vw;
+      }
+
+      .login-btn, .logout-btn {
+        padding: 12px 18px;
+        border-radius: 12px;
+        font-size: 15px;
+      }
+
+      /* Modal adjustments for small screens */
+      .event-modal {
+        max-width: 95vw !important;
+        width: 95vw !important;
+        padding: 18px !important;
+        border-radius: 12px !important;
+      }
+
+      .event-modal-buttons {
+        flex-direction: column !important;
+      }
+
+      .event-modal-buttons button {
+        width: 100% !important;
+        margin-bottom: 8px;
+      }
+
+      /* make background SVG less dominant on small screens */
+      body::before {
+        width: 110vmin;
+        height: 110vmin;
+        opacity: 0.2;
+      }
+
+      /* Move calendar title above the view switch (month/week/day) */
+      .fc .fc-toolbar {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        align-items: stretch;
+      }
+
+      .fc .fc-toolbar-chunk {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+      }
+
+      /* Ensure the center chunk (title) appears above the right chunk (view buttons) */
+      .fc .fc-toolbar-chunk:nth-child(1) { order: 1; }
+      .fc .fc-toolbar-chunk:nth-child(2) { order: 2; }
+      .fc .fc-toolbar-chunk:nth-child(3) { order: 3; }
+
+      .fc .fc-toolbar .fc-toolbar-chunk .fc-toolbar-title {
+        font-size: 1.15rem;
+        text-align: left;
+        flex: 1;
+      }
+
+      /* Push view buttons to the right on their row */
+      .fc .fc-toolbar-chunk:nth-child(3) {
+        justify-content: flex-end;
+      }
+
+      /* Make view buttons wrap nicely when space is tight */
+      .fc .fc-button-group, .fc .fc-button {
+        flex-wrap: wrap;
+      }
+    }
+  </style>
+</head>
+
+<body class="bg">
+  <!-- Login Screen -->
+  <div id="loginScreen" class="login-screen">
+    <div class="login-card">
+      <h2>📚 Study Calendar</h2>
+      <p>Sign in with your Google account to access your calendar</p>
+      <button id="googleLoginBtn" class="login-btn">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 8px; vertical-align: middle;">
+          <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"></path>
+          <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"></path>
+          <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"></path>
+          <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"></path>
+        </svg>
+        Sign in with Google
+      </button>
+    </div>
+  </div>
+
+  <!-- Calendar Screen -->
+  <div id="calendarScreen" style="display: none;">
+    <div class="calendar-container">
+      <div class="header">
+        <h1>📚 Study Calendar</h1>
+        <div id="userSection" style="display: flex; gap: 15px; align-items: center;">
+          <button id="installBtn" class="install-btn" style="display: none; background: transparent; border: 1px solid #0650f1; color: #0650f1; padding: 8px 12px; border-radius: 8px; font-size: 12px; cursor: pointer; transition: all 0.3s ease;">
+            📲 Install App
+          </button>
+          <div id="userInfo" class="user-info">
+            <img id="userAvatar" class="user-avatar" alt="User">
+            <span id="userName" class="user-name"></span>
+          </div>
+          <button id="logoutBtn" class="logout-btn">Logout</button>
+        </div>
+      </div>
+
+      <div id="messageContainer"></div>
+
+      <!-- Calendar -->
+      <div id="calendar" style="border: 2px solid #0650f1; background: transparent; min-height: 700px;"></div>
+
+      <!-- Upcoming Events -->
+      <div id="eventsList" class="events-list">
+        <h3>📅 Upcoming Events</h3>
+        <div id="upcomingEvents">
+          <p style="color: #808080;">Loading events...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Google API Script -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+  <!-- FullCalendar Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
+
+  <script>
+    // Configuration
+    // TODO: Replace GOOGLE_CLIENT_ID with your actual Client ID from Google Cloud Console
+    // Steps: https://console.cloud.google.com → Create Project → Enable Calendar API → Create OAuth 2.0 Credentials (Web Application)
+    const CONFIG = {
+      GOOGLE_CLIENT_ID: '65457419801-m2v4qp7vqce4hlrfmq4q7mg1q9rcv65d.apps.googleusercontent.com',
+      SCOPES: 'https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email'
+    };
+
+    // Global variables
+    let calendar;
+    let accessToken = null;
+    let userProfile = null;
+    let tokenClient;
+    let selectedEvent = null;
+    let selectedDateRange = null;
+    let formOpenTime = 0; // Debounce flag to prevent duplicate modals
+    const calendarColors = {
+      'primary': '#0650f1',
+      'secondary': '#ba06f1',
+      'work': '#ffa500',
+      'personal': '#00d084',
+      'travel': '#00bcd4',
+      'holiday': '#e67c73'
+    };
+
+    // Initialize Google Sign-In with proper error handling
+    function initializeGoogleSignIn() {
+      try {
+        // Check if Google API is loaded
+        if (!window.google || !window.google.accounts) {
+          console.warn('Google API not loaded yet, retrying...');
+          setTimeout(initializeGoogleSignIn, 500);
+          return;
+        }
+
+        // Initialize OAuth 2.0 token client
+        tokenClient = google.accounts.oauth2.initTokenClient({
+          client_id: CONFIG.GOOGLE_CLIENT_ID,
+          scope: CONFIG.SCOPES,
+          callback: handleTokenResponse
+        });
+
+        // Setup login button
+        const loginBtn = document.getElementById('googleLoginBtn');
+        if (loginBtn) {
+          loginBtn.addEventListener('click', requestAccessToken);
+          loginBtn.disabled = false;
+        }
+        
+        console.log('Google Sign-In initialized successfully');
+      } catch (e) {
+        console.error('Error initializing Google Sign-In:', e);
+        showMessage('Failed to initialize Google Sign-In. Please reload the page.', 'error');
+      }
+    }
+
+    // Request access token with PWA-friendly error handling
+    function requestAccessToken() {
+      try {
+        if (!tokenClient) {
+          console.error('Token client not initialized');
+          showMessage('Google Sign-In is not ready yet. Please wait a moment and try again.', 'error');
+          return;
+        }
+        
+        // Force new account selection by using prompt=consent
+        // This helps with PWA OAuth redirects
+        tokenClient.requestAccessToken({ 
+          prompt: 'consent',
+          hint: 'user@example.com' // Let user choose account
+        });
+      } catch (e) {
+        console.error('Error requesting token:', e);
+        showMessage('OAuth request failed. Please ensure Google Sign-In is properly configured.', 'error');
+      }
+    }
+
+    // Handle token response with PWA support
+    function handleTokenResponse(response) {
+      if (response.access_token) {
+        accessToken = response.access_token;
+        localStorage.setItem('googleAccessToken', accessToken);
+        const expiryTime = Date.now() + (response.expires_in * 1000);
+        localStorage.setItem('googleAccessTokenExpiry', expiryTime);
+        console.log('Token received, expires at:', new Date(expiryTime));
+        loginUser();
+      } else if (response.error) {
+        console.error('Token request error:', response.error);
+        const errorMsg = response.error === 'popup_closed_by_user' 
+          ? 'Login cancelled. Please try again.'
+          : `Failed to authenticate: ${response.error}`;
+        showMessage(errorMsg, 'error');
+      }
+    }
+
+    // Get stored access token
+    function getStoredAccessToken() {
+      const token = localStorage.getItem('googleAccessToken');
+      const expiry = localStorage.getItem('googleAccessTokenExpiry');
+      
+      if (token && expiry && Date.now() < parseInt(expiry)) {
+        accessToken = token;
+        return true;
+      }
+      
+      // Token expired or doesn't exist
+      localStorage.removeItem('googleAccessToken');
+      localStorage.removeItem('googleAccessTokenExpiry');
+      return false;
+    }
+
+    // Fetch user profile
+    async function fetchUserProfile() {
+      try {
+        if (!accessToken) {
+          throw new Error('No access token available');
+        }
+
+        const response = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+          headers: { 'Authorization': `Bearer ${accessToken}` }
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.text();
+          console.error('API Response:', errorData);
+          throw new Error(`Failed to fetch user profile: ${response.status} ${errorData}`);
+        }
+        
+        userProfile = await response.json();
+        console.log('User profile fetched:', userProfile);
+        updateUserInfo();
+        return true;
+      } catch (error) {
+        console.error('Error fetching user profile:', error);
+        showMessage('Failed to authenticate user: ' + error.message, 'error');
+        return false;
+      }
+    }
+
+    // Update user info display
+    function updateUserInfo() {
+      if (userProfile) {
+        document.getElementById('userName').textContent = userProfile.name;
+        document.getElementById('userAvatar').src = userProfile.picture;
+      }
+    }
+
+    // Fetch events from Google Calendar
+    async function fetchCalendarEvents() {
+      try {
+        const now = new Date();
+        const timeMin = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString();
+        const timeMax = new Date(now.getFullYear(), now.getMonth() + 2, 0).toISOString();
+
+        const response = await fetch(
+          `https://www.googleapis.com/calendar/v3/calendars/primary/events?` +
+          `timeMin=${encodeURIComponent(timeMin)}&` +
+          `timeMax=${encodeURIComponent(timeMax)}&` +
+          `maxResults=100&` +
+          `singleEvents=true&` +
+          `orderBy=startTime`,
+          {
+            headers: { 'Authorization': `Bearer ${accessToken}` }
+          }
+        );
+
+        if (!response.ok) throw new Error('Failed to fetch events');
+
+        const data = await response.json();
+        return data.items || [];
+      } catch (error) {
+        console.error('Error fetching events:', error);
+        showMessage('Failed to fetch calendar events', 'error');
+        return [];
+      }
+    }
+
+    // Create new event
+    async function createEvent(title, startDate, endDate) {
+      try {
+        if (!title) throw new Error('Event title is required');
+        if (!startDate) throw new Error('Start date is required');
+        if (!endDate) startDate;
+
+        const event = {
+          summary: title,
+          start: { dateTime: new Date(startDate).toISOString() },
+          end: { dateTime: new Date(endDate).toISOString() },
+          description: 'Created via Study Calendar'
+        };
+
+        const response = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(event)
+        });
+
+        if (!response.ok) throw new Error('Failed to create event');
+
+        const createdEvent = await response.json();
+        showMessage('Event created successfully!', 'success');
+        await refreshCalendar();
+        return createdEvent;
+      } catch (error) {
+        console.error('Error creating event:', error);
+        showMessage('Failed to create event: ' + error.message, 'error');
+        return null;
+      }
+    }
+
+    // Create new all-day event
+    async function createEventAllDay(title, startDate, endDate) {
+      try {
+        if (!title) throw new Error('Event title is required');
+        if (!startDate) throw new Error('Start date is required');
+        if (!endDate) endDate = startDate;
+
+        const event = {
+          summary: title,
+          start: { date: startDate },
+          end: { date: endDate },
+          description: 'Created via Study Calendar (All-day event)'
+        };
+
+        const response = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(event)
+        });
+
+        if (!response.ok) throw new Error('Failed to create event');
+
+        const createdEvent = await response.json();
+        showMessage('Event created successfully!', 'success');
+        await refreshCalendar();
+        return createdEvent;
+      } catch (error) {
+        console.error('Error creating event:', error);
+        showMessage('Failed to create event: ' + error.message, 'error');
+        return null;
+      }
+    }
+
+    // Update event
+    async function updateEvent(eventId, updatedData) {
+      try {
+        const response = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events/${eventId}`, {
+          method: 'PATCH',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(updatedData)
+        });
+
+        if (!response.ok) throw new Error('Failed to update event');
+
+        showMessage('Event updated successfully!', 'success');
+        await refreshCalendar();
+        return true;
+      } catch (error) {
+        console.error('Error updating event:', error);
+        showMessage('Failed to update event: ' + error.message, 'error');
+        return false;
+      }
+    }
+
+    // Delete event without confirmation
+    async function deleteEventWithoutConfirm(eventId) {
+      try {
+        console.log('Deleting event:', eventId);
+        const response = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events/${eventId}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${accessToken}` }
+        });
+
+        if (!response.ok) {
+          const errorData = await response.text();
+          throw new Error(`Failed to delete event: ${response.status} ${errorData}`);
+        }
+
+        console.log('Event deleted successfully');
+        showMessage('Event deleted successfully!', 'success');
+        await refreshCalendar();
+        return true;
+      } catch (error) {
+        console.error('Error deleting event:', error);
+        showMessage('Failed to delete event: ' + error.message, 'error');
+        return false;
+      }
+    }
+
+    // Delete event
+    async function deleteEvent(eventId) {
+      try {
+        if (!confirm('Are you sure you want to delete this event?')) return false;
+
+        const response = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events/${eventId}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${accessToken}` }
+        });
+
+        if (!response.ok) throw new Error('Failed to delete event');
+
+        showMessage('Event deleted successfully!', 'success');
+        await refreshCalendar();
+        return true;
+      } catch (error) {
+        console.error('Error deleting event:', error);
+        showMessage('Failed to delete event: ' + error.message, 'error');
+        return false;
+      }
+    }
+
+    // Refresh calendar
+    async function refreshCalendar() {
+      if (calendar) {
+        calendar.destroy();
+      }
+      await initializeCalendar();
+    }
+
+    // Initialize calendar
+    async function initializeCalendar() {
+      try {
+        console.log('=== Starting calendar initialization ===');
+        const calendarEl = document.getElementById('calendar');
+        console.log('Calendar element:', calendarEl);
+        console.log('FullCalendar available:', typeof FullCalendar);
+        
+        if (!calendarEl) {
+          console.error('ERROR: Calendar element not found in DOM');
+          showMessage('Calendar element not found', 'error');
+          return;
+        }
+
+        const events = await fetchCalendarEvents();
+        console.log('Events fetched:', events.length);
+        
+        // Format events for FullCalendar
+        const formattedEvents = events.map(event => ({
+          id: event.id,
+          title: event.summary || 'No title',
+          start: event.start.dateTime || event.start.date,
+          end: event.end.dateTime || event.end.date,
+          backgroundColor: '#0650f1',
+          borderColor: '#0650f1',
+          extendedProps: {
+            googleEventId: event.id,
+            description: event.description,
+            location: event.location
+          }
+        }));
+        
+        console.log('Formatted events:', formattedEvents);
+
+        // Destroy existing calendar if any
+        if (calendar) {
+          console.log('Destroying existing calendar');
+          calendar.destroy();
+          calendar = null;
+        }
+
+        console.log('Creating FullCalendar instance...');
+        
+        calendar = new FullCalendar.Calendar(calendarEl, {
+          initialView: 'dayGridMonth',
+          headerToolbar: {
+            left: 'prev,next today addEventBtn',
+            center: 'title',
+            right: 'dayGridMonth,timeGridWeek,timeGridDay'
+          },
+          customButtons: {
+            addEventBtn: {
+              text: '+ Add Event',
+              click: function() {
+                console.log('Add Event button clicked');
+                showEventForm();
+              }
+            }
+          },
+          height: 'auto',
+          contentHeight: 'auto',
+          selectable: true,
+            select: function(info) {
+              console.log('Date selected:', info.startStr, 'to', info.endStr);
+              selectedDateRange = {
+                start: info.start,
+                end: info.end
+              };
+              showEventForm();
+            },
+            // single-tap handler for mobile devices
+            dateClick: function(info) {
+              try {
+                console.log('Date clicked:', info.dateStr, info.date);
+                selectedDateRange = { start: info.date, end: info.date };
+                showEventForm();
+              } catch (e) {
+                console.error('dateClick handler error:', e);
+              }
+            },
+          eventClick: function(info) {
+            console.log('Event clicked:', info.event.title);
+            handleEventClick(info);
+          },
+          events: formattedEvents
+        });
+
+        console.log('Calendar instance created, now rendering...');
+        calendar.render();
+        console.log('Calendar rendered!');
+        
+        displayUpcomingEvents(events);
+        console.log('=== Calendar initialization COMPLETE ===');
+      } catch (error) {
+        console.error('ERROR in initializeCalendar:', error);
+        console.error('Error stack:', error.stack);
+        showMessage('Failed to initialize calendar: ' + error.message, 'error');
+      }
+    }
+
+    // Display upcoming events
+    function displayUpcomingEvents(events) {
+      const upcomingContainer = document.getElementById('upcomingEvents');
+      const now = new Date();
+      
+      const upcomingEvents = events
+        .filter(event => new Date(event.start.dateTime || event.start.date) > now)
+        .sort((a, b) => new Date(a.start.dateTime || a.start.date) - new Date(b.start.dateTime || b.start.date))
+        .slice(0, 10);
+
+      if (upcomingEvents.length === 0) {
+        upcomingContainer.innerHTML = '<p style="color: #808080;">No upcoming events</p>';
+        return;
+      }
+
+      upcomingContainer.innerHTML = upcomingEvents.map(event => {
+        const startTime = new Date(event.start.dateTime || event.start.date);
+        const timeStr = event.start.dateTime 
+          ? startTime.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+          : startTime.toLocaleString('en-US', { month: 'short', day: 'numeric' });
+
+        return `
+          <div class="event-item">
+            <strong>${event.summary || 'No title'}</strong>
+            <div class="event-item-time">${timeStr}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Handle event click
+    function handleEventClick(info) {
+      const event = info.event;
+      selectedEvent = event;
+      showEventForm(event);
+    }
+
+    // Handle date select
+    function handleDateSelect(info) {
+      selectedDateRange = {
+        start: info.start,
+        end: info.end
+      };
+      showEventForm();
+    }
+
+    // Show event form modal
+    function showEventForm(event = null) {
+      // Debounce: prevent duplicate modals within 100ms
+      const now = Date.now();
+      if (now - formOpenTime < 100) {
+        return;
+      }
+      formOpenTime = now;
+      
+      const title = event ? event.title : '';
+      // Local date helper to avoid UTC shifts
+      const dateToLocalYYYYMMDD = (d) => {
+        if (!d) return '';
+        const date = new Date(d);
+        const yyyy = date.getFullYear();
+        const mm = String(date.getMonth() + 1).padStart(2, '0');
+        const dd = String(date.getDate()).padStart(2, '0');
+        return `${yyyy}-${mm}-${dd}`;
+      };
+      const getLocalDateString = () => dateToLocalYYYYMMDD(new Date());
+
+      const startDate = event ? dateToLocalYYYYMMDD(event.start) : (selectedDateRange ? dateToLocalYYYYMMDD(selectedDateRange.start) : getLocalDateString());
+      const endDate = event ? dateToLocalYYYYMMDD(event.end) : startDate;
+      const isMultiDay = event ? (dateToLocalYYYYMMDD(event.end) !== dateToLocalYYYYMMDD(event.start)) : false;
+      const isAllDay = event ? true : true; // New events default to all-day
+
+      const modal = document.createElement('div');
+      modal.className = 'event-modal-overlay';
+      modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.7);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+      `;
+
+      const form = document.createElement('div');
+      form.className = 'event-modal';
+      form.style.cssText = `
+        background: #2a2a3a;
+        padding: 30px;
+        border-radius: 15px;
+        box-shadow: 0 5px 30px rgba(0,0,0,0.5);
+        max-width: 500px;
+        width: 90%;
+        color: #ffffff;
+      `;
+
+      form.innerHTML = `
+        <h3 style="margin-top: 0; color: #ffffff;">${event ? 'Edit Event' : 'Create Event'}</h3>
+        
+        <div style="margin-bottom: 15px;">
+          <label style="display: block; margin-bottom: 5px; color: #b0b0b0;">Event Title</label>
+          <input type="text" id="eventTitle" value="${title}" placeholder="Enter event title" style="
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #3a3a4a;
+            background: #1f1f1f;
+            color: #ffffff;
+            border-radius: 5px;
+            box-sizing: border-box;
+          ">
+        </div>
+
+        <div style="margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
+          <input type="checkbox" id="allDayCheckbox" ${isAllDay ? 'checked' : ''} style="cursor: pointer;">
+          <label for="allDayCheckbox" style="color: #b0b0b0; cursor: pointer; margin: 0;">All-day event (no specific time)</label>
+        </div>
+
+        <div style="margin-bottom: 15px;">
+          <label style="display: block; margin-bottom: 5px; color: #b0b0b0;">Start Date</label>
+          <input type="date" id="eventStart" value="${startDate}" style="
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #3a3a4a;
+            background: #1f1f1f;
+            color: #ffffff;
+            border-radius: 5px;
+            box-sizing: border-box;
+          ">
+        </div>
+
+        <div style="margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
+          <input type="checkbox" id="multiDayCheckbox" ${isMultiDay ? 'checked' : ''} style="cursor: pointer;">
+          <label for="multiDayCheckbox" style="color: #b0b0b0; cursor: pointer; margin: 0;">Multiple days</label>
+        </div>
+
+        <div id="endDateContainer" style="margin-bottom: 15px; display: ${isMultiDay ? 'block' : 'none'};">
+          <label style="display: block; margin-bottom: 5px; color: #b0b0b0;">End Date</label>
+          <input type="date" id="eventEnd" value="${endDate}" style="
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #3a3a4a;
+            background: #1f1f1f;
+            color: #ffffff;
+            border-radius: 5px;
+            box-sizing: border-box;
+          ">
+        </div>
+
+        <div id="startTimeContainer" style="margin-bottom: 15px; display: none;">
+          <label style="display: block; margin-bottom: 5px; color: #b0b0b0;">Start Time</label>
+          <input type="time" id="eventStartTime" style="
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #3a3a4a;
+            background: #1f1f1f;
+            color: #ffffff;
+            border-radius: 5px;
+            box-sizing: border-box;
+          ">
+        </div>
+
+        <div id="endTimeContainer" style="margin-bottom: 20px; display: none;">
+          <label style="display: block; margin-bottom: 5px; color: #b0b0b0;">End Time</label>
+          <input type="time" id="eventEndTime" style="
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #3a3a4a;
+            background: #1f1f1f;
+            color: #ffffff;
+            border-radius: 5px;
+            box-sizing: border-box;
+          ">
+        </div>
+
+        <div class="event-modal-buttons" style="display: flex; gap: 10px;">
+          <button id="saveEventBtn" style="
+            flex: 1;
+            padding: 10px;
+            background: linear-gradient(135deg, #0650f1 0%, #ba06f1 100%);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+          ">Save Event</button>
+          <button id="cancelBtn" style="
+            flex: 1;
+            padding: 10px;
+            background: #3a3a4a;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+          ">Cancel</button>
+          ${event ? `<button id="deleteEventBtn" style="
+            flex: 0.8;
+            padding: 10px;
+            background: #d32f2f;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+          ">Delete</button>` : ''}
+        </div>
+      `;
+
+      modal.appendChild(form);
+      document.body.appendChild(modal);
+
+      // Query buttons from within the form to avoid ID conflicts
+      const saveEventBtn = form.querySelector('#saveEventBtn');
+      const cancelBtn = form.querySelector('#cancelBtn');
+      const deleteBtn = form.querySelector('#deleteEventBtn');
+      
+      // Get checkboxes from form
+      const allDayCheckbox = form.querySelector('#allDayCheckbox');
+      const multiDayCheckbox = form.querySelector('#multiDayCheckbox');
+      const startTimeContainer = form.querySelector('#startTimeContainer');
+      const endTimeContainer = form.querySelector('#endTimeContainer');
+      const endDateContainer = form.querySelector('#endDateContainer');
+
+      // Handle all-day checkbox
+      if (allDayCheckbox) {
+        allDayCheckbox.addEventListener('change', () => {
+          if (allDayCheckbox.checked) {
+            startTimeContainer.style.display = 'none';
+            endTimeContainer.style.display = 'none';
+          } else {
+            startTimeContainer.style.display = 'block';
+            endTimeContainer.style.display = 'block';
+          }
+        });
+      }
+
+      // Handle multi-day checkbox
+      if (multiDayCheckbox) {
+        multiDayCheckbox.addEventListener('change', () => {
+          if (multiDayCheckbox.checked) {
+            endDateContainer.style.display = 'block';
+          } else {
+            endDateContainer.style.display = 'none';
+            // Reset end date to start date when unchecking
+            const eventEnd = form.querySelector('#eventEnd');
+            const eventStart = form.querySelector('#eventStart');
+            if (eventEnd && eventStart) {
+              eventEnd.value = eventStart.value;
+            }
+          }
+        });
+      }
+
+      // Save button handler
+      if (saveEventBtn) {
+        saveEventBtn.addEventListener('click', async () => {
+          try {
+            const titleInput = form.querySelector('#eventTitle').value;
+            const startDateInput = form.querySelector('#eventStart').value;
+            let endDateInput = form.querySelector('#eventEnd').value;
+
+            if (!titleInput || !startDateInput) {
+              showMessage('Please fill in all fields', 'error');
+              return;
+            }
+
+            // If multi-day is not checked, end date equals start date
+            if (!multiDayCheckbox.checked) {
+              endDateInput = startDateInput;
+            }
+
+            if (!endDateInput) {
+              showMessage('Please select an end date', 'error');
+              return;
+            }
+
+            let startDateTime, endDateTime;
+
+            if (allDayCheckbox.checked) {
+              // All-day event
+              startDateTime = startDateInput;
+              endDateTime = endDateInput;
+            } else {
+              // Timed event
+              const startTimeInput = form.querySelector('#eventStartTime').value;
+              const endTimeInput = form.querySelector('#eventEndTime').value;
+              
+              if (!startTimeInput || !endTimeInput) {
+                showMessage('Please fill in all time fields', 'error');
+                return;
+              }
+              
+              startDateTime = new Date(startDateInput + 'T' + startTimeInput).toISOString();
+              endDateTime = new Date(endDateInput + 'T' + endTimeInput).toISOString();
+            }
+
+            if (event) {
+              // Update existing event
+              const eventData = {
+                summary: titleInput,
+                start: allDayCheckbox.checked ? { date: startDateTime } : { dateTime: startDateTime },
+                end: allDayCheckbox.checked ? { date: endDateTime } : { dateTime: endDateTime }
+              };
+              await updateEvent(event.extendedProps.googleEventId, eventData);
+            } else {
+              // Create new event
+              if (allDayCheckbox.checked) {
+                await createEventAllDay(titleInput, startDateTime, endDateTime);
+              } else {
+                await createEvent(titleInput, startDateTime, endDateTime);
+              }
+            }
+
+            // Safely remove modal
+            if (modal && modal.parentNode) {
+              modal.parentNode.removeChild(modal);
+            }
+            selectedDateRange = null;
+            selectedEvent = null;
+          } catch (e) {
+            console.error('Error saving event:', e);
+            showMessage('Error saving event: ' + e.message, 'error');
+          }
+        });
+      }
+
+      // Cancel button handler
+      if (cancelBtn) {
+        cancelBtn.addEventListener('click', () => {
+          try {
+            if (modal && modal.parentNode) {
+              modal.parentNode.removeChild(modal);
+            }
+            selectedDateRange = null;
+            selectedEvent = null;
+          } catch (e) {
+            console.error('Error closing modal:', e);
+            // Fallback: hide modal if removal fails
+            if (modal) modal.style.display = 'none';
+          }
+        });
+      }
+
+      // Delete button handler
+      if (deleteBtn) {
+        deleteBtn.addEventListener('click', async () => {
+          if (confirm('Are you sure you want to delete this event?')) {
+            await deleteEventWithoutConfirm(event.extendedProps.googleEventId);
+            if (modal && modal.parentNode) {
+              modal.parentNode.removeChild(modal);
+            }
+          }
+        });
+      }
+    }
+
+    // Handle dates set
+    function handleDatesSet(info) {
+      console.log('Calendar dates changed', info);
+    }
+
+    // Show message
+    function showMessage(message, type = 'info') {
+      const container = document.getElementById('messageContainer');
+      const messageClass = type === 'error' ? 'error-message' : 'success-message';
+      container.innerHTML = `<div class="${messageClass}">${message}</div>`;
+      setTimeout(() => {
+        container.innerHTML = '';
+      }, 5000);
+    }
+
+    // Login flow
+    async function loginUser() {
+      try {
+        document.getElementById('loginScreen').style.display = 'none';
+        document.getElementById('calendarScreen').style.display = 'block';
+
+        console.log('Fetching user profile...');
+        if (!await fetchUserProfile()) {
+          console.error('Failed to fetch user profile');
+          showMessage('Failed to authenticate. Please log in again.', 'error');
+          setTimeout(() => logout(), 2000);
+          return;
+        }
+
+        console.log('Initializing calendar...');
+        await initializeCalendar();
+        showMessage('Welcome! Your calendar is loaded.', 'success');
+      } catch (error) {
+        console.error('Login error:', error);
+        showMessage('Login failed: ' + error.message, 'error');
+        setTimeout(() => logout(), 2000);
+      }
+    }
+
+    // Logout
+    function logout() {
+      accessToken = null;
+      userProfile = null;
+      localStorage.removeItem('googleAccessToken');
+      localStorage.removeItem('googleAccessTokenExpiry');
+      document.getElementById('loginScreen').style.display = 'flex';
+      document.getElementById('calendarScreen').style.display = 'none';
+      document.getElementById('messageContainer').innerHTML = '';
+      if (calendar) calendar.destroy();
+      
+      // Revoke token if possible
+      if (accessToken) {
+        google.accounts.oauth2.revoke(accessToken);
+      }
+      
+      showMessage('Logged out successfully. You can now sign in with a different account.', 'success');
+    }
+
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', () => {
+      initializeGoogleSignIn();
+
+      // Check if already authenticated (with valid token)
+      if (getStoredAccessToken()) {
+        loginUser();
+      }
+
+      // Logout button handler
+      document.getElementById('logoutBtn').addEventListener('click', logout);
+
+      // PWA Install functionality
+      initializePWAInstall();
+    });
+
+    // PWA Install handler
+    let deferredPrompt;
+    function initializePWAInstall() {
+      const installBtn = document.getElementById('installBtn');
+      
+      // Listen for install prompt
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        // Show install button
+        installBtn.style.display = 'block';
+        installBtn.addEventListener('click', installPWA);
+      });
+
+      // Hide button if already installed
+      window.addEventListener('appinstalled', () => {
+        installBtn.style.display = 'none';
+        deferredPrompt = null;
+      });
+
+      // Check if already installed (PWA mode)
+      if (window.matchMedia('(display-mode: standalone)').matches) {
+        installBtn.style.display = 'none';
+      }
+    }
+
+    async function installPWA() {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        console.log(`User response to install prompt: ${outcome}`);
+        deferredPrompt = null;
+        document.getElementById('installBtn').style.display = 'none';
+      }
+    }
+
+    // Service Worker registration for PWA
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').then(reg => {
+          console.log('Service Worker registered:', reg);
+        }).catch(err => {
+          console.log('Service Worker registration failed:', err);
+        });
+      });
+    }
+
+    // Fix OAuth in PWA context: ensure redirects work properly
+    // For PWA, we need to handle OAuth differently
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+      console.log('App running as PWA - OAuth handling optimized');
+    }
+  </script>
+</body>
+
+</html>

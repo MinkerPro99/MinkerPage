@@ -1,0 +1,55 @@
+{
+  "name": "Study Calendar",
+  "short_name": "Calendar",
+  "description": "A dark-themed study calendar with Google Calendar integration",
+  "start_url": "/pages/studyCallendar.html",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#1f1f1f",
+  "theme_color": "#232329",
+  "scope": "/pages/",
+  "icons": [
+    {
+      "src": "/img/1kIcon.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/img/1kIcon.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/img/1kIcon.png",
+      "sizes": "540x720",
+      "type": "image/png",
+      "form_factor": "narrow"
+    },
+    {
+      "src": "/img/1kIcon.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide"
+    }
+  ],
+  "categories": ["productivity"],
+  "shortcuts": [
+    {
+      "name": "Add Event",
+      "short_name": "Add",
+      "description": "Create a new study event",
+      "url": "/pages/studyCallendar.html?action=add",
+      "icons": [
+        {
+          "src": "/img/1kIcon.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
+  ]
+}

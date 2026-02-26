@@ -1,0 +1,18 @@
+{
+  "theme_color": "#FFFFFF",
+  "background_color": "#1f1f1f",
+  "icons": [
+    {
+      "src": "/img/1kIcon.png",
+      "type": "image/png",
+      "sizes": "1024x1024"
+    }
+  ],
+  "orientation": "portrait",
+  "display": "standalone",
+  "dir": "auto",
+  "lang": "en-US",
+  "start_url": "/",
+  "name": "MinkerApp",
+  "short_name": "Minker"
+}
