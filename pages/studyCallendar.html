@@ -564,6 +564,15 @@
     let selectedEvent = null;
     let selectedDateRange = null;
     let formOpenTime = 0; // Debounce flag to prevent duplicate modals
+    let loggedIn = false; // track whether initial login flow has completed
+
+    // promise helpers for token requests
+    let tokenRequestPromiseResolve = null;
+    let tokenRequestPromiseReject = null;
+
+    // configure a long client‑side lifetime (30 days) rather than the 1h
+    const TOKEN_LIFETIME_MS = 30 * 24 * 60 * 60 * 1000;
+
     const calendarColors = {
       'primary': '#0650f1',
       'secondary': '#ba06f1',
@@ -593,7 +602,8 @@
         // Setup login button
         const loginBtn = document.getElementById('googleLoginBtn');
         if (loginBtn) {
-          loginBtn.addEventListener('click', requestAccessToken);
+          // when user clicks login, prompt for consent to ensure fresh token
+          loginBtn.addEventListener('click', () => requestAccessToken({ prompt: 'consent', hint: 'user@example.com' }));
           loginBtn.disabled = false;
         }
         
@@ -604,37 +614,38 @@
       }
     }
 
-    // Request access token with PWA-friendly error handling
-    function requestAccessToken() {
-      try {
-        if (!tokenClient) {
-          console.error('Token client not initialized');
-          showMessage('Google Sign-In is not ready yet. Please wait a moment and try again.', 'error');
-          return;
-        }
-        
-        // Force new account selection by using prompt=consent
-        // This helps with PWA OAuth redirects
-        tokenClient.requestAccessToken({ 
-          prompt: 'consent',
-          hint: 'user@example.com' // Let user choose account
-        });
-      } catch (e) {
-        console.error('Error requesting token:', e);
-        showMessage('OAuth request failed. Please ensure Google Sign-In is properly configured.', 'error');
-      }
-    }
+    // Note: requestAccessToken is defined further down and returns a promise.  The
+    // login button handler will call it with the appropriate options.
+    // This comment replaces the old synchronous helper.
 
     // Handle token response with PWA support
     function handleTokenResponse(response) {
       if (response.access_token) {
+        // save the token and apply our own 30‑day expiry
         accessToken = response.access_token;
         localStorage.setItem('googleAccessToken', accessToken);
-        const expiryTime = Date.now() + (response.expires_in * 1000);
+        const expiryTime = Date.now() + TOKEN_LIFETIME_MS;
         localStorage.setItem('googleAccessTokenExpiry', expiryTime);
-        console.log('Token received, expires at:', new Date(expiryTime));
-        loginUser();
+        console.log('Token received, client will treat it as valid until:', new Date(expiryTime));
+
+        // resolve any pending promise (used by refresh logic)
+        if (tokenRequestPromiseResolve) {
+          tokenRequestPromiseResolve(response.access_token);
+          tokenRequestPromiseResolve = null;
+          tokenRequestPromiseReject = null;
+        }
+
+        // perform the login flow the first time only
+        if (!loggedIn) {
+          loginUser();
+        }
       } else if (response.error) {
+        if (tokenRequestPromiseReject) {
+          tokenRequestPromiseReject(response.error);
+          tokenRequestPromiseResolve = null;
+          tokenRequestPromiseReject = null;
+        }
+
         console.error('Token request error:', response.error);
         const errorMsg = response.error === 'popup_closed_by_user' 
           ? 'Login cancelled. Please try again.'
@@ -643,7 +654,7 @@
       }
     }
 
-    // Get stored access token
+    // Get stored access token (with our extended client expiry)
     function getStoredAccessToken() {
       const token = localStorage.getItem('googleAccessToken');
       const expiry = localStorage.getItem('googleAccessTokenExpiry');
@@ -659,9 +670,42 @@
       return false;
     }
 
+    // Ensure we have a valid token before any API call.
+    async function refreshTokenIfNeeded() {
+      const expiry = localStorage.getItem('googleAccessTokenExpiry');
+      if (!accessToken || !expiry || Date.now() >= parseInt(expiry)) {
+        console.log('Access token expired or missing, refreshing silently');
+        try {
+          await requestAccessToken({ prompt: '' });
+        } catch (e) {
+          console.warn('Silent token refresh failed:', e);
+        }
+      }
+    }
+
+    // wrapper around tokenClient.requestAccessToken that returns a promise
+    function requestAccessToken(options = {}) {
+      return new Promise((resolve, reject) => {
+        if (!tokenClient) {
+          reject(new Error('Token client not initialized'));
+          return;
+        }
+        tokenRequestPromiseResolve = resolve;
+        tokenRequestPromiseReject = reject;
+        try {
+          tokenClient.requestAccessToken(options);
+        } catch (err) {
+          tokenRequestPromiseResolve = null;
+          tokenRequestPromiseReject = null;
+          reject(err);
+        }
+      });
+    }
+
     // Fetch user profile
     async function fetchUserProfile() {
       try {
+        await refreshTokenIfNeeded();
         if (!accessToken) {
           throw new Error('No access token available');
         }
@@ -673,6 +717,11 @@
         if (!response.ok) {
           const errorData = await response.text();
           console.error('API Response:', errorData);
+          if (response.status === 401) {
+            // token likely died on server side, try refreshing once more
+            await requestAccessToken({ prompt: '' });
+            return fetchUserProfile();
+          }
           throw new Error(`Failed to fetch user profile: ${response.status} ${errorData}`);
         }
         
@@ -698,6 +747,7 @@
     // Fetch events from Google Calendar
     async function fetchCalendarEvents() {
       try {
+        await refreshTokenIfNeeded();
         const now = new Date();
         const timeMin = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString();
         const timeMax = new Date(now.getFullYear(), now.getMonth() + 2, 0).toISOString();
@@ -714,7 +764,14 @@
           }
         );
 
-        if (!response.ok) throw new Error('Failed to fetch events');
+        if (!response.ok) {
+          if (response.status === 401) {
+            // token likely expired on Google's side, try a silent refresh once
+            await requestAccessToken({ prompt: '' });
+            return fetchCalendarEvents();
+          }
+          throw new Error('Failed to fetch events');
+        }
 
         const data = await response.json();
         return data.items || [];
@@ -728,6 +785,7 @@
     // Create new event
     async function createEvent(title, startDate, endDate) {
       try {
+        await refreshTokenIfNeeded();
         if (!title) throw new Error('Event title is required');
         if (!startDate) throw new Error('Start date is required');
         if (!endDate) startDate;
@@ -748,7 +806,13 @@
           body: JSON.stringify(event)
         });
 
-        if (!response.ok) throw new Error('Failed to create event');
+        if (!response.ok) {
+          if (response.status === 401) {
+            await requestAccessToken({ prompt: '' });
+            return createEvent(title, startDate, endDate);
+          }
+          throw new Error('Failed to create event');
+        }
 
         const createdEvent = await response.json();
         showMessage('Event created successfully!', 'success');
@@ -764,6 +828,7 @@
     // Create new all-day event
     async function createEventAllDay(title, startDate, endDate) {
       try {
+        await refreshTokenIfNeeded();
         if (!title) throw new Error('Event title is required');
         if (!startDate) throw new Error('Start date is required');
         if (!endDate) endDate = startDate;
@@ -784,7 +849,13 @@
           body: JSON.stringify(event)
         });
 
-        if (!response.ok) throw new Error('Failed to create event');
+        if (!response.ok) {
+          if (response.status === 401) {
+            await requestAccessToken({ prompt: '' });
+            return createEventAllDay(title, startDate, endDate);
+          }
+          throw new Error('Failed to create event');
+        }
 
         const createdEvent = await response.json();
         showMessage('Event created successfully!', 'success');
@@ -800,6 +871,7 @@
     // Update event
     async function updateEvent(eventId, updatedData) {
       try {
+        await refreshTokenIfNeeded();
         const response = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events/${eventId}`, {
           method: 'PATCH',
           headers: {
@@ -809,7 +881,13 @@
           body: JSON.stringify(updatedData)
         });
 
-        if (!response.ok) throw new Error('Failed to update event');
+        if (!response.ok) {
+          if (response.status === 401) {
+            await requestAccessToken({ prompt: '' });
+            return updateEvent(eventId, updatedData);
+          }
+          throw new Error('Failed to update event');
+        }
 
         showMessage('Event updated successfully!', 'success');
         await refreshCalendar();
@@ -824,6 +902,7 @@
     // Delete event without confirmation
     async function deleteEventWithoutConfirm(eventId) {
       try {
+        await refreshTokenIfNeeded();
         console.log('Deleting event:', eventId);
         const response = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events/${eventId}`, {
           method: 'DELETE',
@@ -831,6 +910,10 @@
         });
 
         if (!response.ok) {
+          if (response.status === 401) {
+            await requestAccessToken({ prompt: '' });
+            return deleteEventWithoutConfirm(eventId);
+          }
           const errorData = await response.text();
           throw new Error(`Failed to delete event: ${response.status} ${errorData}`);
         }
@@ -849,6 +932,7 @@
     // Delete event
     async function deleteEvent(eventId) {
       try {
+        await refreshTokenIfNeeded();
         if (!confirm('Are you sure you want to delete this event?')) return false;
 
         const response = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events/${eventId}`, {
@@ -1043,9 +1127,18 @@
       };
       const getLocalDateString = () => dateToLocalYYYYMMDD(new Date());
 
+      // derive start/end values; if the FullCalendar event has no `end` or it
+      // equals the start date we treat it as a single‑day event.
       const startDate = event ? dateToLocalYYYYMMDD(event.start) : (selectedDateRange ? dateToLocalYYYYMMDD(selectedDateRange.start) : getLocalDateString());
-      const endDate = event ? dateToLocalYYYYMMDD(event.end) : startDate;
-      const isMultiDay = event ? (dateToLocalYYYYMMDD(event.end) !== dateToLocalYYYYMMDD(event.start)) : false;
+      let endDate = startDate;
+      if (event && event.end) {
+        const ed = dateToLocalYYYYMMDD(event.end);
+        endDate = ed || startDate;
+      }
+
+      const isMultiDay = event && event.end
+        ? (dateToLocalYYYYMMDD(event.end) !== dateToLocalYYYYMMDD(event.start))
+        : false;
       const isAllDay = event ? true : true; // New events default to all-day
 
       const modal = document.createElement('div');
@@ -1353,6 +1446,7 @@
     // Login flow
     async function loginUser() {
       try {
+        loggedIn = true;
         document.getElementById('loginScreen').style.display = 'none';
         document.getElementById('calendarScreen').style.display = 'block';
 
@@ -1378,6 +1472,7 @@
     function logout() {
       accessToken = null;
       userProfile = null;
+      loggedIn = false;
       localStorage.removeItem('googleAccessToken');
       localStorage.removeItem('googleAccessTokenExpiry');
       document.getElementById('loginScreen').style.display = 'flex';
