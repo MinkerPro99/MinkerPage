@@ -639,25 +639,25 @@
     // Handle token response with PWA support
     function handleTokenResponse(response) {
       if (response.access_token) {
-        // save the token and apply our own 30‑day expiry
         accessToken = response.access_token;
         localStorage.setItem('googleAccessToken', accessToken);
-        const expiryTime = Date.now() + TOKEN_LIFETIME_MS;
-        localStorage.setItem('googleAccessTokenExpiry', expiryTime);
-        console.log('Token received, client will treat it as valid until:', new Date(expiryTime));
+        
+        // Use Google's actual expiry (convert seconds to ms)
+        const actualExpiryTime = Date.now() + (response.expires_in * 1000);
+        localStorage.setItem('googleAccessTokenExpiry', actualExpiryTime);
+        
+        console.log('Token expires at:', new Date(actualExpiryTime).toLocaleTimeString());
 
-        // resolve any pending promise (used by refresh logic)
         if (tokenRequestPromiseResolve) {
           tokenRequestPromiseResolve(response.access_token);
           tokenRequestPromiseResolve = null;
-          tokenRequestPromiseReject = null;
         }
 
-        // perform the login flow the first time only
         if (!loggedIn) {
           loginUser();
         }
-      } else if (response.error) {
+      }
+        else if (response.error) {
         if (tokenRequestPromiseReject) {
           tokenRequestPromiseReject(response.error);
           tokenRequestPromiseResolve = null;
@@ -669,6 +669,18 @@
           ? 'Login cancelled. Please try again.'
           : `Failed to authenticate: ${response.error}`;
         showMessage(errorMsg, 'error');
+      }
+    }
+
+    async function checkExistingAuth() {
+      if (getStoredAccessToken()) {
+        // We have a token in storage, let's try to use it
+        const success = await fetchUserProfile();
+        if (success) {
+          loggedIn = true;
+          showCalendar();
+          refreshCalendar();
+        }
       }
     }
 
@@ -689,14 +701,15 @@
     }
 
     // Ensure we have a valid token before any API call.
-    async function refreshTokenIfNeeded() {
+   async function refreshTokenIfNeeded() {
       const expiry = localStorage.getItem('googleAccessTokenExpiry');
-      if (!accessToken || !expiry || Date.now() >= parseInt(expiry)) {
-        console.log('Access token expired or missing, refreshing silently');
+      if (!accessToken || !expiry || Date.now() >= (parseInt(expiry) - 300000)) {
+        console.log('Access token near expiry, refreshing silently...');
         try {
-          await requestAccessToken({ prompt: '' });
+          await requestAccessToken({ prompt: '' }); 
         } catch (e) {
-          console.warn('Silent token refresh failed:', e);
+          console.error('Silent refresh failed. User intervention may be required.', e);
+          logoutUser();
         }
       }
     }
@@ -1527,6 +1540,7 @@
     // Initialize on page load
     document.addEventListener('DOMContentLoaded', () => {
       initializeGoogleSignIn();
+      checkExistingAuth();
 
       // Check if already authenticated (with valid token)
       if (getStoredAccessToken()) {
