@@ -280,6 +280,16 @@
       font-size: 14px;
     }
 
+    .event-item-exam {
+      background-color: rgba(241, 155, 6, 0.1);
+      border-left: 3px solid #f19b06;
+      padding: 12px;
+      margin-bottom: 10px;
+      border-radius: 5px;
+      color: #e0e0e0;
+      font-size: 14px;
+    }
+
     .event-item-time {
       color: #808080;
       font-size: 12px;
@@ -978,19 +988,25 @@
         console.log('Events fetched:', events.length);
         
         // Format events for FullCalendar
-        const formattedEvents = events.map(event => ({
-          id: event.id,
-          title: event.summary || 'No title',
-          start: event.start.dateTime || event.start.date,
-          end: event.end.dateTime || event.end.date,
-          backgroundColor: '#0650f1',
-          borderColor: '#0650f1',
-          extendedProps: {
-            googleEventId: event.id,
-            description: event.description,
-            location: event.location
-          }
-        }));
+        const formattedEvents = events.map(event => {
+          const isExam = event.summary && event.summary.includes("Prüfung");
+          
+          const eventColor = isExam ? '#f19b06' : '#0650f1';
+
+          return {
+            id: event.id,
+            title: event.summary || 'No title',
+            start: event.start.dateTime || event.start.date,
+            end: event.end.dateTime || event.end.date,
+            backgroundColor: eventColor,
+            borderColor: eventColor,
+            extendedProps: {
+              googleEventId: event.id,
+              description: event.description,
+              location: event.location
+            }
+          };
+        });
         
         console.log('Formatted events:', formattedEvents);
 
@@ -1081,12 +1097,24 @@
           ? startTime.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
           : startTime.toLocaleString('en-US', { month: 'short', day: 'numeric' });
 
+        if (event.summary.includes("Prüfung"))
+      {
+        return `
+          <div class="event-item-exam">
+            <strong>${event.summary || 'No title'}</strong>
+            <div class="event-item-time">${timeStr}</div>
+          </div>
+        `;
+      }
+      else
+      {
         return `
           <div class="event-item">
             <strong>${event.summary || 'No title'}</strong>
             <div class="event-item-time">${timeStr}</div>
           </div>
         `;
+      }
       }).join('');
     }
 
