@@ -1,0 +1,43 @@
+### Health check
+GET http://127.0.0.1:5050/api/health-db
+
+### Register user (run once)
+POST http://127.0.0.1:5050/api/auth/register
+Content-Type: application/json
+
+{
+  "username": "minker",
+  "password": "Init.1234"
+}
+
+### Login user
+POST http://127.0.0.1:5050/api/auth/login
+Content-Type: application/json
+
+{
+  "username": "minker",
+  "password": "Init.1234"
+}
+
+### Copy returned token and paste it in the Authorization header below
+
+### Who am I
+GET http://127.0.0.1:5050/api/auth/me
+Authorization: Bearer REPLACE_WITH_TOKEN
+
+### List events
+GET http://127.0.0.1:5050/api/events
+Authorization: Bearer REPLACE_WITH_TOKEN
+
+### Create all-day event
+POST http://127.0.0.1:5050/api/events
+Content-Type: application/json
+Authorization: Bearer REPLACE_WITH_TOKEN
+
+{
+  "title": "Local DB test event",
+  "start_date": "2026-03-08",
+  "end_date": "2026-03-08",
+  "description": "Created via LOCAL_API_TESTS.http",
+  "color_hex": "#0650f1"
+}

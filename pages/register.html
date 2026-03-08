@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" type="image/png" href="/img/1kIcon.png">
+  <meta name="theme-color" content="#232329">
+  <title>Register - Study Calendar</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background: radial-gradient(circle at 20% 20%, #2a2a3a 0%, #1a1a1a 40%, #111 100%);
+      color: #fff;
+      font-family: Roboto, sans-serif;
+    }
+
+    .card {
+      width: min(420px, 92vw);
+      background: rgba(20, 20, 28, 0.92);
+      border: 1px solid #2f2f44;
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+    }
+
+    .title {
+      margin: 0 0 8px;
+      font-size: 1.4rem;
+      font-weight: 700;
+    }
+
+    .subtitle {
+      margin: 0 0 18px;
+      color: #b7b7cc;
+      font-size: 0.95rem;
+    }
+
+    .field {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 11px 12px;
+      margin-bottom: 12px;
+      border-radius: 8px;
+      border: 1px solid #3a3a4a;
+      background: #16161f;
+      color: #fff;
+    }
+
+    .btn {
+      width: 100%;
+      border: 0;
+      border-radius: 10px;
+      padding: 11px 12px;
+      background: linear-gradient(135deg, #0650f1 0%, #6c36f1 50%, #ba06f1 100%);
+      color: #fff;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .hint {
+      margin-top: 12px;
+      font-size: 0.9rem;
+      color: #9db5ff;
+      text-align: center;
+    }
+
+    .hint a {
+      color: #9db5ff;
+      text-decoration: none;
+    }
+
+    .msg {
+      min-height: 22px;
+      margin-bottom: 8px;
+      font-size: 0.9rem;
+      color: #f6a7a7;
+    }
+
+    .msg.ok {
+      color: #8ef0b7;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="card">
+    <h1 class="title">Create Account</h1>
+    <p class="subtitle">Register once, then login in your study calendar.</p>
+
+    <div id="msg" class="msg"></div>
+
+    <input id="username" class="field" type="text" placeholder="Username" minlength="3" />
+    <input id="password" class="field" type="password" placeholder="Password (min 6 chars)" minlength="6" />
+
+    <button id="registerBtn" class="btn">Register</button>
+
+    <div class="hint">
+      <a href="./studyCallendar.html">Back to login</a>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE_URL = localStorage.getItem('calendarApiBase') || '/api';
+
+    const msgEl = document.getElementById('msg');
+    const usernameEl = document.getElementById('username');
+    const passwordEl = document.getElementById('password');
+    const registerBtn = document.getElementById('registerBtn');
+
+    function setMessage(text, ok = false) {
+      msgEl.textContent = text;
+      msgEl.className = ok ? 'msg ok' : 'msg';
+    }
+
+    async function register() {
+      const username = usernameEl.value.trim();
+      const password = passwordEl.value;
+
+      if (username.length < 3) {
+        setMessage('Username must be at least 3 characters.');
+        return;
+      }
+
+      if (password.length < 6) {
+        setMessage('Password must be at least 6 characters.');
+        return;
+      }
+
+      registerBtn.disabled = true;
+      setMessage('Creating account...');
+
+      try {
+        const response = await fetch(`${API_BASE_URL}/auth/register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.error || 'Registration failed');
+        }
+
+        setMessage('Account created. Redirecting to login...', true);
+        setTimeout(() => {
+          window.location.href = './studyCallendar.html';
+        }, 900);
+      } catch (error) {
+        setMessage(error.message || 'Registration failed');
+      } finally {
+        registerBtn.disabled = false;
+      }
+    }
+
+    registerBtn.addEventListener('click', register);
+    passwordEl.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        register();
+      }
+    });
+  </script>
+</body>
+
+</html>
