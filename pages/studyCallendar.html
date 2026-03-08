@@ -298,6 +298,16 @@
       font-size: 14px;
     }
 
+    .event-item-vacation {
+      background-color: rgba(46, 204, 133, 0.1);
+      border-left: 3px solid #2ecc71;
+      padding: 12px;
+      margin-bottom: 10px;
+      border-radius: 5px;
+      color: #e0e0e0;
+      font-size: 14px;
+    }
+
     .event-item-time {
       color: #808080;
       font-size: 12px;
@@ -887,9 +897,10 @@
         
         // Format events for FullCalendar
         const formattedEvents = events.map(event => {
-          const isExam = event.summary && event.summary.includes("Prüfung");
-          
-          const eventColor = isExam ? '#f19b06' : '#0650f1';
+          const summaryText = (event.summary || '').toLowerCase();
+          const isExam = summaryText.includes('prüfung');
+          const isVacation = summaryText.includes('ferien');
+          const eventColor = isVacation ? '#2ecc71' : (isExam ? '#f19b06' : '#0650f1');
 
           return {
             id: event.id,
@@ -1001,6 +1012,15 @@
       {
         return `
           <div class="event-item-exam">
+            <strong>${event.summary || 'No title'}</strong>
+            <div class="event-item-time">${timeStr}</div>
+          </div>
+        `;
+      }
+      else if (event.summary.includes("Ferien"))
+      {
+        return `
+          <div class="event-item-vacation">
             <strong>${event.summary || 'No title'}</strong>
             <div class="event-item-time">${timeStr}</div>
           </div>
