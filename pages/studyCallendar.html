@@ -560,8 +560,12 @@
 
   <script>
     // Configuration
+    const defaultApiBase = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
+      ? 'http://127.0.0.1:5050/api'
+      : '/api';
+
     const CONFIG = {
-      API_BASE_URL: localStorage.getItem('calendarApiBase') || '/api'
+      API_BASE_URL: localStorage.getItem('calendarApiBase') || defaultApiBase
     };
 
     // Global variables
@@ -618,6 +622,22 @@
       return response;
     }
 
+    async function parseResponseJsonSafe(response) {
+      const rawText = await response.text();
+      if (!rawText) {
+        return {};
+      }
+
+      try {
+        return JSON.parse(rawText);
+      } catch {
+        return {
+          error: `Unexpected non-JSON response (HTTP ${response.status})`,
+          raw: rawText
+        };
+      }
+    }
+
     async function checkExistingAuth() {
       if (!getStoredAccessToken()) {
         return;
@@ -642,7 +662,7 @@
           throw new Error(`Failed to fetch user profile: ${response.status}`);
         }
 
-        const data = await response.json();
+        const data = await parseResponseJsonSafe(response);
         userProfile = data.user || null;
         updateUserInfo();
         return true;
@@ -672,7 +692,7 @@
         body: JSON.stringify({ username, password })
       });
 
-      const data = await response.json();
+      const data = await parseResponseJsonSafe(response);
       if (!response.ok || !data.token) {
         throw new Error(data.error || 'Invalid username or password');
       }
@@ -686,10 +706,6 @@
     // Fetch all-day events from local API
     async function fetchCalendarEvents() {
       try {
-        const now = new Date();
-        const timeMin = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().slice(0, 10);
-        const timeMax = new Date(now.getFullYear(), now.getMonth() + 2, 0).toISOString().slice(0, 10);
-
         const normalizeApiDate = (value) => {
           if (!value) return '';
           // Already in YYYY-MM-DD format.
@@ -703,7 +719,7 @@
           return d.toISOString().slice(0, 10);
         };
 
-        const response = await apiFetch(`/events?start=${encodeURIComponent(timeMin)}&end=${encodeURIComponent(timeMax)}`, {
+        const response = await apiFetch('/events', {
           method: 'GET'
         });
 
@@ -711,7 +727,7 @@
           throw new Error('Failed to fetch events');
         }
 
-        const data = await response.json();
+        const data = await parseResponseJsonSafe(response);
         return (data.events || []).map(event => ({
           id: String(event.event_id),
           summary: event.title,
@@ -750,7 +766,7 @@
           })
         });
 
-        const data = await response.json();
+        const data = await parseResponseJsonSafe(response);
         if (!response.ok) {
           throw new Error(data.error || 'Failed to create event');
         }
@@ -783,7 +799,7 @@
           })
         });
 
-        const data = await response.json();
+        const data = await parseResponseJsonSafe(response);
         if (!response.ok) {
           throw new Error(data.error || 'Failed to update event');
         }
@@ -806,7 +822,7 @@
         });
 
         if (!response.ok) {
-          const data = await response.json();
+          const data = await parseResponseJsonSafe(response);
           throw new Error(data.error || 'Failed to delete event');
         }
 
@@ -904,6 +920,7 @@
         
         calendar = new FullCalendar.Calendar(calendarEl, {
           initialView: 'dayGridMonth',
+          firstDay: 1,
           headerToolbar: {
             left: 'prev,next today addEventBtn',
             center: 'title',

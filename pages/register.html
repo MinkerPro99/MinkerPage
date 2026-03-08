@@ -9,68 +9,112 @@
   <title>Register - Study Calendar</title>
   <link rel="stylesheet" href="../css/style.css">
   <style>
+    * {
+      color-scheme: dark;
+    }
+
+    html {
+      background-color: #1f1f1f;
+    }
+
     body {
+      background-color: transparent;
+      color: #ffffff;
+      font-family: 'Roboto', sans-serif;
       margin: 0;
-      min-height: 100vh;
-      display: grid;
-      place-items: center;
-      background: radial-gradient(circle at 20% 20%, #2a2a3a 0%, #1a1a1a 40%, #111 100%);
-      color: #fff;
-      font-family: Roboto, sans-serif;
+      padding: 0;
+      position: relative;
     }
 
-    .card {
-      width: min(420px, 92vw);
-      background: rgba(20, 20, 28, 0.92);
-      border: 1px solid #2f2f44;
-      border-radius: 16px;
-      padding: 24px;
-      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+    body::before {
+      content: '';
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      width: 80vmin;
+      height: 80vmin;
+      transform: translate(-50%, -50%);
+      background-image: url('/img/1kIcon.png');
+      background-size: cover;
+      background-repeat: no-repeat;
+      background-position: center;
+      opacity: 0.35;
+      filter: grayscale(1) brightness(1.2);
+      z-index: 0;
+      pointer-events: none;
     }
 
-    .title {
-      margin: 0 0 8px;
-      font-size: 1.4rem;
+    .login-screen {
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background-color: rgba(31, 31, 31, 0.5);
+    }
+
+    .login-card {
+      border-radius: 20px;
+      background-color: rgba(43, 43, 64, 0.2);
+      box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+      padding: 50px;
+      text-align: center;
+      backdrop-filter: blur(10px);
+    }
+
+    .login-card h2 {
+      color: #ffffff;
+      margin: 0 0 30px;
       font-weight: 700;
     }
 
-    .subtitle {
-      margin: 0 0 18px;
-      color: #b7b7cc;
-      font-size: 0.95rem;
+    .login-card p {
+      color: #b0b0b0;
+      margin-bottom: 30px;
+    }
+
+    .auth-fields {
+      display: grid;
+      gap: 12px;
+      min-width: 320px;
     }
 
     .field {
       width: 100%;
       box-sizing: border-box;
-      padding: 11px 12px;
-      margin-bottom: 12px;
+      padding: 10px 12px;
       border-radius: 8px;
       border: 1px solid #3a3a4a;
-      background: #16161f;
-      color: #fff;
+      background: #1f1f1f;
+      color: #ffffff;
     }
 
-    .btn {
+    .login-btn {
       width: 100%;
-      border: 0;
-      border-radius: 10px;
-      padding: 11px 12px;
-      background: linear-gradient(135deg, #0650f1 0%, #6c36f1 50%, #ba06f1 100%);
-      color: #fff;
+      background: linear-gradient(135deg, #0650f1 0%, #ba06f1 100%);
+      border: none;
+      color: white;
+      padding: 10px 25px;
+      border-radius: 25px;
       font-weight: 600;
       cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .login-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 20px rgba(6, 80, 241, 0.4);
+      color: white;
+      text-decoration: none;
     }
 
     .hint {
       margin-top: 12px;
-      font-size: 0.9rem;
-      color: #9db5ff;
+      font-size: 14px;
       text-align: center;
     }
 
     .hint a {
-      color: #9db5ff;
+      color: #8ab3ff;
       text-decoration: none;
     }
 
@@ -84,28 +128,58 @@
     .msg.ok {
       color: #8ef0b7;
     }
+
+    @media (max-width: 768px) {
+      .login-card {
+        padding: 30px 20px;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .login-card {
+        padding: 20px;
+        width: 92vw;
+      }
+
+      .login-btn {
+        padding: 12px 18px;
+        border-radius: 12px;
+        font-size: 15px;
+      }
+
+      body::before {
+        width: 110vmin;
+        height: 110vmin;
+        opacity: 0.2;
+      }
+    }
   </style>
 </head>
 
 <body>
-  <div class="card">
-    <h1 class="title">Create Account</h1>
-    <p class="subtitle">Register once, then login in your study calendar.</p>
+  <div class="login-screen">
+    <div class="login-card">
+      <h2>📚 Study Calendar</h2>
+      <p>Create your account to start using the calendar</p>
 
-    <div id="msg" class="msg"></div>
+      <div id="msg" class="msg"></div>
 
-    <input id="username" class="field" type="text" placeholder="Username" minlength="3" />
-    <input id="password" class="field" type="password" placeholder="Password (min 6 chars)" minlength="6" />
-
-    <button id="registerBtn" class="btn">Register</button>
-
-    <div class="hint">
-      <a href="./studyCallendar.html">Back to login</a>
+      <div class="auth-fields">
+        <input id="username" class="field" type="text" placeholder="Username" minlength="3" />
+        <input id="password" class="field" type="password" placeholder="Password (min 6 chars)" minlength="6" />
+        <button id="registerBtn" class="login-btn">Register</button>
+        <div class="hint">
+          <a href="./studyCallendar.html">Back to login</a>
+        </div>
+      </div>
     </div>
   </div>
 
   <script>
-    const API_BASE_URL = localStorage.getItem('calendarApiBase') || '/api';
+    const defaultApiBase = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
+      ? 'http://127.0.0.1:5050/api'
+      : '/api';
+    const API_BASE_URL = localStorage.getItem('calendarApiBase') || defaultApiBase;
 
     const msgEl = document.getElementById('msg');
     const usernameEl = document.getElementById('username');
@@ -115,6 +189,26 @@
     function setMessage(text, ok = false) {
       msgEl.textContent = text;
       msgEl.className = ok ? 'msg ok' : 'msg';
+    }
+
+    async function parseResponseJsonSafe(response) {
+      const rawText = await response.text();
+      if (!rawText) {
+        return { _rawText: '' };
+      }
+
+      try {
+        const parsed = JSON.parse(rawText);
+        if (parsed && typeof parsed === 'object') {
+          parsed._rawText = rawText;
+        }
+        return parsed;
+      } catch {
+        return {
+          error: `Unexpected non-JSON response (HTTP ${response.status})`,
+          _rawText: rawText
+        };
+      }
     }
 
     async function register() {
@@ -141,9 +235,12 @@
           body: JSON.stringify({ username, password })
         });
 
-        const data = await response.json();
+        const data = await parseResponseJsonSafe(response);
         if (!response.ok) {
-          throw new Error(data.error || 'Registration failed');
+          const fallback = data._rawText
+            ? `Registration failed (HTTP ${response.status}): ${data._rawText.slice(0, 180)}`
+            : `Registration failed (HTTP ${response.status})`;
+          throw new Error(data.error || fallback);
         }
 
         setMessage('Account created. Redirecting to login...', true);
