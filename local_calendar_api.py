@@ -4,8 +4,16 @@ from datetime import datetime
 from typing import Any
 
 from flask import Flask, jsonify, request
-from mysql.connector import Error, pooling
 from werkzeug.security import check_password_hash, generate_password_hash
+
+USING_MYSQL_CONNECTOR = True
+try:
+    from mysql.connector import Error, pooling
+except ModuleNotFoundError:
+    import pymysql
+    from pymysql import MySQLError as Error
+
+    USING_MYSQL_CONNECTOR = False
 
 # Local defaults for quick testing. Override with environment variables as needed.
 DB_CONFIG = {
@@ -21,11 +29,32 @@ TOKEN_DAYS = int(os.getenv("TOKEN_DAYS", "30"))
 
 app = Flask(__name__)
 
-pool = pooling.MySQLConnectionPool(
-    pool_name="minker_calendar_pool",
-    pool_size=5,
-    **DB_CONFIG,
-)
+if USING_MYSQL_CONNECTOR:
+    pool = pooling.MySQLConnectionPool(
+        pool_name="minker_calendar_pool",
+        pool_size=5,
+        **DB_CONFIG,
+    )
+else:
+    pool = None
+
+
+def get_db_connection():
+    if USING_MYSQL_CONNECTOR:
+        return pool.get_connection()
+    return pymysql.connect(
+        host=DB_CONFIG["host"],
+        port=DB_CONFIG["port"],
+        user=DB_CONFIG["user"],
+        password=DB_CONFIG["password"],
+        database=DB_CONFIG["database"],
+    )
+
+
+def dict_cursor(conn):
+    if USING_MYSQL_CONNECTOR:
+        return conn.cursor(dictionary=True)
+    return conn.cursor(pymysql.cursors.DictCursor)
 
 
 def json_error(message: str, status: int = 400):
@@ -51,8 +80,8 @@ def get_authenticated_user_id() -> int | None:
     conn = None
     cursor = None
     try:
-        conn = pool.get_connection()
-        cursor = conn.cursor(dictionary=True)
+        conn = get_db_connection()
+        cursor = dict_cursor(conn)
         cursor.execute(
             """
             SELECT user_id
@@ -102,8 +131,8 @@ def handle_preflight():
 @app.route("/api/health-db", methods=["GET"])
 def health_db():
     try:
-        conn = pool.get_connection()
-        cursor = conn.cursor(dictionary=True)
+        conn = get_db_connection()
+        cursor = dict_cursor(conn)
         cursor.execute("SELECT 1 AS ok, CURRENT_TIMESTAMP AS now_ts")
         row = cursor.fetchone()
         cursor.close()
@@ -127,8 +156,8 @@ def register_user():
     conn = None
     cursor = None
     try:
-        conn = pool.get_connection()
-        cursor = conn.cursor(dictionary=True)
+        conn = get_db_connection()
+        cursor = dict_cursor(conn)
 
         cursor.execute("SELECT user_id FROM users WHERE username = %s LIMIT 1", (username,))
         if cursor.fetchone():
@@ -162,8 +191,8 @@ def login_user():
     conn = None
     cursor = None
     try:
-        conn = pool.get_connection()
-        cursor = conn.cursor(dictionary=True)
+        conn = get_db_connection()
+        cursor = dict_cursor(conn)
         cursor.execute(
             """
             SELECT user_id, username, password_hash
@@ -213,8 +242,8 @@ def who_am_i():
     conn = None
     cursor = None
     try:
-        conn = pool.get_connection()
-        cursor = conn.cursor(dictionary=True)
+        conn = get_db_connection()
+        cursor = dict_cursor(conn)
         cursor.execute(
             "SELECT user_id, username, created_at FROM users WHERE user_id = %s LIMIT 1",
             (user_id,),
@@ -243,8 +272,8 @@ def list_events():
     end = request.args.get("end")
 
     try:
-        conn = pool.get_connection()
-        cursor = conn.cursor(dictionary=True)
+        conn = get_db_connection()
+        cursor = dict_cursor(conn)
 
         if start and end:
             parse_iso_date(start)
@@ -304,7 +333,7 @@ def create_event():
         if e_date < s_date:
             return json_error("end_date must be >= start_date")
 
-        conn = pool.get_connection()
+        conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute(
             """
@@ -351,7 +380,7 @@ def update_event(event_id: int):
         if e_date < s_date:
             return json_error("end_date must be >= start_date")
 
-        conn = pool.get_connection()
+        conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute(
             """
@@ -384,7 +413,7 @@ def delete_event(event_id: int):
         return json_error("Unauthorized", 401)
 
     try:
-        conn = pool.get_connection()
+        conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute(
             "DELETE FROM calendar_events WHERE event_id = %s AND user_id = %s",
