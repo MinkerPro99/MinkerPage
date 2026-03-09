@@ -13,7 +13,7 @@ DB_CONFIG = {
     "port": int(os.getenv("DB_PORT", "3306")),
     "user": os.getenv("DB_USER", "minker_api2"),
     "password": os.getenv("DB_PASSWORD", "Init.12345!"),
-    "database": os.getenv("DB_NAME", "minker_calendar_test"),
+    "database": os.getenv("DB_NAME", "minker_calendar_prod2"),
 }
 
 APP_PORT = int(os.getenv("APP_PORT", "5050"))
