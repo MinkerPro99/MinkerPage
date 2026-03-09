@@ -16,6 +16,17 @@ except ModuleNotFoundError:
     USING_MYSQL_CONNECTOR = False
 
 # Local defaults for quick testing. Override with environment variables as needed.
+
+#TEST
+# DB_CONFIG = {
+#     "host": os.getenv("DB_HOST", "127.0.0.1"),
+#     "port": int(os.getenv("DB_PORT", "3306")),
+#     "user": os.getenv("DB_USER", "root"),
+#     "password": os.getenv("DB_PASSWORD", "Init1234"),
+#     "database": os.getenv("DB_NAME", "minker_calendar_test"),
+# }
+
+#PROD
 DB_CONFIG = {
     "host": os.getenv("DB_HOST", "127.0.0.1"),
     "port": int(os.getenv("DB_PORT", "3306")),
@@ -70,6 +81,24 @@ def parse_bearer_token() -> str | None:
     if not auth.startswith("Bearer "):
         return None
     return auth.split(" ", 1)[1].strip() or None
+
+
+def verify_user_password(stored_password_hash: str | None, provided_password: str) -> tuple[bool, bool]:
+    if not stored_password_hash:
+        return False, False
+
+    normalized_hash = str(stored_password_hash)
+
+    try:
+        if check_password_hash(normalized_hash, provided_password):
+            return True, False
+    except (ValueError, TypeError):
+        pass
+
+    if secrets.compare_digest(normalized_hash, provided_password):
+        return True, True
+
+    return False, False
 
 
 def get_authenticated_user_id() -> int | None:
@@ -203,8 +232,23 @@ def login_user():
             (username,),
         )
         row = cursor.fetchone()
-        if not row or not check_password_hash(row["password_hash"], password):
+        if not row:
             return json_error("invalid username or password", 401)
+
+        password_ok, needs_rehash = verify_user_password(row.get("password_hash"), password)
+        if not password_ok:
+            return json_error("invalid username or password", 401)
+
+        if needs_rehash:
+            refreshed_hash = generate_password_hash(password)
+            cursor.execute(
+                """
+                UPDATE users
+                SET password_hash = %s
+                WHERE user_id = %s
+                """,
+                (refreshed_hash, row["user_id"]),
+            )
 
         token = secrets.token_urlsafe(48)
         cursor.execute(
