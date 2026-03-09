@@ -98,13 +98,15 @@ def verify_user_password(stored_password_hash: str | None, provided_password: st
     
     # Verify scrypt hash
     try:
-        if check_password_hash(normalized_hash, provided_password):
+        is_valid = check_password_hash(normalized_hash, provided_password)
+        if is_valid:
             # Check if rehash is needed (wrong scrypt parameters)
             needs_rehash = not normalized_hash.startswith("scrypt:32768:8:1$")
             return True, needs_rehash
-    except (ValueError, TypeError) as e:
-        # If hash verification fails, log for debugging but don't expose details
-        pass
+    except (ValueError, TypeError, Exception) as e:
+        # If hash verification fails, log for debugging
+        print(f"Hash verification error: {type(e).__name__}: {e}")
+        print(f"Hash starts with: {normalized_hash[:50] if len(normalized_hash) > 50 else normalized_hash}")
 
     return False, False
 
@@ -243,20 +245,30 @@ def login_user():
         if not row:
             return json_error("invalid username or password", 401)
 
-        password_ok, needs_rehash = verify_user_password(row.get("password_hash"), password)
+        try:
+            password_ok, needs_rehash = verify_user_password(row.get("password_hash"), password)
+        except Exception as verify_error:
+            # Log the error but don't expose details to user
+            print(f"Password verification error for user {username}: {verify_error}")
+            return json_error("invalid username or password", 401)
+        
         if not password_ok:
             return json_error("invalid username or password", 401)
 
         if needs_rehash:
-            refreshed_hash = generate_password_hash(password, method=SCRYPT_METHOD)
-            cursor.execute(
-                """
-                UPDATE users
-                SET password_hash = %s
-                WHERE user_id = %s
-                """,
-                (refreshed_hash, row["user_id"]),
-            )
+            try:
+                refreshed_hash = generate_password_hash(password, method=SCRYPT_METHOD)
+                cursor.execute(
+                    """
+                    UPDATE users
+                    SET password_hash = %s
+                    WHERE user_id = %s
+                    """,
+                    (refreshed_hash, row["user_id"]),
+                )
+            except Exception as rehash_error:
+                # Log but continue - rehashing is not critical
+                print(f"Password rehash failed for user {username}: {rehash_error}")
 
         token = secrets.token_urlsafe(48)
         cursor.execute(
@@ -277,7 +289,11 @@ def login_user():
             }
         )
     except Error as exc:
+        print(f"Database error in login: {exc}")
         return json_error(f"Failed to login: {exc}", 500)
+    except Exception as exc:
+        print(f"Unexpected error in login: {exc}")
+        return json_error("Failed to login", 500)
     finally:
         if cursor:
             cursor.close()

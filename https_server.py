@@ -14,8 +14,8 @@ httpd.directory = DIRECTORY
 
 httpd.socket = ssl.wrap_socket(
     httpd.socket,
-    keyfile="/etc/letsencrypt/live/minkerpage.ddns.net/privkey.pem",
-    certfile="/etc/letsencrypt/live/minkerpage.ddns.net/fullchain.pem",
+    keyfile="/etc/letsencrypt/live/minkerpage.ch/privkey.pem",
+    certfile="/etc/letsencrypt/live/minkerpage.ch/fullchain.pem",
     server_side=True
 )
 
