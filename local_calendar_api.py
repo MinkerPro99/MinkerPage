@@ -6,6 +6,9 @@ from typing import Any
 from flask import Flask, jsonify, request
 from werkzeug.security import check_password_hash, generate_password_hash
 
+# Use the same scrypt parameters as legacy system
+SCRYPT_METHOD = "scrypt:32768:8:1"
+
 USING_MYSQL_CONNECTOR = True
 try:
     from mysql.connector import Error, pooling
@@ -85,33 +88,23 @@ def parse_bearer_token() -> str | None:
 
 def verify_user_password(stored_password_hash: str | None, provided_password: str) -> tuple[bool, bool]:
     """
-    Verify password against stored hash. Returns (is_valid, needs_rehash).
-    Supports Werkzeug hashes and legacy plaintext passwords.
+    Verify password against stored scrypt hash. Returns (is_valid, needs_rehash).
+    All passwords should be in scrypt:32768:8:1 format.
     """
     if not stored_password_hash:
         return False, False
 
     normalized_hash = str(stored_password_hash).strip()
     
-    # First try Werkzeug hash verification
+    # Verify scrypt hash
     try:
         if check_password_hash(normalized_hash, provided_password):
-            return True, False
-    except (ValueError, TypeError):
+            # Check if rehash is needed (wrong scrypt parameters)
+            needs_rehash = not normalized_hash.startswith("scrypt:32768:8:1$")
+            return True, needs_rehash
+    except (ValueError, TypeError) as e:
+        # If hash verification fails, log for debugging but don't expose details
         pass
-    
-    # Fallback: check if it's a legacy plaintext password
-    # Use constant-time comparison to prevent timing attacks
-    try:
-        if len(normalized_hash) == len(provided_password):
-            if secrets.compare_digest(normalized_hash, provided_password):
-                return True, True
-    except (TypeError, AttributeError):
-        pass
-    
-    # Final fallback: direct comparison for edge cases
-    if normalized_hash == provided_password:
-        return True, True
 
     return False, False
 
@@ -207,7 +200,7 @@ def register_user():
         if cursor.fetchone():
             return json_error("username already exists", 409)
 
-        pwd_hash = generate_password_hash(password)
+        pwd_hash = generate_password_hash(password, method=SCRYPT_METHOD)
         cursor.execute(
             """
             INSERT INTO users (username, password_hash)
@@ -255,7 +248,7 @@ def login_user():
             return json_error("invalid username or password", 401)
 
         if needs_rehash:
-            refreshed_hash = generate_password_hash(password)
+            refreshed_hash = generate_password_hash(password, method=SCRYPT_METHOD)
             cursor.execute(
                 """
                 UPDATE users
