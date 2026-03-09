@@ -4,21 +4,8 @@ from datetime import datetime
 from typing import Any
 
 from flask import Flask, jsonify, request
+from mysql.connector import Error, pooling
 from werkzeug.security import check_password_hash, generate_password_hash
-
-# Use the same scrypt parameters as legacy system
-SCRYPT_METHOD = "scrypt:32768:8:1"
-
-USING_MYSQL_CONNECTOR = True
-try:
-    from mysql.connector import Error, pooling
-except ModuleNotFoundError:
-    import pymysql
-    from pymysql import MySQLError as Error
-
-    USING_MYSQL_CONNECTOR = False
-
-# Local defaults for quick testing. Override with environment variables as needed.
 
 #TEST
 # DB_CONFIG = {
@@ -43,32 +30,11 @@ TOKEN_DAYS = int(os.getenv("TOKEN_DAYS", "30"))
 
 app = Flask(__name__)
 
-if USING_MYSQL_CONNECTOR:
-    pool = pooling.MySQLConnectionPool(
-        pool_name="minker_calendar_pool",
-        pool_size=5,
-        **DB_CONFIG,
-    )
-else:
-    pool = None
-
-
-def get_db_connection():
-    if USING_MYSQL_CONNECTOR:
-        return pool.get_connection()
-    return pymysql.connect(
-        host=DB_CONFIG["host"],
-        port=DB_CONFIG["port"],
-        user=DB_CONFIG["user"],
-        password=DB_CONFIG["password"],
-        database=DB_CONFIG["database"],
-    )
-
-
-def dict_cursor(conn):
-    if USING_MYSQL_CONNECTOR:
-        return conn.cursor(dictionary=True)
-    return conn.cursor(pymysql.cursors.DictCursor)
+pool = pooling.MySQLConnectionPool(
+    pool_name="minker_calendar_pool",
+    pool_size=5,
+    **DB_CONFIG,
+)
 
 
 def json_error(message: str, status: int = 400):
@@ -86,31 +52,6 @@ def parse_bearer_token() -> str | None:
     return auth.split(" ", 1)[1].strip() or None
 
 
-def verify_user_password(stored_password_hash: str | None, provided_password: str) -> tuple[bool, bool]:
-    """
-    Verify password against stored scrypt hash. Returns (is_valid, needs_rehash).
-    All passwords should be in scrypt:32768:8:1 format.
-    """
-    if not stored_password_hash:
-        return False, False
-
-    normalized_hash = str(stored_password_hash).strip()
-    
-    # Verify scrypt hash
-    try:
-        is_valid = check_password_hash(normalized_hash, provided_password)
-        if is_valid:
-            # Check if rehash is needed (wrong scrypt parameters)
-            needs_rehash = not normalized_hash.startswith("scrypt:32768:8:1$")
-            return True, needs_rehash
-    except (ValueError, TypeError, Exception) as e:
-        # If hash verification fails, log for debugging
-        print(f"Hash verification error: {type(e).__name__}: {e}")
-        print(f"Hash starts with: {normalized_hash[:50] if len(normalized_hash) > 50 else normalized_hash}")
-
-    return False, False
-
-
 def get_authenticated_user_id() -> int | None:
     token = parse_bearer_token()
     if not token:
@@ -119,8 +60,8 @@ def get_authenticated_user_id() -> int | None:
     conn = None
     cursor = None
     try:
-        conn = get_db_connection()
-        cursor = dict_cursor(conn)
+        conn = pool.get_connection()
+        cursor = conn.cursor(dictionary=True)
         cursor.execute(
             """
             SELECT user_id
@@ -170,8 +111,8 @@ def handle_preflight():
 @app.route("/api/health-db", methods=["GET"])
 def health_db():
     try:
-        conn = get_db_connection()
-        cursor = dict_cursor(conn)
+        conn = pool.get_connection()
+        cursor = conn.cursor(dictionary=True)
         cursor.execute("SELECT 1 AS ok, CURRENT_TIMESTAMP AS now_ts")
         row = cursor.fetchone()
         cursor.close()
@@ -195,14 +136,14 @@ def register_user():
     conn = None
     cursor = None
     try:
-        conn = get_db_connection()
-        cursor = dict_cursor(conn)
+        conn = pool.get_connection()
+        cursor = conn.cursor(dictionary=True)
 
         cursor.execute("SELECT user_id FROM users WHERE username = %s LIMIT 1", (username,))
         if cursor.fetchone():
             return json_error("username already exists", 409)
 
-        pwd_hash = generate_password_hash(password, method=SCRYPT_METHOD)
+        pwd_hash = generate_password_hash(password)
         cursor.execute(
             """
             INSERT INTO users (username, password_hash)
@@ -230,8 +171,8 @@ def login_user():
     conn = None
     cursor = None
     try:
-        conn = get_db_connection()
-        cursor = dict_cursor(conn)
+        conn = pool.get_connection()
+        cursor = conn.cursor(dictionary=True)
         cursor.execute(
             """
             SELECT user_id, username, password_hash
@@ -242,33 +183,8 @@ def login_user():
             (username,),
         )
         row = cursor.fetchone()
-        if not row:
+        if not row or not check_password_hash(row["password_hash"], password):
             return json_error("invalid username or password", 401)
-
-        try:
-            password_ok, needs_rehash = verify_user_password(row.get("password_hash"), password)
-        except Exception as verify_error:
-            # Log the error but don't expose details to user
-            print(f"Password verification error for user {username}: {verify_error}")
-            return json_error("invalid username or password", 401)
-        
-        if not password_ok:
-            return json_error("invalid username or password", 401)
-
-        if needs_rehash:
-            try:
-                refreshed_hash = generate_password_hash(password, method=SCRYPT_METHOD)
-                cursor.execute(
-                    """
-                    UPDATE users
-                    SET password_hash = %s
-                    WHERE user_id = %s
-                    """,
-                    (refreshed_hash, row["user_id"]),
-                )
-            except Exception as rehash_error:
-                # Log but continue - rehashing is not critical
-                print(f"Password rehash failed for user {username}: {rehash_error}")
 
         token = secrets.token_urlsafe(48)
         cursor.execute(
@@ -289,11 +205,7 @@ def login_user():
             }
         )
     except Error as exc:
-        print(f"Database error in login: {exc}")
         return json_error(f"Failed to login: {exc}", 500)
-    except Exception as exc:
-        print(f"Unexpected error in login: {exc}")
-        return json_error("Failed to login", 500)
     finally:
         if cursor:
             cursor.close()
@@ -310,8 +222,8 @@ def who_am_i():
     conn = None
     cursor = None
     try:
-        conn = get_db_connection()
-        cursor = dict_cursor(conn)
+        conn = pool.get_connection()
+        cursor = conn.cursor(dictionary=True)
         cursor.execute(
             "SELECT user_id, username, created_at FROM users WHERE user_id = %s LIMIT 1",
             (user_id,),
@@ -340,8 +252,8 @@ def list_events():
     end = request.args.get("end")
 
     try:
-        conn = get_db_connection()
-        cursor = dict_cursor(conn)
+        conn = pool.get_connection()
+        cursor = conn.cursor(dictionary=True)
 
         if start and end:
             parse_iso_date(start)
@@ -401,7 +313,7 @@ def create_event():
         if e_date < s_date:
             return json_error("end_date must be >= start_date")
 
-        conn = get_db_connection()
+        conn = pool.get_connection()
         cursor = conn.cursor()
         cursor.execute(
             """
@@ -448,7 +360,7 @@ def update_event(event_id: int):
         if e_date < s_date:
             return json_error("end_date must be >= start_date")
 
-        conn = get_db_connection()
+        conn = pool.get_connection()
         cursor = conn.cursor()
         cursor.execute(
             """
@@ -481,7 +393,7 @@ def delete_event(event_id: int):
         return json_error("Unauthorized", 401)
 
     try:
-        conn = get_db_connection()
+        conn = pool.get_connection()
         cursor = conn.cursor()
         cursor.execute(
             "DELETE FROM calendar_events WHERE event_id = %s AND user_id = %s",
