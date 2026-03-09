@@ -84,18 +84,33 @@ def parse_bearer_token() -> str | None:
 
 
 def verify_user_password(stored_password_hash: str | None, provided_password: str) -> tuple[bool, bool]:
+    """
+    Verify password against stored hash. Returns (is_valid, needs_rehash).
+    Supports Werkzeug hashes and legacy plaintext passwords.
+    """
     if not stored_password_hash:
         return False, False
 
-    normalized_hash = str(stored_password_hash)
-
+    normalized_hash = str(stored_password_hash).strip()
+    
+    # First try Werkzeug hash verification
     try:
         if check_password_hash(normalized_hash, provided_password):
             return True, False
     except (ValueError, TypeError):
         pass
-
-    if secrets.compare_digest(normalized_hash, provided_password):
+    
+    # Fallback: check if it's a legacy plaintext password
+    # Use constant-time comparison to prevent timing attacks
+    try:
+        if len(normalized_hash) == len(provided_password):
+            if secrets.compare_digest(normalized_hash, provided_password):
+                return True, True
+    except (TypeError, AttributeError):
+        pass
+    
+    # Final fallback: direct comparison for edge cases
+    if normalized_hash == provided_password:
         return True, True
 
     return False, False

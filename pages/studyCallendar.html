@@ -528,6 +528,7 @@
       <div style="display: grid; gap: 12px; min-width: 280px;">
         <input id="usernameInput" type="text" placeholder="Username" style="padding: 10px 12px; border-radius: 8px; border: 1px solid #3a3a4a; background: #1f1f1f; color: #fff;">
         <input id="passwordInput" type="password" placeholder="Password" style="padding: 10px 12px; border-radius: 8px; border: 1px solid #3a3a4a; background: #1f1f1f; color: #fff;">
+        <div id="loginErrorMessage" style="display: none; padding: 10px; border-radius: 8px; background: rgba(239, 68, 68, 0.1); border: 1px solid #ef4444; color: #fecaca; font-size: 14px;"></div>
         <button id="loginBtn" class="login-btn">Login</button>
         <a href="./register.html" style="color: #8ab3ff; text-decoration: none; font-size: 14px;">Create account</a>
       </div>
@@ -1446,22 +1447,50 @@
       const loginBtn = document.getElementById('loginBtn');
       const usernameInput = document.getElementById('usernameInput');
       const passwordInput = document.getElementById('passwordInput');
+      const loginErrorMessage = document.getElementById('loginErrorMessage');
+
+      function showLoginError(message) {
+        if (loginErrorMessage) {
+          loginErrorMessage.textContent = message;
+          loginErrorMessage.style.display = 'block';
+        }
+      }
+
+      function clearLoginError() {
+        if (loginErrorMessage) {
+          loginErrorMessage.style.display = 'none';
+        }
+      }
+
+      // Clear error when user starts typing
+      usernameInput?.addEventListener('input', clearLoginError);
+      passwordInput?.addEventListener('input', clearLoginError);
 
       if (loginBtn) {
         loginBtn.addEventListener('click', async () => {
           try {
+            clearLoginError();
             const username = (usernameInput?.value || '').trim();
             const password = passwordInput?.value || '';
 
             if (!username || !password) {
-              showMessage('Please enter username and password.', 'error');
+              showLoginError('Please enter both username and password');
               return;
             }
+
+            loginBtn.disabled = true;
+            loginBtn.textContent = 'Logging in...';
 
             await loginWithPassword(username, password);
             await loginUser();
           } catch (error) {
-            showMessage('Login failed: ' + error.message, 'error');
+            const errorMsg = error.message || 'Login failed. Please try again.';
+            showLoginError(errorMsg);
+          } finally {
+            if (loginBtn) {
+              loginBtn.disabled = false;
+              loginBtn.textContent = 'Login';
+            }
           }
         });
       }
