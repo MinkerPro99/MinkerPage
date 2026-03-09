@@ -11,7 +11,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 DB_CONFIG = {
     "host": os.getenv("DB_HOST", "127.0.0.1"),
     "port": int(os.getenv("DB_PORT", "3306")),
-    "user": os.getenv("DB_USER", "root"),
+    "user": os.getenv("DB_USER", "minker_api2"),
     "password": os.getenv("DB_PASSWORD", "Init.12345!"),
     "database": os.getenv("DB_NAME", "minker_calendar_test"),
 }
