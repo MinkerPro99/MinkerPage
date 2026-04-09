@@ -110,6 +110,40 @@
         .learning-answer-input { margin-top: 18px; }
         .learning-feedback { margin-top: 14px; }
         .learning-stat-note { color: rgba(255, 255, 255, 0.6); font-size: 13px; margin-top: 4px; }
+        .blocks-setup-card { background: linear-gradient(135deg, rgba(6, 80, 241, 0.08), rgba(186, 6, 241, 0.08)); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 16px; padding: 24px; }
+        .blocks-setup-title { color: #ffffff; font-size: 22px; font-weight: 700; margin-bottom: 8px; }
+        .blocks-setup-subtitle { color: rgba(255, 255, 255, 0.65); margin-bottom: 18px; line-height: 1.5; }
+        .blocks-shell { background: linear-gradient(135deg, rgba(6, 80, 241, 0.08), rgba(186, 6, 241, 0.08)); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 18px; padding: 20px; }
+        .blocks-scoreboard { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 16px; }
+        .blocks-status { color: rgba(255, 255, 255, 0.85); margin-bottom: 14px; font-weight: 600; }
+        .blocks-board-wrap { display: grid; gap: 18px; grid-template-columns: minmax(0, 1fr) minmax(240px, 320px); align-items: start; }
+        .blocks-board { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 5px; background: rgba(255, 255, 255, 0.04); padding: 10px; border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.08); }
+        .blocks-cell { aspect-ratio: 1 / 1; border-radius: 8px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.06); transition: all 0.15s ease; }
+        .blocks-cell.can-drop { border-color: rgba(6, 80, 241, 0.5); box-shadow: inset 0 0 0 1px rgba(6, 80, 241, 0.18); }
+        .blocks-cell.drop-hover { transform: scale(0.94); border-color: rgba(20, 180, 120, 0.95); box-shadow: inset 0 0 0 2px rgba(20, 180, 120, 0.35), 0 0 0 1px rgba(20, 180, 120, 0.2); }
+        .blocks-cell.drop-invalid { border-color: rgba(239, 3, 38, 0.85); box-shadow: inset 0 0 0 2px rgba(239, 3, 38, 0.25); }
+        .blocks-cell.clearing { animation: blocksClearCell 0.28s ease forwards; }
+        .blocks-cell.filled-0 { background: linear-gradient(135deg, #0650f1, #4b8dff); }
+        .blocks-cell.filled-1 { background: linear-gradient(135deg, #20c997, #11b1e6); }
+        .blocks-cell.filled-2 { background: linear-gradient(135deg, #ffae00, #ff7a18); }
+        .blocks-hand { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; align-items: start; }
+        .blocks-piece { display: flex; justify-content: center; align-items: center; cursor: grab; user-select: none; padding: 6px 0; }
+        .blocks-piece:active { cursor: grabbing; }
+        .blocks-piece.dragging { opacity: 0.55; transform: scale(0.97); }
+        .blocks-piece-grid { display: grid; gap: 4px; width: fit-content; padding: 2px; }
+        .blocks-piece-cell { width: 22px; height: 22px; border-radius: 6px; background: transparent; border: 1px solid transparent; }
+        .blocks-piece-cell.empty { visibility: hidden; }
+        .blocks-piece-cell.filled-0 { background: linear-gradient(135deg, #0650f1, #4b8dff); }
+        .blocks-piece-cell.filled-1 { background: linear-gradient(135deg, #20c997, #11b1e6); }
+        .blocks-piece-cell.filled-2 { background: linear-gradient(135deg, #ffae00, #ff7a18); }
+        .blocks-question-card { margin-top: 18px; background: rgba(255, 255, 255, 0.04); border-radius: 16px; padding: 18px; border: 1px solid rgba(255, 255, 255, 0.08); }
+        .blocks-tries { color: rgba(255, 255, 255, 0.65); font-size: 13px; margin-top: 8px; }
+        .blocks-score-flash { color: #8af0a8; font-weight: 700; }
+        @keyframes blocksClearCell {
+            0% { opacity: 1; transform: scale(1); filter: brightness(1); }
+            50% { opacity: 0.95; transform: scale(1.08); filter: brightness(1.35); }
+            100% { opacity: 0; transform: scale(0.25); filter: brightness(1.6); }
+        }
         .flashcard { background: linear-gradient(135deg, rgba(6, 80, 241, 0.1), rgba(186, 6, 241, 0.1)); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 16px; padding: 60px 40px; min-height: 300px; display: flex; align-items: center; justify-content: center; cursor: pointer; position: relative; margin: 40px auto; perspective: 1000px; transition: all 0.6s ease; text-align: center; }
         .flashcard:hover { border-color: #0650f1; box-shadow: 0 12px 40px rgba(6, 80, 241, 0.25); }
         .flashcard.flipped { background: linear-gradient(135deg, rgba(255, 174, 0, 0.1), rgba(239, 3, 38, 0.1)); border-color: rgba(255, 174, 0, 0.3); }
@@ -163,7 +197,7 @@
         @keyframes slideIn { from { opacity: 0; transform: translate(-50%, -50%) scale(0.9); } to { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         .animate-slide-in { animation: slideIn 0.3s ease; }
-        @media (max-width: 768px) { .term-input-group.term-pair { grid-template-columns: 1fr; } .flashcard { padding: 40px 20px; min-height: 250px; } .flashcard-content { font-size: 24px; } .study-mode-btn { min-height: 100px; } .results-score { font-size: 48px; } .vocab-container { padding: 20px 10px 60px; } .learning-actions { justify-content: stretch; } .learning-actions .btn { width: 100%; } .learning-toggle-group { flex-direction: column; } .learning-toggle { width: 100%; justify-content: center; } .learning-prompt-value { font-size: 20px; } }
+        @media (max-width: 768px) { .term-input-group.term-pair { grid-template-columns: 1fr; } .flashcard { padding: 40px 20px; min-height: 250px; } .flashcard-content { font-size: 24px; } .study-mode-btn { min-height: 100px; } .results-score { font-size: 48px; } .vocab-container { padding: 20px 10px 60px; } .learning-actions { justify-content: stretch; } .learning-actions .btn { width: 100%; } .learning-toggle-group { flex-direction: column; } .learning-toggle { width: 100%; justify-content: center; } .learning-prompt-value { font-size: 20px; } .blocks-board-wrap { grid-template-columns: 1fr; } .blocks-board { gap: 4px; } .blocks-hand { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; } .blocks-piece { padding: 2px 0; } .blocks-piece-cell { width: 18px; height: 18px; } }
     </style>
 </head>
 
@@ -271,6 +305,12 @@
                             Learning
                         </button>
                     </div>
+                    <div class="col-md-6">
+                        <button class="btn study-mode-btn w-100" data-mode="blocks" onclick="app.startStudySession('blocks')">
+                            <i class="bi bi-grid-3x3-gap-fill" aria-hidden="true"></i>
+                            Blocks
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -314,6 +354,21 @@
                         <button class="btn vocab-btn btn-success" onclick="app.beginLearningSession()">
                             <i class="bi bi-play-fill btn-icon bi" aria-hidden="true"></i>
                             Start Learning
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Blocks Setup View -->
+            <div id="blocksSetupView" style="display: none;">
+                <div class="blocks-setup-card">
+                    <div class="blocks-setup-title">Blocks</div>
+                    <div class="blocks-setup-subtitle">Place three blocks on the board, then answer a typing question. Correct answers keep your score. If you miss three times, you lose part of the score you earned on that round, and missed terms come back later.</div>
+                    <div class="learning-actions">
+                        <button class="btn vocab-btn btn-secondary" onclick="app.renderStudyModeSelection()">Back</button>
+                        <button class="btn vocab-btn btn-success" onclick="app.beginBlocksSession()">
+                            <i class="bi bi-play-fill btn-icon bi" aria-hidden="true"></i>
+                            Start Blocks
                         </button>
                     </div>
                 </div>
@@ -380,6 +435,39 @@
                 this.currentIndex = 0;
                 this.currentMode = null;
                 this.studyResults = { correct: 0, incorrect: 0, skipped: 0 };
+                this.blocksQueue = [];
+                this.blocksCurrentTerm = null;
+                this.blocksBoard = [];
+                this.blocksHand = [];
+                this.blocksPlacedCount = 0;
+                this.blocksRoundScore = 0;
+                this.blocksTotalScore = 0;
+                this.blocksSolvedCount = 0;
+                this.blocksTriesLeft = 3;
+                this.blocksQuestionAttempts = 0;
+                this.blocksTotalTerms = 0;
+                this.blocksPendingAdvance = null;
+                this.blocksPendingClear = null;
+                this.blocksStatusMessage = '';
+                this.blocksGameOver = false;
+                this.blocksDraggedPieceId = null;
+                this.blocksDragAnchor = { x: 0, y: 0 };
+                this.blocksClearingLines = [];
+                this.blocksBoardSize = 8;
+                this.blocksColorClasses = ['filled-0', 'filled-1', 'filled-2'];
+                this.blocksShapeLibrary = [
+                    { name: 'Line3', cells: [[0, 0], [1, 0], [2, 0]] },
+                    { name: 'Line4', cells: [[0, 0], [1, 0], [2, 0], [3, 0]] },
+                    { name: 'Line5', cells: [[0, 0], [1, 0], [2, 0], [3, 0], [4, 0]] },
+                    { name: 'Square', cells: [[0, 0], [1, 0], [0, 1], [1, 1]] },
+                    { name: 'L4', cells: [[0, 0], [0, 1], [0, 2], [1, 2]] },
+                    { name: 'J4', cells: [[1, 0], [1, 1], [1, 2], [0, 2]] },
+                    { name: 'T4', cells: [[0, 0], [1, 0], [2, 0], [1, 1]] },
+                    { name: 'Z4', cells: [[0, 0], [1, 0], [1, 1], [2, 1]] },
+                    { name: 'S4', cells: [[1, 0], [2, 0], [0, 1], [1, 1]] },
+                    { name: 'Hook5', cells: [[0, 0], [0, 1], [1, 1], [1, 2], [2, 2]] },
+                    { name: 'Step5', cells: [[0, 0], [1, 0], [1, 1], [2, 1], [2, 2]] }
+                ];
                 this.learningConfig = {
                     inputMode: 'typing',
                     directions: {
@@ -716,18 +804,25 @@
             renderStudyModeSelection() {
                 document.getElementById('modeSelectionView').style.display = 'block';
                 document.getElementById('learningSetupView').style.display = 'none';
+                document.getElementById('blocksSetupView').style.display = 'none';
                 document.getElementById('studyContentView').style.display = 'none';
                 document.getElementById('resultsView').style.display = 'none';
             }
 
             startStudySession(mode) {
-                if (this.currentSet.terms.length < 2) {
-                    this.showAlert('Error', 'You need at least 2 terms to study!');
+                const minimumTerms = mode === 'blocks' ? 1 : 2;
+                if (this.currentSet.terms.length < minimumTerms) {
+                    this.showAlert('Error', mode === 'blocks' ? 'You need at least 1 term for Blocks mode!' : 'You need at least 2 terms to study!');
                     return;
                 }
 
                 if (mode === 'learning') {
                     this.renderLearningSetup();
+                    return;
+                }
+
+                if (mode === 'blocks') {
+                    this.renderBlocksSetup();
                     return;
                 }
 
@@ -746,9 +841,18 @@
             renderLearningSetup() {
                 document.getElementById('modeSelectionView').style.display = 'none';
                 document.getElementById('learningSetupView').style.display = 'block';
+                document.getElementById('blocksSetupView').style.display = 'none';
                 document.getElementById('studyContentView').style.display = 'none';
                 document.getElementById('resultsView').style.display = 'none';
                 this.updateLearningOptionUI();
+            }
+
+            renderBlocksSetup() {
+                document.getElementById('modeSelectionView').style.display = 'none';
+                document.getElementById('learningSetupView').style.display = 'none';
+                document.getElementById('blocksSetupView').style.display = 'block';
+                document.getElementById('studyContentView').style.display = 'none';
+                document.getElementById('resultsView').style.display = 'none';
             }
 
             setLearningInputMode(mode) {
@@ -826,6 +930,762 @@
                 document.getElementById('resultsView').style.display = 'none';
 
                 this.renderLearningCard();
+            }
+
+            beginBlocksSession() {
+                this.currentMode = 'blocks';
+                this.blocksQueue = this.shuffleList([...this.currentSet.terms]);
+                this.blocksTotalTerms = this.blocksQueue.length;
+                this.blocksSolvedCount = 0;
+                this.blocksTotalScore = 0;
+                this.blocksPendingAdvance = null;
+                this.blocksGameOver = false;
+                this.blocksBoard = this.createBlocksBoard();
+
+                document.getElementById('blocksSetupView').style.display = 'none';
+                document.getElementById('modeSelectionView').style.display = 'none';
+                document.getElementById('studyContentView').style.display = 'block';
+                document.getElementById('resultsView').style.display = 'none';
+
+                this.startBlocksRound();
+            }
+
+            startBlocksRound() {
+                if (this.blocksPendingAdvance) {
+                    clearTimeout(this.blocksPendingAdvance);
+                    this.blocksPendingAdvance = null;
+                }
+
+                if (this.blocksPendingClear) {
+                    clearTimeout(this.blocksPendingClear);
+                    this.blocksPendingClear = null;
+                }
+
+                this.blocksClearingLines = [];
+
+                if (this.blocksQueue.length === 0) {
+                    this.blocksQueue = this.shuffleList([...this.currentSet.terms]);
+                    this.blocksTotalTerms += this.blocksQueue.length;
+                    this.blocksStatusMessage = 'All terms solved. Shuffling a fresh round.';
+                }
+
+                this.blocksCurrentTerm = this.blocksQueue[0];
+                const hand = this.generateBlocksHand();
+                if (!hand) {
+                    this.endBlocksGame('No blocks fit anymore.');
+                    return;
+                }
+
+                this.blocksHand = hand;
+                this.blocksPlacedCount = 0;
+                this.blocksRoundScore = 0;
+                this.blocksTriesLeft = 3;
+                this.blocksQuestionAttempts = 0;
+                this.blocksStatusMessage = '';
+                this.blocksDraggedPieceId = null;
+                this.blocksDragAnchor = { x: 0, y: 0 };
+
+                this.renderBlocksRound();
+            }
+
+            renderBlocksRound() {
+                const studyContent = document.getElementById('studyContent');
+                if (!studyContent) {
+                    return;
+                }
+
+                this.updateProgressBar();
+                const statusText = this.blocksStatusMessage || (this.blocksPlacedCount < 3
+                    ? `Place block ${this.blocksPlacedCount + 1} of 3 for ${this.escapeHtml(this.blocksCurrentTerm.term)}.`
+                    : `Answer the question about ${this.escapeHtml(this.blocksCurrentTerm.term)}.`);
+
+                studyContent.innerHTML = `
+                    <div class="blocks-shell">
+                        <div class="blocks-scoreboard">
+                            <div class="stat-box">
+                                <div class="stat-value">${this.blocksTotalScore}</div>
+                                <div class="stat-label">Score</div>
+                            </div>
+                            <div class="stat-box">
+                                <div class="stat-value">${this.blocksRoundScore}</div>
+                                <div class="stat-label">Round</div>
+                            </div>
+                            <div class="stat-box">
+                                <div class="stat-value">${this.blocksSolvedCount}</div>
+                                <div class="stat-label">Solved</div>
+                            </div>
+                        </div>
+                        <div class="blocks-status">${statusText}</div>
+                        <div class="blocks-board-wrap">
+                            <div>
+                                <div class="blocks-board" id="blocksBoard">
+                                    ${this.renderBlocksBoard()}
+                                </div>
+                            </div>
+                            <div class="blocks-hand-panel">
+                                ${this.renderBlocksHand()}
+                            </div>
+                        </div>
+                        <div class="learning-helper" style="margin-top: 14px;">Drag a block onto any empty cell. Completed rows or columns clear like Tetris. If the board fills up, the game ends.</div>
+                        ${this.blocksPlacedCount >= 3 ? `
+                            <div class="blocks-question-card">
+                                <div class="learning-prompt-label">Typing question</div>
+                                <div class="learning-prompt-value" style="font-size: 22px;">${this.escapeHtml(this.blocksCurrentTerm.term)}</div>
+                                <div class="learning-support">Type the definition. You have ${this.blocksTriesLeft} tries.</div>
+                                <input type="text" class="typing-input blocks-answer-input" id="blocksAnswerInput" placeholder="Type the definition..." onkeypress="event.key === 'Enter' && app.submitBlocksAnswer()">
+                                <button class="btn vocab-btn btn-success" onclick="app.submitBlocksAnswer()">
+                                    <i class="bi bi-check-circle-fill btn-icon" aria-hidden="true"></i>Submit
+                                </button>
+                                <div class="blocks-tries">Tries left: ${this.blocksTriesLeft}</div>
+                                <div id="blocksFeedback" class="learning-feedback"></div>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+
+                if (this.blocksPlacedCount >= 3) {
+                    setTimeout(() => {
+                        const input = document.getElementById('blocksAnswerInput');
+                        if (input) {
+                            input.focus();
+                        }
+                    }, 0);
+                }
+            }
+
+            createBlocksBoard() {
+                return Array.from({ length: this.blocksBoardSize }, () => Array(this.blocksBoardSize).fill(null));
+            }
+
+            shuffleList(list) {
+                return list
+                    .map(item => ({ item, sort: Math.random() }))
+                    .sort((a, b) => a.sort - b.sort)
+                    .map(entry => entry.item);
+            }
+
+            generateBlocksHand() {
+                const maxAttempts = 80;
+
+                for (let pass = 0; pass < 4; pass++) {
+                    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+                        const candidate = this.pickBlocksHandCandidate();
+                        if (this.isBlocksHandSolvable(candidate, this.blocksBoard)) {
+                            this.blocksHand = candidate;
+                            return candidate;
+                        }
+                    }
+
+                    const target = this.findBlocksBestLineToClear();
+                    if (!target) {
+                        break;
+                    }
+
+                    this.clearBlocksLine(target.type, target.index);
+                }
+
+                return null;
+            }
+
+            pickBlocksHandCandidate() {
+                const shuffledShapes = this.shuffleList(this.blocksShapeLibrary.map(shape => ({
+                    name: shape.name,
+                    cells: shape.cells.map(([x, y]) => [x, y])
+                })));
+                const pieces = [];
+
+                for (let index = 0; index < 3; index++) {
+                    const shape = shuffledShapes[index % shuffledShapes.length];
+                    pieces.push(this.createBlocksPiece(shape, index));
+                }
+
+                return pieces;
+            }
+
+            isBlocksHandSolvable(pieces, board = this.blocksBoard) {
+                return this.canSolveBlocksHand(board, pieces);
+            }
+
+            canSolveBlocksHand(board, pieces) {
+                if (pieces.length === 0) {
+                    return true;
+                }
+
+                for (let pieceIndex = 0; pieceIndex < pieces.length; pieceIndex++) {
+                    const piece = pieces[pieceIndex];
+                    const remainingPieces = pieces.filter((_, index) => index !== pieceIndex);
+
+                    for (let row = 0; row < this.blocksBoardSize; row++) {
+                        for (let column = 0; column < this.blocksBoardSize; column++) {
+                            if (!this.canPlaceBlocksPieceAtOrigin(row, column, piece, board)) {
+                                continue;
+                            }
+
+                            const nextBoard = this.cloneBlocksBoard(board);
+                            this.applyBlocksPieceToBoard(nextBoard, row, column, piece);
+                            const completedLines = this.getBlocksCompletedLines(nextBoard);
+                            this.clearBlocksLinesOnBoard(nextBoard, completedLines);
+
+                            if (this.canSolveBlocksHand(nextBoard, remainingPieces)) {
+                                return true;
+                            }
+                        }
+                    }
+                }
+
+                return false;
+            }
+
+            createBlocksPiece(shape, colorIndex) {
+                return {
+                    id: `piece-${Date.now()}-${Math.random()}-${colorIndex}`,
+                    name: shape.name,
+                    cells: shape.cells.map(([x, y]) => [x, y]),
+                    colorIndex: colorIndex % this.blocksColorClasses.length
+                };
+            }
+
+            renderBlocksBoard() {
+                let html = '';
+
+                for (let row = 0; row < this.blocksBoardSize; row++) {
+                    for (let column = 0; column < this.blocksBoardSize; column++) {
+                        const value = this.blocksBoard[row][column];
+                        let cellClass = value === null ? 'blocks-cell' : `blocks-cell filled-${value}`;
+
+                        if (this.blocksClearingLines.some(line => line.type === 'row' && line.index === row)) {
+                            cellClass += ' clearing';
+                        }
+
+                        if (this.blocksClearingLines.some(line => line.type === 'column' && line.index === column)) {
+                            cellClass += ' clearing';
+                        }
+
+                        html += `<button type="button" class="${cellClass}" data-block-row="${row}" data-block-column="${column}" ondragover="app.previewBlocksDrop(event, ${row}, ${column})" ondragenter="app.previewBlocksDrop(event, ${row}, ${column})" ondragleave="app.clearBlocksDropPreview(event)" ondrop="app.dropBlocksPiece(event, ${row}, ${column})" aria-label="Board cell ${row + 1}, ${column + 1}"></button>`;
+                    }
+                }
+
+                return html;
+            }
+
+            renderBlocksHand() {
+                return `
+                    <div class="blocks-hand">
+                        ${this.blocksHand.map(piece => `
+                            <div class="blocks-piece ${this.blocksDraggedPieceId === piece.id ? 'dragging' : ''}" draggable="true" data-block-piece="${piece.id}" aria-label="${this.escapeHtml(piece.name)}" onmousedown="app.setBlocksGrabAnchor(event, '${piece.id}', null, null)" ondragstart="app.startBlocksDrag(event, '${piece.id}')" ondragend="app.endBlocksDrag(event)">
+                                <div class="blocks-piece-grid">
+                                    ${this.renderBlocksPiecePreview(piece)}
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+
+            getBlocksPieceBounds(cells) {
+                const xs = cells.map(([x]) => x);
+                const ys = cells.map(([, y]) => y);
+                const minX = Math.min(...xs);
+                const maxX = Math.max(...xs);
+                const minY = Math.min(...ys);
+                const maxY = Math.max(...ys);
+
+                return {
+                    minX,
+                    minY,
+                    width: maxX - minX + 1,
+                    height: maxY - minY + 1
+                };
+            }
+
+            renderBlocksPiecePreview(piece) {
+                const bounds = this.getBlocksPieceBounds(piece.cells);
+                const cellSet = new Set(piece.cells.map(([x, y]) => `${x},${y}`));
+                let html = '';
+
+                html += `<div class="blocks-piece-grid" style="grid-template-columns: repeat(${bounds.width}, 22px); grid-template-rows: repeat(${bounds.height}, 22px);">`;
+
+                for (let row = 0; row < bounds.height; row++) {
+                    for (let column = 0; column < bounds.width; column++) {
+                        const shapeX = bounds.minX + column;
+                        const shapeY = bounds.minY + row;
+                        if (cellSet.has(`${shapeX},${shapeY}`)) {
+                            html += `<div class="blocks-piece-cell filled-${piece.colorIndex}" data-piece-x="${shapeX}" data-piece-y="${shapeY}" onmousedown="app.setBlocksGrabAnchor(event, '${piece.id}', ${shapeX}, ${shapeY})"></div>`;
+                        } else {
+                            html += `<div class="blocks-piece-cell empty"></div>`;
+                        }
+                    }
+                }
+
+                html += '</div>';
+
+                return html;
+            }
+
+            startBlocksDrag(event, pieceId) {
+                this.blocksDraggedPieceId = pieceId;
+                if (event?.dataTransfer) {
+                    event.dataTransfer.setData('text/plain', pieceId);
+                    event.dataTransfer.effectAllowed = 'move';
+                }
+            }
+
+            setBlocksGrabAnchor(event, pieceId, pieceX, pieceY) {
+                if (event) {
+                    event.stopPropagation();
+                }
+
+                this.blocksDraggedPieceId = pieceId;
+                const piece = this.findBlocksPiece(pieceId);
+                if (!piece) {
+                    this.blocksDragAnchor = { x: 0, y: 0 };
+                    return;
+                }
+
+                if (Number.isFinite(pieceX) && Number.isFinite(pieceY)) {
+                    this.blocksDragAnchor = { x: pieceX, y: pieceY };
+                    return;
+                }
+
+                const bounds = this.getBlocksPieceBounds(piece.cells);
+                this.blocksDragAnchor = {
+                    x: bounds.minX,
+                    y: bounds.minY
+                };
+            }
+
+            endBlocksDrag() {
+                this.blocksDraggedPieceId = null;
+                this.clearBlocksPlacementPreview();
+                this.renderBlocksRound();
+            }
+
+            previewBlocksDrop(event, row, column) {
+                event.preventDefault();
+                const piece = this.findBlocksPiece(this.blocksDraggedPieceId);
+                if (!piece) {
+                    return;
+                }
+
+                const anchor = this.blocksDragAnchor || { x: 0, y: 0 };
+                const origin = this.getBlocksPlacementOrigin(row, column, anchor);
+                const preview = this.getBlocksPlacementPreview(piece, origin.row, origin.column);
+                if (!preview.cells.length) {
+                    this.clearBlocksPlacementPreview();
+                    return;
+                }
+
+                this.paintBlocksPlacementPreview(preview.cells, preview.valid);
+            }
+
+            clearBlocksDropPreview(event) {
+                if (!event?.relatedTarget || !event.relatedTarget.closest('.blocks-board')) {
+                    this.clearBlocksPlacementPreview();
+                }
+            }
+
+            findBlocksPiece(pieceId) {
+                return this.blocksHand.find(piece => piece.id === pieceId) || null;
+            }
+
+            hasBlocksAnyPlacement(piece) {
+                for (let row = 0; row < this.blocksBoardSize; row++) {
+                    for (let column = 0; column < this.blocksBoardSize; column++) {
+                        if (this.canPlaceBlocksPieceAtOrigin(row, column, piece, this.blocksBoard)) {
+                            return true;
+                        }
+                    }
+                }
+
+                return false;
+            }
+
+            getBlocksPlacementOrigin(row, column, anchor = { x: 0, y: 0 }) {
+                return {
+                    row: row - anchor.y,
+                    column: column - anchor.x
+                };
+            }
+
+            getBlocksPlacementCells(piece, originRow, originColumn, board = this.blocksBoard) {
+                const cells = [];
+
+                for (const [dx, dy] of piece.cells) {
+                    const targetRow = originRow + dy;
+                    const targetColumn = originColumn + dx;
+                    if (targetRow < 0 || targetRow >= this.blocksBoardSize || targetColumn < 0 || targetColumn >= this.blocksBoardSize) {
+                        continue;
+                    }
+
+                    if (board[targetRow][targetColumn] !== null) {
+                        continue;
+                    }
+
+                    cells.push({ row: targetRow, column: targetColumn });
+                }
+
+                return cells.length === piece.cells.length ? cells : null;
+            }
+
+            getBlocksPlacementPreview(piece, originRow, originColumn, board = this.blocksBoard) {
+                const cells = [];
+                let valid = true;
+
+                for (const [dx, dy] of piece.cells) {
+                    const targetRow = originRow + dy;
+                    const targetColumn = originColumn + dx;
+
+                    if (targetRow < 0 || targetRow >= this.blocksBoardSize || targetColumn < 0 || targetColumn >= this.blocksBoardSize) {
+                        valid = false;
+                        continue;
+                    }
+
+                    if (board[targetRow][targetColumn] !== null) {
+                        valid = false;
+                    }
+
+                    cells.push({ row: targetRow, column: targetColumn });
+                }
+
+                return { cells, valid };
+            }
+
+            canPlaceBlocksPieceAtOrigin(originRow, originColumn, piece, board = this.blocksBoard) {
+                return this.getBlocksPlacementCells(piece, originRow, originColumn, board) !== null;
+            }
+
+            paintBlocksPlacementPreview(cells, isValid) {
+                this.clearBlocksPlacementPreview();
+                const className = isValid ? 'drop-hover' : 'drop-invalid';
+                cells.forEach(cell => {
+                    const cellElement = document.querySelector(`[data-block-row="${cell.row}"][data-block-column="${cell.column}"]`);
+                    if (cellElement) {
+                        cellElement.classList.add(className);
+                    }
+                });
+            }
+
+            clearBlocksPlacementPreview() {
+                document.querySelectorAll('.blocks-cell.drop-hover, .blocks-cell.drop-invalid').forEach(cell => {
+                    cell.classList.remove('drop-hover', 'drop-invalid');
+                });
+            }
+
+            dropBlocksPiece(event, row, column) {
+                event.preventDefault();
+
+                const pieceId = event.dataTransfer?.getData('text/plain') || this.blocksDraggedPieceId;
+                const piece = this.findBlocksPiece(pieceId);
+                if (!piece) {
+                    return;
+                }
+
+                const anchor = this.blocksDragAnchor || { x: 0, y: 0 };
+                const origin = this.getBlocksPlacementOrigin(row, column, anchor);
+                const placementCells = this.getBlocksPlacementCells(piece, origin.row, origin.column);
+                if (!placementCells) {
+                    this.blocksStatusMessage = 'That piece does not fit there.';
+                    this.renderBlocksRound();
+                    return;
+                }
+
+                this.clearBlocksPlacementPreview();
+                this.blocksStatusMessage = '';
+                this.applyBlocksPiece(origin.row, origin.column, piece);
+                this.blocksHand = this.blocksHand.filter(handPiece => handPiece.id !== piece.id);
+                this.blocksPlacedCount += 1;
+                this.blocksRoundScore += 1;
+                this.blocksTotalScore += 1;
+                this.blocksDraggedPieceId = null;
+
+                const completedLines = this.getBlocksCompletedLines();
+                const totalCleared = completedLines.rows.length + completedLines.columns.length;
+                if (totalCleared > 0) {
+                    this.blocksClearingLines = [
+                        ...completedLines.rows.map(index => ({ type: 'row', index })),
+                        ...completedLines.columns.map(index => ({ type: 'column', index }))
+                    ];
+                    this.blocksStatusMessage = `${totalCleared} line${totalCleared === 1 ? '' : 's'} clearing...`;
+                    this.renderBlocksRound();
+
+                    this.blocksPendingClear = setTimeout(() => {
+                        this.blocksPendingClear = null;
+                        this.clearBlocksLines(completedLines);
+                        const lineBonus = this.calculateBlocksClearBonus(totalCleared);
+                        this.blocksRoundScore += lineBonus;
+                        this.blocksTotalScore += lineBonus;
+                        this.blocksClearingLines = [];
+                        this.blocksStatusMessage = `${totalCleared} line${totalCleared === 1 ? '' : 's'} cleared. +${lineBonus} points.`;
+                        this.afterBlocksPlacement();
+                    }, 260);
+                    return;
+                }
+
+                this.blocksStatusMessage = `Placed ${piece.name}.`;
+                this.afterBlocksPlacement();
+            }
+
+            applyBlocksPiece(row, column, piece) {
+                piece.cells.forEach(([dx, dy]) => {
+                    const targetRow = row + dy;
+                    const targetColumn = column + dx;
+                    this.blocksBoard[targetRow][targetColumn] = piece.colorIndex;
+                });
+            }
+
+            getBlocksCompletedLines(board = this.blocksBoard) {
+                const rowsToClear = [];
+                const columnsToClear = [];
+
+                for (let row = 0; row < this.blocksBoardSize; row++) {
+                    if (board[row].every(cell => cell !== null)) {
+                        rowsToClear.push(row);
+                    }
+                }
+
+                for (let column = 0; column < this.blocksBoardSize; column++) {
+                    let isFull = true;
+                    for (let row = 0; row < this.blocksBoardSize; row++) {
+                        if (board[row][column] === null) {
+                            isFull = false;
+                            break;
+                        }
+                    }
+                    if (isFull) {
+                        columnsToClear.push(column);
+                    }
+                }
+
+                return {
+                    rows: rowsToClear,
+                    columns: columnsToClear
+                };
+            }
+
+            cloneBlocksBoard(board = this.blocksBoard) {
+                return board.map(row => [...row]);
+            }
+
+            applyBlocksPieceToBoard(board, row, column, piece) {
+                piece.cells.forEach(([dx, dy]) => {
+                    board[row + dy][column + dx] = piece.colorIndex;
+                });
+            }
+
+            clearBlocksLinesOnBoard(board, lines) {
+                lines.rows.forEach(row => {
+                    for (let column = 0; column < this.blocksBoardSize; column++) {
+                        board[row][column] = null;
+                    }
+                });
+
+                lines.columns.forEach(column => {
+                    for (let row = 0; row < this.blocksBoardSize; row++) {
+                        board[row][column] = null;
+                    }
+                });
+            }
+
+            clearBlocksLines(lines) {
+                lines.rows.forEach(row => {
+                    for (let column = 0; column < this.blocksBoardSize; column++) {
+                        this.blocksBoard[row][column] = null;
+                    }
+                });
+
+                lines.columns.forEach(column => {
+                    for (let row = 0; row < this.blocksBoardSize; row++) {
+                        this.blocksBoard[row][column] = null;
+                    }
+                });
+            }
+
+            calculateBlocksClearBonus(lineCount) {
+                return lineCount * lineCount * 12;
+            }
+
+            afterBlocksPlacement() {
+                if (this.blocksHand.length === 0) {
+                    this.renderBlocksRound();
+                    return;
+                }
+
+                if (!this.hasAnyPlaysLeft()) {
+                    this.renderBlocksRound();
+                    this.endBlocksGame('No blocks fit anymore.');
+                    return;
+                }
+
+                this.renderBlocksRound();
+            }
+
+            hasAnyPlaysLeft(board = this.blocksBoard, hand = this.blocksHand) {
+                return hand.some(piece => {
+                    for (let row = 0; row < this.blocksBoardSize; row++) {
+                        for (let column = 0; column < this.blocksBoardSize; column++) {
+                            if (this.canPlaceBlocksPieceAtOrigin(row, column, piece, board)) {
+                                return true;
+                            }
+                        }
+                    }
+
+                    return false;
+                });
+            }
+
+            ensureBlocksHandPlacable() {
+                return this.hasAnyPlaysLeft();
+            }
+
+            findBlocksBestLineToClear() {
+                let best = null;
+
+                for (let row = 0; row < this.blocksBoardSize; row++) {
+                    let filled = 0;
+                    for (let column = 0; column < this.blocksBoardSize; column++) {
+                        if (this.blocksBoard[row][column] !== null) {
+                            filled += 1;
+                        }
+                    }
+
+                    if (!best || filled > best.filled) {
+                        best = { type: 'row', index: row, filled };
+                    }
+                }
+
+                for (let column = 0; column < this.blocksBoardSize; column++) {
+                    let filled = 0;
+                    for (let row = 0; row < this.blocksBoardSize; row++) {
+                        if (this.blocksBoard[row][column] !== null) {
+                            filled += 1;
+                        }
+                    }
+
+                    if (!best || filled > best.filled) {
+                        best = { type: 'column', index: column, filled };
+                    }
+                }
+
+                return best;
+            }
+
+            clearBlocksLine(type, index) {
+                if (type === 'row') {
+                    for (let column = 0; column < this.blocksBoardSize; column++) {
+                        this.blocksBoard[index][column] = null;
+                    }
+                } else {
+                    for (let row = 0; row < this.blocksBoardSize; row++) {
+                        this.blocksBoard[row][index] = null;
+                    }
+                }
+            }
+
+            countBlocksEmptyCells() {
+                let emptyCount = 0;
+                for (let row = 0; row < this.blocksBoardSize; row++) {
+                    for (let column = 0; column < this.blocksBoardSize; column++) {
+                        if (this.blocksBoard[row][column] === null) {
+                            emptyCount += 1;
+                        }
+                    }
+                }
+                return emptyCount;
+            }
+
+            isBlocksBoardFull() {
+                return this.countBlocksEmptyCells() === 0;
+            }
+
+            endBlocksGame(message) {
+                if (this.blocksGameOver) {
+                    return;
+                }
+
+                this.blocksGameOver = true;
+                if (this.blocksPendingClear) {
+                    clearTimeout(this.blocksPendingClear);
+                    this.blocksPendingClear = null;
+                }
+                if (this.blocksPendingAdvance) {
+                    clearTimeout(this.blocksPendingAdvance);
+                    this.blocksPendingAdvance = null;
+                }
+                this.blocksStatusMessage = message;
+                this.saveToLocalStorage();
+
+                this.showAlert('Blocks Game Over', `${message} Final score: ${this.blocksTotalScore}.`, ['OK']).then(() => {
+                    this.renderStudyModeSelection();
+                    document.getElementById('studyContentView').style.display = 'none';
+                    document.getElementById('resultsView').style.display = 'none';
+                });
+            }
+
+            submitBlocksAnswer() {
+                if (this.blocksHand.length > 0) {
+                    return;
+                }
+
+                const inputEl = document.getElementById('blocksAnswerInput');
+                if (!inputEl || inputEl.disabled) {
+                    return;
+                }
+
+                const feedbackEl = document.getElementById('blocksFeedback');
+                const guess = this.normalizeStudyText(inputEl.value);
+                const answer = this.normalizeStudyText(this.blocksCurrentTerm.definition);
+                const isCorrect = guess === answer;
+
+                this.blocksQuestionAttempts += 1;
+
+                if (isCorrect) {
+                    const bonus = 20 + Math.max(0, (this.blocksTriesLeft - 1) * 5);
+                    this.blocksTotalScore += bonus;
+                    this.blocksSolvedCount += 1;
+                    this.blocksStatusMessage = `Correct! +${bonus} bonus score.`;
+
+                    if (feedbackEl) {
+                        feedbackEl.innerHTML = `<div class="answer-feedback correct">Correct! +${bonus} bonus score.</div>`;
+                    }
+
+                    inputEl.disabled = true;
+                    this.blocksQueue.shift();
+
+                    this.blocksPendingAdvance = setTimeout(() => {
+                        this.blocksPendingAdvance = null;
+                        this.startBlocksRound();
+                    }, 1000);
+                    return;
+                }
+
+                this.blocksTriesLeft -= 1;
+                if (this.blocksTriesLeft > 0) {
+                    if (feedbackEl) {
+                        feedbackEl.innerHTML = `<div class="answer-feedback incorrect">Not yet. Try again. ${this.blocksTriesLeft} tries left.</div>`;
+                    }
+                    inputEl.value = '';
+                    inputEl.focus();
+                    return;
+                }
+
+                const failedTerm = this.blocksQueue.shift();
+                if (failedTerm) {
+                    this.blocksQueue.push(failedTerm);
+                }
+
+                const penalty = Math.min(this.blocksTotalScore, Math.max(5, Math.round(this.blocksRoundScore * 0.5)));
+                this.blocksTotalScore = Math.max(0, this.blocksTotalScore - penalty);
+                this.blocksStatusMessage = `Out of tries. -${penalty} points. This term will come back later.`;
+
+                if (feedbackEl) {
+                    feedbackEl.innerHTML = `<div class="answer-feedback incorrect">Out of tries. You lost ${penalty} points.<div class="correct-answer">Correct answer: ${this.escapeHtml(this.blocksCurrentTerm.definition)}</div></div>`;
+                }
+
+                inputEl.disabled = true;
+                this.blocksPendingAdvance = setTimeout(() => {
+                    this.blocksPendingAdvance = null;
+                    this.startBlocksRound();
+                }, 1000);
             }
 
             renderStudyContent() {
@@ -1237,6 +2097,9 @@
                     const completed = this.learningTotal - this.learningQueue.length;
                     progress = this.learningTotal > 0 ? (completed / this.learningTotal) * 100 : 0;
                     progressText = `Mastered ${this.learningMastered} of ${this.learningTotal}`;
+                } else if (this.currentMode === 'blocks') {
+                    progress = this.blocksTotalTerms > 0 ? (this.blocksSolvedCount / this.blocksTotalTerms) * 100 : 0;
+                    progressText = `Solved ${this.blocksSolvedCount} of ${this.blocksTotalTerms} | Score ${this.blocksTotalScore}`;
                 }
 
                 document.getElementById('progressBar').style.width = progress + '%';
@@ -1249,6 +2112,16 @@
                     this.saveToLocalStorage();
                     const bothDirections = this.learningConfig.directions.termToDefinition && this.learningConfig.directions.definitionToTerm;
                     this.showAlert('Learning Complete', `Nice work. You mastered every card${bothDirections ? ' in both directions' : ''}.`).then(() => {
+                        this.renderStudyModeSelection();
+                        document.getElementById('studyContentView').style.display = 'none';
+                        document.getElementById('resultsView').style.display = 'none';
+                    });
+                    return;
+                } else if (this.currentMode === 'blocks') {
+                    this.currentSet.stats.studied += 1;
+                    this.currentSet.stats.accuracy = this.blocksTotalTerms > 0 ? Math.round((this.blocksSolvedCount / this.blocksTotalTerms) * 100) : 0;
+                    this.saveToLocalStorage();
+                    this.showAlert('Blocks Complete', `You cleared ${this.blocksSolvedCount} of ${this.blocksTotalTerms} terms and finished with ${this.blocksTotalScore} points.`, ['OK']).then(() => {
                         this.renderStudyModeSelection();
                         document.getElementById('studyContentView').style.display = 'none';
                         document.getElementById('resultsView').style.display = 'none';
