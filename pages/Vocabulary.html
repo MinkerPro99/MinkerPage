@@ -140,6 +140,52 @@
         .blocks-question-card { margin-top: 18px; background: rgba(255, 255, 255, 0.04); border-radius: 16px; padding: 18px; border: 1px solid rgba(255, 255, 255, 0.08); }
         .blocks-tries { color: rgba(255, 255, 255, 0.65); font-size: 13px; margin-top: 8px; }
         .blocks-score-flash { color: #8af0a8; font-weight: 700; }
+        .blocks-question-modal {
+            width: min(760px, calc(100vw - 24px));
+            max-width: min(760px, calc(100vw - 24px));
+            padding: 34px 30px 30px;
+            border-radius: 22px;
+        }
+        .blocks-question-modal .custom-alert-title {
+            font-size: 28px;
+            margin-bottom: 10px;
+            color: #ffffff;
+        }
+        .blocks-question-modal .custom-alert-message {
+            font-size: 18px;
+            line-height: 1.45;
+            margin-bottom: 16px;
+        }
+        .blocks-question-modal .blocks-question-term {
+            margin: 8px 0 18px;
+            padding: 18px 20px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: #ffffff;
+            font-size: 28px;
+            font-weight: 700;
+            line-height: 1.25;
+            word-break: break-word;
+        }
+        .blocks-question-modal .form-control {
+            min-height: 56px;
+            font-size: 18px;
+            border-radius: 14px;
+            margin-bottom: 14px;
+        }
+        .blocks-question-modal .blocks-tries {
+            margin-top: 2px;
+            font-size: 14px;
+        }
+        .blocks-question-modal .learning-feedback {
+            margin-top: 14px;
+            min-height: 56px;
+        }
+        .blocks-question-modal .custom-alert-buttons {
+            justify-content: center;
+            margin-top: 18px;
+        }
         @keyframes blocksClearCell {
             0% { opacity: 1; transform: scale(1); filter: brightness(1); }
             50% { opacity: 0.95; transform: scale(1.08); filter: brightness(1.35); }
@@ -422,6 +468,20 @@
         <div class="custom-alert-message" id="alertMessage"></div>
         <input type="text" class="form-control" id="alertInput" style="display: none; margin-bottom: 16px;" />
         <div class="custom-alert-buttons" id="alertButtons"></div>
+    </div>
+
+    <div class="custom-alert-overlay" id="blocksQuestionOverlay"></div>
+    <div class="custom-alert blocks-question-modal" id="blocksQuestionModal" style="display: none; z-index: 10000;">
+        <div class="custom-alert-title" id="blocksQuestionTitle"></div>
+        <div class="custom-alert-message" id="blocksQuestionMessage"></div>
+        <div class="blocks-question-term" id="blocksQuestionTerm"></div>
+        <input type="text" class="form-control" id="blocksQuestionInput" style="display: block; margin-bottom: 16px;" placeholder="Type the definition" onkeydown="if (event.key === 'Enter') { event.preventDefault(); app.submitBlocksAnswer(); }" />
+        <div class="blocks-tries" id="blocksQuestionTries"></div>
+        <div class="learning-feedback" id="blocksQuestionFeedback"></div>
+        <div class="custom-alert-buttons" id="blocksQuestionButtons">
+            <button type="button" class="custom-alert-btn custom-alert-btn-secondary" onclick="app.closeBlocksQuestionModal()">Close</button>
+            <button type="button" class="custom-alert-btn custom-alert-btn-primary" onclick="app.submitBlocksAnswer()">Submit</button>
+        </div>
     </div>
 
     <script>
@@ -1036,29 +1096,13 @@
                             </div>
                         </div>
                         <div class="learning-helper" style="margin-top: 14px;">Drag a block onto any empty cell. Completed rows or columns clear like Tetris. If the board fills up, the game ends.</div>
-                        ${this.blocksPlacedCount >= 3 ? `
-                            <div class="blocks-question-card">
-                                <div class="learning-prompt-label">Typing question</div>
-                                <div class="learning-prompt-value" style="font-size: 22px;">${this.escapeHtml(this.blocksCurrentTerm.term)}</div>
-                                <div class="learning-support">Type the definition. You have ${this.blocksTriesLeft} tries.</div>
-                                <input type="text" class="typing-input blocks-answer-input" id="blocksAnswerInput" placeholder="Type the definition..." onkeypress="event.key === 'Enter' && app.submitBlocksAnswer()">
-                                <button class="btn vocab-btn btn-success" onclick="app.submitBlocksAnswer()">
-                                    <i class="bi bi-check-circle-fill btn-icon" aria-hidden="true"></i>Submit
-                                </button>
-                                <div class="blocks-tries">Tries left: ${this.blocksTriesLeft}</div>
-                                <div id="blocksFeedback" class="learning-feedback"></div>
-                            </div>
-                        ` : ''}
                     </div>
                 `;
 
                 if (this.blocksPlacedCount >= 3) {
-                    setTimeout(() => {
-                        const input = document.getElementById('blocksAnswerInput');
-                        if (input) {
-                            input.focus();
-                        }
-                    }, 0);
+                    this.showBlocksQuestionModal();
+                } else {
+                    this.closeBlocksQuestionModal();
                 }
             }
 
@@ -1753,6 +1797,7 @@
                     this.blocksPendingAdvance = null;
                 }
                 this.blocksSelectedPieceId = null;
+                this.closeBlocksQuestionModal();
                 this.blocksStatusMessage = message;
                 this.saveToLocalStorage();
 
@@ -1768,12 +1813,12 @@
                     return;
                 }
 
-                const inputEl = document.getElementById('blocksAnswerInput');
+                const inputEl = document.getElementById('blocksQuestionInput');
                 if (!inputEl || inputEl.disabled) {
                     return;
                 }
 
-                const feedbackEl = document.getElementById('blocksFeedback');
+                const feedbackEl = document.getElementById('blocksQuestionFeedback');
                 const guess = this.normalizeStudyText(inputEl.value);
                 const answer = this.normalizeStudyText(this.blocksCurrentTerm.definition);
                 const isCorrect = guess === answer;
@@ -1791,6 +1836,7 @@
                     }
 
                     inputEl.disabled = true;
+                    this.closeBlocksQuestionModal();
                     this.blocksQueue.shift();
 
                     this.blocksPendingAdvance = setTimeout(() => {
@@ -1824,10 +1870,56 @@
                 }
 
                 inputEl.disabled = true;
+                this.closeBlocksQuestionModal();
                 this.blocksPendingAdvance = setTimeout(() => {
                     this.blocksPendingAdvance = null;
                     this.startBlocksRound();
                 }, 1000);
+            }
+
+            showBlocksQuestionModal() {
+                const overlay = document.getElementById('blocksQuestionOverlay');
+                const modal = document.getElementById('blocksQuestionModal');
+                const titleEl = document.getElementById('blocksQuestionTitle');
+                const messageEl = document.getElementById('blocksQuestionMessage');
+                const termEl = document.getElementById('blocksQuestionTerm');
+                const inputEl = document.getElementById('blocksQuestionInput');
+                const triesEl = document.getElementById('blocksQuestionTries');
+                const feedbackEl = document.getElementById('blocksQuestionFeedback');
+
+                if (!overlay || !modal || !titleEl || !messageEl || !termEl || !inputEl || !triesEl || !feedbackEl) {
+                    return;
+                }
+
+                titleEl.textContent = 'Typing question';
+                messageEl.textContent = 'Answer the definition to finish the round.';
+                termEl.textContent = this.blocksCurrentTerm ? this.blocksCurrentTerm.term : '';
+                inputEl.disabled = false;
+                inputEl.value = '';
+                inputEl.placeholder = 'Type the definition...';
+                triesEl.textContent = `Tries left: ${this.blocksTriesLeft}`;
+                feedbackEl.innerHTML = '';
+                overlay.classList.add('show');
+                modal.style.display = 'block';
+                inputEl.onkeydown = (event) => {
+                    if (event.key === 'Enter') {
+                        event.preventDefault();
+                        this.submitBlocksAnswer();
+                    }
+                };
+
+                setTimeout(() => inputEl.focus(), 0);
+            }
+
+            closeBlocksQuestionModal() {
+                const overlay = document.getElementById('blocksQuestionOverlay');
+                const modal = document.getElementById('blocksQuestionModal');
+                if (overlay) {
+                    overlay.classList.remove('show');
+                }
+                if (modal) {
+                    modal.style.display = 'none';
+                }
             }
 
             renderStudyContent() {
