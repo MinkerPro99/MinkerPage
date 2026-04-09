@@ -8,6 +8,7 @@
     <meta http-equiv="Content-Language" content="en">
     <link rel="stylesheet" href="../css/style.css">
     <link rel="stylesheet" href="../css/bootstrap.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <script src="../js/bootstrap.js"></script>
     <script src="https://code.jquery.com/jquery-3.7.1.js"></script>
     <link rel="icon" type="image/png" href="../img/1kIcon.png">
@@ -85,9 +86,30 @@
         .sets-header { text-align: center; }
         .sets-actions { justify-content: center; }
         .btn-icon { width: 18px; height: 18px; vertical-align: text-bottom; margin-right: 6px; }
+        .btn-icon.bi { width: auto; height: auto; }
         .study-mode-btn { background: linear-gradient(135deg, rgba(6, 80, 241, 0.1), rgba(186, 6, 241, 0.1)); border: 1px solid rgba(255, 255, 255, 0.1); color: white; border-radius: 12px; transition: all 0.3s ease; display: flex; flex-direction: column; align-items: center; gap: 10px; font-weight: 600; min-height: 120px; }
         .study-mode-btn:hover { background: linear-gradient(135deg, rgba(6, 80, 241, 0.2), rgba(186, 6, 241, 0.2)); border-color: #0650f1; color: white; transform: translateY(-4px); box-shadow: 0 8px 24px rgba(6, 80, 241, 0.2); }
-        .study-mode-btn svg { width: 36px; height: 36px; }
+        .study-mode-btn .bi { font-size: 2rem; line-height: 1; }
+        .learning-setup-card { background: linear-gradient(135deg, rgba(6, 80, 241, 0.08), rgba(186, 6, 241, 0.08)); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 16px; padding: 24px; }
+        .learning-setup-title { color: #ffffff; font-size: 22px; font-weight: 700; margin-bottom: 8px; }
+        .learning-setup-subtitle { color: rgba(255, 255, 255, 0.65); margin-bottom: 18px; }
+        .learning-setup-section { margin-bottom: 18px; }
+        .learning-toggle-group { display: flex; flex-wrap: wrap; gap: 12px; }
+        .learning-toggle { display: inline-flex; align-items: center; gap: 8px; padding: 12px 16px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.12); background: rgba(255, 255, 255, 0.05); color: rgba(255, 255, 255, 0.88); font-weight: 600; transition: all 0.2s ease; }
+        .learning-toggle:hover { border-color: rgba(6, 80, 241, 0.5); color: white; }
+        .learning-toggle.active { background: linear-gradient(135deg, #0650f1, #ba06f1); border-color: transparent; color: white; }
+        .learning-toggle .bi { font-size: 1rem; }
+        .learning-helper { color: rgba(255, 255, 255, 0.62); font-size: 14px; margin-top: 10px; }
+        .learning-actions { display: flex; flex-wrap: wrap; gap: 12px; justify-content: flex-end; margin-top: 20px; }
+        .learning-card { background: linear-gradient(135deg, rgba(6, 80, 241, 0.08), rgba(186, 6, 241, 0.08)); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 18px; padding: 24px; }
+        .learning-badge { display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 999px; background: rgba(255, 255, 255, 0.08); color: rgba(255, 255, 255, 0.85); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+        .learning-prompt { margin-top: 18px; padding: 22px; border-radius: 14px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.08); }
+        .learning-prompt-label { color: rgba(255, 255, 255, 0.58); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 8px; }
+        .learning-prompt-value { color: #ffffff; font-size: 24px; font-weight: 700; line-height: 1.35; word-break: break-word; }
+        .learning-support { color: rgba(255, 255, 255, 0.62); margin-top: 10px; }
+        .learning-answer-input { margin-top: 18px; }
+        .learning-feedback { margin-top: 14px; }
+        .learning-stat-note { color: rgba(255, 255, 255, 0.6); font-size: 13px; margin-top: 4px; }
         .flashcard { background: linear-gradient(135deg, rgba(6, 80, 241, 0.1), rgba(186, 6, 241, 0.1)); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 16px; padding: 60px 40px; min-height: 300px; display: flex; align-items: center; justify-content: center; cursor: pointer; position: relative; margin: 40px auto; perspective: 1000px; transition: all 0.6s ease; text-align: center; }
         .flashcard:hover { border-color: #0650f1; box-shadow: 0 12px 40px rgba(6, 80, 241, 0.25); }
         .flashcard.flipped { background: linear-gradient(135deg, rgba(255, 174, 0, 0.1), rgba(239, 3, 38, 0.1)); border-color: rgba(255, 174, 0, 0.3); }
@@ -141,7 +163,7 @@
         @keyframes slideIn { from { opacity: 0; transform: translate(-50%, -50%) scale(0.9); } to { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         .animate-slide-in { animation: slideIn 0.3s ease; }
-        @media (max-width: 768px) { .term-input-group.term-pair { grid-template-columns: 1fr; } .flashcard { padding: 40px 20px; min-height: 250px; } .flashcard-content { font-size: 24px; } .study-mode-btn { min-height: 100px; } .results-score { font-size: 48px; } .vocab-container { padding: 20px 10px 60px; } }
+        @media (max-width: 768px) { .term-input-group.term-pair { grid-template-columns: 1fr; } .flashcard { padding: 40px 20px; min-height: 250px; } .flashcard-content { font-size: 24px; } .study-mode-btn { min-height: 100px; } .results-score { font-size: 48px; } .vocab-container { padding: 20px 10px 60px; } .learning-actions { justify-content: stretch; } .learning-actions .btn { width: 100%; } .learning-toggle-group { flex-direction: column; } .learning-toggle { width: 100%; justify-content: center; } .learning-prompt-value { font-size: 20px; } }
     </style>
 </head>
 
@@ -161,10 +183,7 @@
             <div class="row mb-4 sets-actions">
                 <div class="col-md-6 col-lg-5">
                     <button class="btn vocab-btn w-100" id="createSetBtn" onclick="app.showCreateSetForm()">
-                        <svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
-                            <path d="M8 15A7 7 0 1 0 8 1a7 7 0 0 0 0 14m0 1A8 8 0 1 1 8 0a8 8 0 0 1 0 16"/>
-                            <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4"/>
-                        </svg>Create New Set
+                        <i class="bi bi-plus-circle-fill btn-icon" aria-hidden="true"></i>Create New Set
                     </button>
                 </div>
             </div>
@@ -206,9 +225,7 @@
                         <!-- Term inputs will be rendered here -->
                     </div>
                     <button class="btn vocab-btn mt-3" onclick="app.addNewTerm()">
-                        <svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
-                            <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4"/>
-                        </svg>Add New Term
+                        <i class="bi bi-plus-circle-fill btn-icon" aria-hidden="true"></i>Add New Term
                     </button>
                 </div>
             </div>
@@ -232,36 +249,71 @@
                 <div class="row g-4">
                     <div class="col-md-6">
                         <button class="btn study-mode-btn w-100" data-mode="flashcard" onclick="app.startStudySession('flashcard')">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16">
-                                <path d="M8.5 6.5a.5.5 0 0 0-1 0v3.362l-1.447-1.448a.5.5 0 0 0-.707.707l2.5 2.5a.5.5 0 0 0 .707 0l2.5-2.5a.5.5 0 0 0-.707-.707L8.5 9.862V6.5z"/>
-                                <path d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2zM9.5 3A1.5 1.5 0 0 0 11 4.5h2V14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5.5v2z"/>
-                            </svg>
+                            <i class="bi bi-journal-text" aria-hidden="true"></i>
                             Flashcards
                         </button>
                     </div>
                     <div class="col-md-6">
                         <button class="btn study-mode-btn w-100" data-mode="multichoice" onclick="app.startStudySession('multichoice')">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16">
-                                <path d="M1 11a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1v-3zM4 5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5zM7 7a1 1 0 0 0-1 1v5a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1H7z"/>
-                            </svg>
+                            <i class="bi bi-ui-checks-grid" aria-hidden="true"></i>
                             Multiple Choice
                         </button>
                     </div>
                     <div class="col-md-6">
                         <button class="btn study-mode-btn w-100" data-mode="typing" onclick="app.startStudySession('typing')">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16">
-                                <path d="M14 5a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zM2 4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"/>
-                                <path d="M10 8.5a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 0 1h-3a.5.5 0 0 1-.5-.5m-8 0a.5.5 0 0 1 .5-.5h6a.5.5 0 0 1 0 1h-6a.5.5 0 0 1-.5-.5"/>
-                            </svg>
+                            <i class="bi bi-keyboard" aria-hidden="true"></i>
                             Typing
                         </button>
                     </div>
                     <div class="col-md-6">
                         <button class="btn study-mode-btn w-100" data-mode="learning" onclick="app.startStudySession('learning')">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16">
-                                <path d="M8 1a4 4 0 0 0-2.906 6.75c.444.451.795 1.08.875 1.75h4.062c.08-.67.43-1.299.875-1.75A4 4 0 0 0 8 1m3 8.5H5a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 .5.5M6 11h4a.5.5 0 0 1 0 1H6a.5.5 0 0 1 0-1m.5 2h3a.5.5 0 0 1 0 1h-3a.5.5 0 0 1 0-1"/>
-                            </svg>
+                            <i class="bi bi-lightbulb-fill" aria-hidden="true"></i>
                             Learning
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Learning Setup View -->
+            <div id="learningSetupView" style="display: none;">
+                <div class="learning-setup-card">
+                    <div class="learning-setup-title">Learning</div>
+                    <div class="learning-setup-subtitle">Choose how you want to answer, then decide whether to study term to definition, definition to term, or both directions.</div>
+
+                    <div class="learning-setup-section">
+                        <label class="term-label">Answer style</label>
+                        <div class="learning-toggle-group">
+                            <button type="button" class="learning-toggle" data-learning-input="typing" onclick="app.setLearningInputMode('typing')">
+                                <i class="bi bi-keyboard" aria-hidden="true"></i>
+                                Typing
+                            </button>
+                            <button type="button" class="learning-toggle" data-learning-input="multichoice" onclick="app.setLearningInputMode('multichoice')">
+                                <i class="bi bi-ui-checks-grid" aria-hidden="true"></i>
+                                Multiple choice
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="learning-setup-section">
+                        <label class="term-label">Study directions</label>
+                        <div class="learning-toggle-group">
+                            <button type="button" class="learning-toggle" data-learning-direction="termToDefinition" onclick="app.toggleLearningDirection('termToDefinition')">
+                                <i class="bi bi-arrow-right-short" aria-hidden="true"></i>
+                                Term to definition
+                            </button>
+                            <button type="button" class="learning-toggle" data-learning-direction="definitionToTerm" onclick="app.toggleLearningDirection('definitionToTerm')">
+                                <i class="bi bi-arrow-left-right" aria-hidden="true"></i>
+                                Definition to term
+                            </button>
+                        </div>
+                        <div class="learning-helper">Turn on both directions to practice every card in both ways.</div>
+                    </div>
+
+                    <div class="learning-actions">
+                        <button class="btn vocab-btn btn-secondary" onclick="app.renderStudyModeSelection()">Back</button>
+                        <button class="btn vocab-btn btn-success" onclick="app.beginLearningSession()">
+                            <i class="bi bi-play-fill btn-icon bi" aria-hidden="true"></i>
+                            Start Learning
                         </button>
                     </div>
                 </div>
@@ -328,6 +380,18 @@
                 this.currentIndex = 0;
                 this.currentMode = null;
                 this.studyResults = { correct: 0, incorrect: 0, skipped: 0 };
+                this.learningConfig = {
+                    inputMode: 'typing',
+                    directions: {
+                        termToDefinition: true,
+                        definitionToTerm: true
+                    }
+                };
+                this.learningQueue = [];
+                this.learningMastered = 0;
+                this.learningTotal = 0;
+                this.learningAttemptCount = 0;
+                this.learningPendingFeedback = null;
                 this.init();
             }
 
@@ -651,6 +715,7 @@
             // STUDY MODE
             renderStudyModeSelection() {
                 document.getElementById('modeSelectionView').style.display = 'block';
+                document.getElementById('learningSetupView').style.display = 'none';
                 document.getElementById('studyContentView').style.display = 'none';
                 document.getElementById('resultsView').style.display = 'none';
             }
@@ -658,6 +723,11 @@
             startStudySession(mode) {
                 if (this.currentSet.terms.length < 2) {
                     this.showAlert('Error', 'You need at least 2 terms to study!');
+                    return;
+                }
+
+                if (mode === 'learning') {
+                    this.renderLearningSetup();
                     return;
                 }
 
@@ -671,6 +741,91 @@
                 document.getElementById('resultsView').style.display = 'none';
 
                 this.renderStudyContent();
+            }
+
+            renderLearningSetup() {
+                document.getElementById('modeSelectionView').style.display = 'none';
+                document.getElementById('learningSetupView').style.display = 'block';
+                document.getElementById('studyContentView').style.display = 'none';
+                document.getElementById('resultsView').style.display = 'none';
+                this.updateLearningOptionUI();
+            }
+
+            setLearningInputMode(mode) {
+                this.learningConfig.inputMode = mode;
+                this.updateLearningOptionUI();
+            }
+
+            toggleLearningDirection(direction) {
+                this.learningConfig.directions[direction] = !this.learningConfig.directions[direction];
+
+                if (!this.learningConfig.directions.termToDefinition && !this.learningConfig.directions.definitionToTerm) {
+                    this.learningConfig.directions[direction] = true;
+                }
+
+                this.updateLearningOptionUI();
+            }
+
+            updateLearningOptionUI() {
+                document.querySelectorAll('[data-learning-input]').forEach(button => {
+                    button.classList.toggle('active', button.dataset.learningInput === this.learningConfig.inputMode);
+                });
+
+                document.querySelectorAll('[data-learning-direction]').forEach(button => {
+                    button.classList.toggle('active', !!this.learningConfig.directions[button.dataset.learningDirection]);
+                });
+            }
+
+            beginLearningSession() {
+                const enabledDirections = [];
+
+                if (this.learningConfig.directions.termToDefinition) {
+                    enabledDirections.push({
+                        promptField: 'term',
+                        answerField: 'definition',
+                        label: 'Term to definition'
+                    });
+                }
+
+                if (this.learningConfig.directions.definitionToTerm) {
+                    enabledDirections.push({
+                        promptField: 'definition',
+                        answerField: 'term',
+                        label: 'Definition to term'
+                    });
+                }
+
+                if (enabledDirections.length === 0) {
+                    this.showAlert('Error', 'Please enable at least one study direction.');
+                    return;
+                }
+
+                this.currentMode = 'learning';
+                this.currentIndex = 0;
+                this.learningQueue = [];
+                this.learningMastered = 0;
+                this.learningAttemptCount = 0;
+                this.learningTotal = this.currentSet.terms.length * enabledDirections.length;
+
+                this.currentSet.terms.forEach(term => {
+                    enabledDirections.forEach(direction => {
+                        this.learningQueue.push({
+                            termId: term.id,
+                            promptField: direction.promptField,
+                            answerField: direction.answerField,
+                            label: direction.label,
+                            promptText: term[direction.promptField],
+                            answerText: term[direction.answerField]
+                        });
+                    });
+                });
+
+                document.getElementById('learningSetupView').style.display = 'none';
+                document.getElementById('modeSelectionView').style.display = 'none';
+                document.getElementById('studyContentView').style.display = 'block';
+                document.getElementById('resultsView').style.display = 'none';
+
+                this.renderLearningCard();
             }
 
             renderStudyContent() {
@@ -724,26 +879,216 @@
                     `;
                     setTimeout(() => document.getElementById('typingInput').focus(), 0);
                 } else if (this.currentMode === 'learning') {
-                    studyContent.innerHTML = `
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin: 40px 0;">
-                            <div>
-                                <label class="term-label">Term</label>
-                                <div style="background-color: rgba(255,255,255,0.08); border-radius: 8px; padding: 20px; border: 1px solid rgba(255,255,255,0.1);">
-                                    <p style="color: white; font-size: 20px; font-weight: 600; margin: 0;">${this.escapeHtml(currentTerm.term)}</p>
-                                </div>
+                    this.renderLearningCard();
+                }
+            }
+
+            renderLearningCard() {
+                const studyContent = document.getElementById('studyContent');
+                const currentItem = this.learningQueue[0];
+
+                if (!currentItem) {
+                    this.finishStudySession();
+                    return;
+                }
+
+                this.updateProgressBar();
+
+                let interactionHtml = '';
+                if (this.learningConfig.inputMode === 'typing') {
+                    interactionHtml = `
+                        <div class="learning-answer-input">
+                            <input type="text" class="typing-input" id="learningTypingInput" placeholder="Type the ${currentItem.answerField}" onkeypress="event.key === 'Enter' && app.submitLearningTypingAnswer()">
+                            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                                <button class="btn vocab-btn btn-success" onclick="app.submitLearningTypingAnswer()">
+                                    <i class="bi bi-check-circle-fill btn-icon" aria-hidden="true"></i>Submit
+                                </button>
                             </div>
-                            <div>
-                                <label class="term-label">Definition</label>
-                                <div style="background-color: rgba(255,255,255,0.08); border-radius: 8px; padding: 20px; border: 1px solid rgba(255,255,255,0.1);">
-                                    <p style="color: white; font-size: 20px; font-weight: 600; margin: 0;">${this.escapeHtml(currentTerm.definition)}</p>
-                                </div>
-                            </div>
+                            <div class="learning-feedback" id="learningFeedback"></div>
+                            <div class="learning-actions" id="learningNextActions" style="display: none;"></div>
                         </div>
-                        <div style="text-align: center; margin-top: 40px;">
-                            <button class="btn vocab-btn" onclick="app.nextLearningCard()">Next Card</button>
+                    `;
+                } else {
+                    const options = this.generateLearningMultipleChoiceOptions(currentItem);
+                    const choicesHtml = options.map((option, index) => `
+                        <div class="choice-option" data-learning-choice="${index}" onclick="app.submitLearningChoice(${index}, ${option.correct})">${this.escapeHtml(option.text)}</div>
+                    `).join('');
+
+                    interactionHtml = `
+                        <div class="learning-answer-input">
+                            ${choicesHtml}
+                            <div class="learning-feedback" id="learningFeedback"></div>
+                            <div class="learning-actions" id="learningNextActions" style="display: none;"></div>
                         </div>
                     `;
                 }
+
+                studyContent.innerHTML = `
+                    <div class="learning-card">
+                        <div class="learning-stats">
+                            <div class="stat-box">
+                                <div class="stat-value">${this.learningMastered}</div>
+                                <div class="stat-label">Mastered</div>
+                            </div>
+                            <div class="stat-box">
+                                <div class="stat-value">${this.learningQueue.length}</div>
+                                <div class="stat-label">Remaining</div>
+                            </div>
+                            <div class="stat-box">
+                                <div class="stat-value">${this.learningTotal}</div>
+                                <div class="stat-label">Total Cards</div>
+                            </div>
+                        </div>
+                        <div class="learning-badge">
+                            <i class="bi bi-arrow-repeat" aria-hidden="true"></i>
+                            ${this.escapeHtml(currentItem.label)}
+                        </div>
+                        <div class="learning-prompt">
+                            <div class="learning-prompt-label">${this.escapeHtml(currentItem.promptField)}</div>
+                            <div class="learning-prompt-value">${this.escapeHtml(currentItem.promptText)}</div>
+                            <div class="learning-support">Answer with the ${this.escapeHtml(currentItem.answerField)}.</div>
+                        </div>
+                        ${interactionHtml}
+                    </div>
+                `;
+
+                if (this.learningConfig.inputMode === 'typing') {
+                    setTimeout(() => {
+                        const typingInput = document.getElementById('learningTypingInput');
+                        if (typingInput) {
+                            typingInput.focus();
+                        }
+                    }, 0);
+                }
+            }
+
+            generateLearningMultipleChoiceOptions(currentItem) {
+                const correctAnswer = currentItem.answerText;
+                const options = [{ text: correctAnswer, correct: true }];
+                const seen = new Set([this.normalizeStudyText(correctAnswer)]);
+
+                const otherAnswers = this.currentSet.terms
+                    .filter(term => term.id !== currentItem.termId)
+                    .map(term => term[currentItem.answerField])
+                    .filter(Boolean);
+
+                while (options.length < 4 && otherAnswers.length > 0) {
+                    const randomIndex = Math.floor(Math.random() * otherAnswers.length);
+                    const candidate = otherAnswers.splice(randomIndex, 1)[0];
+                    const normalizedCandidate = this.normalizeStudyText(candidate);
+
+                    if (seen.has(normalizedCandidate)) {
+                        continue;
+                    }
+
+                    seen.add(normalizedCandidate);
+                    options.push({ text: candidate, correct: false });
+                }
+
+                return options.sort(() => Math.random() - 0.5);
+            }
+
+            normalizeStudyText(text) {
+                return (text || '').toString().trim().toLowerCase().replace(/\s+/g, ' ');
+            }
+
+            submitLearningTypingAnswer() {
+                const inputEl = document.getElementById('learningTypingInput');
+                if (!inputEl || inputEl.disabled) {
+                    return;
+                }
+
+                const currentItem = this.learningQueue[0];
+                if (!currentItem) {
+                    return;
+                }
+
+                const isCorrect = this.normalizeStudyText(inputEl.value) === this.normalizeStudyText(currentItem.answerText);
+                this.handleLearningAttempt(isCorrect, currentItem);
+            }
+
+            submitLearningChoice(optionIndex, isCorrect) {
+                const options = document.querySelectorAll('[data-learning-choice]');
+                options.forEach(option => {
+                    option.classList.add('disabled');
+                    option.onclick = null;
+                });
+
+                const selected = document.querySelector(`[data-learning-choice="${optionIndex}"]`);
+                if (selected) {
+                    selected.classList.add(isCorrect ? 'correct' : 'incorrect');
+                }
+
+                this.handleLearningAttempt(isCorrect, this.learningQueue[0], true);
+            }
+
+            handleLearningAttempt(isCorrect, currentItem) {
+                const feedbackEl = document.getElementById('learningFeedback');
+                const inputEl = document.getElementById('learningTypingInput');
+                const nextActionsEl = document.getElementById('learningNextActions');
+                const activeItem = this.learningQueue.shift() || currentItem;
+
+                if (this.learningPendingFeedback) {
+                    clearTimeout(this.learningPendingFeedback);
+                    this.learningPendingFeedback = null;
+                }
+
+                this.learningAttemptCount += 1;
+
+                if (isCorrect) {
+                    this.learningMastered += 1;
+                    if (feedbackEl) {
+                        feedbackEl.innerHTML = `<div class="answer-feedback correct">Correct! This card is mastered.</div>`;
+                    }
+                    if (nextActionsEl) {
+                        nextActionsEl.style.display = 'none';
+                        nextActionsEl.innerHTML = '';
+                    }
+                    this.updateProgressBar();
+
+                    this.learningPendingFeedback = setTimeout(() => {
+                        this.learningPendingFeedback = null;
+                        if (this.learningQueue.length === 0) {
+                            this.finishStudySession();
+                        } else {
+                            this.renderLearningCard();
+                        }
+                    }, 1000);
+                    return;
+                } else {
+                    this.learningQueue.push(activeItem);
+                    if (feedbackEl) {
+                        feedbackEl.innerHTML = `<div class="answer-feedback incorrect">Not yet. This card will repeat until you get it right.<div class="correct-answer">Correct answer: ${this.escapeHtml(activeItem.answerText)}</div></div>`;
+                    }
+                    if (nextActionsEl) {
+                        nextActionsEl.style.display = 'flex';
+                        nextActionsEl.innerHTML = `
+                            <button class="btn vocab-btn mt-3" onclick="app.advanceLearningCard()">
+                                <i class="bi bi-arrow-right-circle-fill btn-icon" aria-hidden="true"></i>Next
+                            </button>
+                        `;
+                    }
+                }
+
+                if (inputEl) {
+                    inputEl.disabled = true;
+                }
+
+                this.updateProgressBar();
+            }
+
+            advanceLearningCard() {
+                if (this.learningPendingFeedback) {
+                    clearTimeout(this.learningPendingFeedback);
+                    this.learningPendingFeedback = null;
+                }
+
+                if (this.learningQueue.length === 0) {
+                    this.finishStudySession();
+                    return;
+                }
+
+                this.renderLearningCard();
             }
 
             toggleFlashcard() {
@@ -885,16 +1230,25 @@
             }
 
             updateProgressBar() {
-                const progress = (this.currentIndex / this.currentSet.terms.length) * 100;
+                let progress = (this.currentIndex / this.currentSet.terms.length) * 100;
+                let progressText = `Card ${this.currentIndex + 1} of ${this.currentSet.terms.length}`;
+
+                if (this.currentMode === 'learning') {
+                    const completed = this.learningTotal - this.learningQueue.length;
+                    progress = this.learningTotal > 0 ? (completed / this.learningTotal) * 100 : 0;
+                    progressText = `Mastered ${this.learningMastered} of ${this.learningTotal}`;
+                }
+
                 document.getElementById('progressBar').style.width = progress + '%';
-                document.getElementById('progressText').textContent = `Card ${this.currentIndex + 1} of ${this.currentSet.terms.length}`;
+                document.getElementById('progressText').textContent = progressText;
             }
 
             finishStudySession() {
                 if (this.currentMode === 'learning') {
                     this.currentSet.stats.studied += 1;
                     this.saveToLocalStorage();
-                    this.showAlert('Learning Complete', 'Nice work. You finished all cards in Learning mode.').then(() => {
+                    const bothDirections = this.learningConfig.directions.termToDefinition && this.learningConfig.directions.definitionToTerm;
+                    this.showAlert('Learning Complete', `Nice work. You mastered every card${bothDirections ? ' in both directions' : ''}.`).then(() => {
                         this.renderStudyModeSelection();
                         document.getElementById('studyContentView').style.display = 'none';
                         document.getElementById('resultsView').style.display = 'none';
