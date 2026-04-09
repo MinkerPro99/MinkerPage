@@ -129,6 +129,7 @@
         .blocks-hand { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; align-items: start; }
         .blocks-piece { display: flex; justify-content: center; align-items: center; cursor: grab; user-select: none; padding: 6px 0; }
         .blocks-piece:active { cursor: grabbing; }
+        .blocks-piece.selected { transform: scale(1.03); filter: drop-shadow(0 0 10px rgba(6, 80, 241, 0.5)); }
         .blocks-piece.dragging { opacity: 0.55; transform: scale(0.97); }
         .blocks-piece-grid { display: grid; gap: 4px; width: fit-content; padding: 2px; }
         .blocks-piece-cell { width: 22px; height: 22px; border-radius: 6px; background: transparent; border: 1px solid transparent; }
@@ -451,6 +452,7 @@
                 this.blocksStatusMessage = '';
                 this.blocksGameOver = false;
                 this.blocksDraggedPieceId = null;
+                this.blocksSelectedPieceId = null;
                 this.blocksDragAnchor = { x: 0, y: 0 };
                 this.blocksClearingLines = [];
                 this.blocksBoardSize = 8;
@@ -983,6 +985,7 @@
                 this.blocksQuestionAttempts = 0;
                 this.blocksStatusMessage = '';
                 this.blocksDraggedPieceId = null;
+                this.blocksSelectedPieceId = null;
                 this.blocksDragAnchor = { x: 0, y: 0 };
 
                 this.renderBlocksRound();
@@ -1161,7 +1164,7 @@
                             cellClass += ' clearing';
                         }
 
-                        html += `<button type="button" class="${cellClass}" data-block-row="${row}" data-block-column="${column}" ondragover="app.previewBlocksDrop(event, ${row}, ${column})" ondragenter="app.previewBlocksDrop(event, ${row}, ${column})" ondragleave="app.clearBlocksDropPreview(event)" ondrop="app.dropBlocksPiece(event, ${row}, ${column})" aria-label="Board cell ${row + 1}, ${column + 1}"></button>`;
+                        html += `<button type="button" class="${cellClass}" data-block-row="${row}" data-block-column="${column}" ondragover="app.previewBlocksDrop(event, ${row}, ${column})" ondragenter="app.previewBlocksDrop(event, ${row}, ${column})" ondragleave="app.clearBlocksDropPreview(event)" ondrop="app.dropBlocksPiece(event, ${row}, ${column})" onclick="app.tapBlocksBoardCell(${row}, ${column})" aria-label="Board cell ${row + 1}, ${column + 1}"></button>`;
                     }
                 }
 
@@ -1172,7 +1175,7 @@
                 return `
                     <div class="blocks-hand">
                         ${this.blocksHand.map(piece => `
-                            <div class="blocks-piece ${this.blocksDraggedPieceId === piece.id ? 'dragging' : ''}" draggable="true" data-block-piece="${piece.id}" aria-label="${this.escapeHtml(piece.name)}" onmousedown="app.setBlocksGrabAnchor(event, '${piece.id}', null, null)" ondragstart="app.startBlocksDrag(event, '${piece.id}')" ondragend="app.endBlocksDrag(event)">
+                            <div class="blocks-piece ${this.blocksDraggedPieceId === piece.id ? 'dragging' : ''} ${this.blocksSelectedPieceId === piece.id ? 'selected' : ''}" draggable="true" data-block-piece="${piece.id}" aria-label="${this.escapeHtml(piece.name)}" onmousedown="app.setBlocksGrabAnchor(event, '${piece.id}', null, null)" ontouchstart="app.setBlocksGrabAnchor(event, '${piece.id}', null, null)" onclick="app.selectBlocksPiece('${piece.id}')" ondragstart="app.startBlocksDrag(event, '${piece.id}')" ondragend="app.endBlocksDrag(event)">
                                 <div class="blocks-piece-grid">
                                     ${this.renderBlocksPiecePreview(piece)}
                                 </div>
@@ -1210,7 +1213,7 @@
                         const shapeX = bounds.minX + column;
                         const shapeY = bounds.minY + row;
                         if (cellSet.has(`${shapeX},${shapeY}`)) {
-                            html += `<div class="blocks-piece-cell filled-${piece.colorIndex}" data-piece-x="${shapeX}" data-piece-y="${shapeY}" onmousedown="app.setBlocksGrabAnchor(event, '${piece.id}', ${shapeX}, ${shapeY})"></div>`;
+                            html += `<div class="blocks-piece-cell filled-${piece.colorIndex}" data-piece-x="${shapeX}" data-piece-y="${shapeY}" onmousedown="app.setBlocksGrabAnchor(event, '${piece.id}', ${shapeX}, ${shapeY})" ontouchstart="app.setBlocksGrabAnchor(event, '${piece.id}', ${shapeX}, ${shapeY})"></div>`;
                         } else {
                             html += `<div class="blocks-piece-cell empty"></div>`;
                         }
@@ -1224,6 +1227,7 @@
 
             startBlocksDrag(event, pieceId) {
                 this.blocksDraggedPieceId = pieceId;
+                this.blocksSelectedPieceId = pieceId;
                 if (event?.dataTransfer) {
                     event.dataTransfer.setData('text/plain', pieceId);
                     event.dataTransfer.effectAllowed = 'move';
@@ -1236,6 +1240,7 @@
                 }
 
                 this.blocksDraggedPieceId = pieceId;
+                this.blocksSelectedPieceId = pieceId;
                 const piece = this.findBlocksPiece(pieceId);
                 if (!piece) {
                     this.blocksDragAnchor = { x: 0, y: 0 };
@@ -1258,6 +1263,27 @@
                 this.blocksDraggedPieceId = null;
                 this.clearBlocksPlacementPreview();
                 this.renderBlocksRound();
+            }
+
+            selectBlocksPiece(pieceId) {
+                const piece = this.findBlocksPiece(pieceId);
+                if (!piece) {
+                    return;
+                }
+
+                this.setBlocksGrabAnchor(null, pieceId, null, null);
+                this.blocksSelectedPieceId = pieceId;
+                this.blocksStatusMessage = `Selected ${piece.name}. Tap a board cell to place it.`;
+                this.renderBlocksRound();
+            }
+
+            tapBlocksBoardCell(row, column) {
+                const pieceId = this.blocksSelectedPieceId || this.blocksDraggedPieceId;
+                if (!pieceId || this.blocksHand.length === 0) {
+                    return;
+                }
+
+                this.placeBlocksPiece(pieceId, row, column);
             }
 
             previewBlocksDrop(event, row, column) {
@@ -1375,6 +1401,10 @@
                 event.preventDefault();
 
                 const pieceId = event.dataTransfer?.getData('text/plain') || this.blocksDraggedPieceId;
+                this.placeBlocksPiece(pieceId, row, column);
+            }
+
+            placeBlocksPiece(pieceId, row, column) {
                 const piece = this.findBlocksPiece(pieceId);
                 if (!piece) {
                     return;
@@ -1397,6 +1427,7 @@
                 this.blocksRoundScore += 1;
                 this.blocksTotalScore += 1;
                 this.blocksDraggedPieceId = null;
+                this.blocksSelectedPieceId = null;
 
                 const completedLines = this.getBlocksCompletedLines();
                 const totalCleared = completedLines.rows.length + completedLines.columns.length;
@@ -1611,6 +1642,7 @@
                     clearTimeout(this.blocksPendingAdvance);
                     this.blocksPendingAdvance = null;
                 }
+                this.blocksSelectedPieceId = null;
                 this.blocksStatusMessage = message;
                 this.saveToLocalStorage();
 
