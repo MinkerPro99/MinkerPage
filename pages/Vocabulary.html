@@ -127,7 +127,7 @@
         .blocks-cell.filled-1 { background: linear-gradient(135deg, #20c997, #11b1e6); }
         .blocks-cell.filled-2 { background: linear-gradient(135deg, #ffae00, #ff7a18); }
         .blocks-hand { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; align-items: start; }
-        .blocks-piece { display: flex; justify-content: center; align-items: center; cursor: grab; user-select: none; padding: 6px 0; }
+        .blocks-piece { display: flex; justify-content: center; align-items: center; cursor: grab; user-select: none; padding: 6px 0; touch-action: none; }
         .blocks-piece:active { cursor: grabbing; }
         .blocks-piece.selected { transform: scale(1.03); filter: drop-shadow(0 0 10px rgba(6, 80, 241, 0.5)); }
         .blocks-piece.dragging { opacity: 0.55; transform: scale(0.97); }
@@ -453,6 +453,9 @@
                 this.blocksGameOver = false;
                 this.blocksDraggedPieceId = null;
                 this.blocksSelectedPieceId = null;
+                this.blocksPointerDragId = null;
+                this.blocksPointerActive = false;
+                this.blocksPointerId = null;
                 this.blocksDragAnchor = { x: 0, y: 0 };
                 this.blocksClearingLines = [];
                 this.blocksBoardSize = 8;
@@ -986,6 +989,9 @@
                 this.blocksStatusMessage = '';
                 this.blocksDraggedPieceId = null;
                 this.blocksSelectedPieceId = null;
+                this.blocksPointerDragId = null;
+                this.blocksPointerActive = false;
+                this.blocksPointerId = null;
                 this.blocksDragAnchor = { x: 0, y: 0 };
 
                 this.renderBlocksRound();
@@ -1175,7 +1181,7 @@
                 return `
                     <div class="blocks-hand">
                         ${this.blocksHand.map(piece => `
-                            <div class="blocks-piece ${this.blocksDraggedPieceId === piece.id ? 'dragging' : ''} ${this.blocksSelectedPieceId === piece.id ? 'selected' : ''}" draggable="true" data-block-piece="${piece.id}" aria-label="${this.escapeHtml(piece.name)}" onmousedown="app.setBlocksGrabAnchor(event, '${piece.id}', null, null)" ontouchstart="app.setBlocksGrabAnchor(event, '${piece.id}', null, null)" onclick="app.selectBlocksPiece('${piece.id}')" ondragstart="app.startBlocksDrag(event, '${piece.id}')" ondragend="app.endBlocksDrag(event)">
+                            <div class="blocks-piece ${this.blocksDraggedPieceId === piece.id ? 'dragging' : ''} ${this.blocksSelectedPieceId === piece.id ? 'selected' : ''}" draggable="true" data-block-piece="${piece.id}" aria-label="${this.escapeHtml(piece.name)}" onmousedown="app.setBlocksGrabAnchor(event, '${piece.id}', null, null)" onclick="app.selectBlocksPiece('${piece.id}')" onpointerdown="app.startBlocksPointerDrag(event, '${piece.id}')" onpointermove="app.moveBlocksPointerDrag(event)" onpointerup="app.endBlocksPointerDrag(event)" onpointercancel="app.cancelBlocksPointerDrag(event)" ondragstart="app.startBlocksDrag(event, '${piece.id}')" ondragend="app.endBlocksDrag(event)">
                                 <div class="blocks-piece-grid">
                                     ${this.renderBlocksPiecePreview(piece)}
                                 </div>
@@ -1213,7 +1219,7 @@
                         const shapeX = bounds.minX + column;
                         const shapeY = bounds.minY + row;
                         if (cellSet.has(`${shapeX},${shapeY}`)) {
-                            html += `<div class="blocks-piece-cell filled-${piece.colorIndex}" data-piece-x="${shapeX}" data-piece-y="${shapeY}" onmousedown="app.setBlocksGrabAnchor(event, '${piece.id}', ${shapeX}, ${shapeY})" ontouchstart="app.setBlocksGrabAnchor(event, '${piece.id}', ${shapeX}, ${shapeY})"></div>`;
+                            html += `<div class="blocks-piece-cell filled-${piece.colorIndex}" data-piece-x="${shapeX}" data-piece-y="${shapeY}" onmousedown="app.setBlocksGrabAnchor(event, '${piece.id}', ${shapeX}, ${shapeY})"></div>`;
                         } else {
                             html += `<div class="blocks-piece-cell empty"></div>`;
                         }
@@ -1232,6 +1238,110 @@
                     event.dataTransfer.setData('text/plain', pieceId);
                     event.dataTransfer.effectAllowed = 'move';
                 }
+            }
+
+            startBlocksPointerDrag(event, pieceId) {
+                if (!event || event.pointerType === 'mouse') {
+                    return;
+                }
+
+                event.preventDefault();
+                this.setBlocksGrabAnchor(event, pieceId, null, null);
+                this.blocksPointerDragId = pieceId;
+                this.blocksPointerActive = true;
+                this.blocksPointerId = event.pointerId;
+
+                if (event.currentTarget?.setPointerCapture) {
+                    try {
+                        event.currentTarget.setPointerCapture(event.pointerId);
+                    } catch (error) {
+                        // Ignore capture failures on browsers that do not support it reliably.
+                    }
+                }
+
+                this.updateBlocksPointerPreview(event.clientX, event.clientY);
+            }
+
+            moveBlocksPointerDrag(event) {
+                if (!this.blocksPointerActive || this.blocksPointerId !== event.pointerId) {
+                    return;
+                }
+
+                event.preventDefault();
+                this.updateBlocksPointerPreview(event.clientX, event.clientY);
+            }
+
+            endBlocksPointerDrag(event) {
+                if (!this.blocksPointerActive || this.blocksPointerId !== event.pointerId) {
+                    return;
+                }
+
+                event.preventDefault();
+                const placed = this.dropBlocksFromPointerPoint(event.clientX, event.clientY);
+                if (!placed) {
+                    this.clearBlocksPlacementPreview();
+                    this.renderBlocksRound();
+                }
+
+                this.blocksPointerActive = false;
+                this.blocksPointerId = null;
+                this.blocksPointerDragId = null;
+
+                if (event.currentTarget?.releasePointerCapture) {
+                    try {
+                        event.currentTarget.releasePointerCapture(event.pointerId);
+                    } catch (error) {
+                        // Ignore release failures on browsers that do not support it reliably.
+                    }
+                }
+            }
+
+            cancelBlocksPointerDrag(event) {
+                if (!this.blocksPointerActive || this.blocksPointerId !== event.pointerId) {
+                    return;
+                }
+
+                this.blocksPointerActive = false;
+                this.blocksPointerId = null;
+                this.blocksPointerDragId = null;
+                this.clearBlocksPlacementPreview();
+                this.renderBlocksRound();
+            }
+
+            updateBlocksPointerPreview(clientX, clientY) {
+                const target = document.elementFromPoint(clientX, clientY);
+                const boardCell = target?.closest?.('.blocks-cell');
+                if (!boardCell) {
+                    this.clearBlocksPlacementPreview();
+                    return;
+                }
+
+                const row = Number(boardCell.dataset.blockRow);
+                const column = Number(boardCell.dataset.blockColumn);
+                if (!Number.isFinite(row) || !Number.isFinite(column)) {
+                    this.clearBlocksPlacementPreview();
+                    return;
+                }
+
+                this.previewBlocksDrop({ preventDefault() {} }, row, column);
+            }
+
+            dropBlocksFromPointerPoint(clientX, clientY) {
+                const target = document.elementFromPoint(clientX, clientY);
+                const boardCell = target?.closest?.('.blocks-cell');
+                const pieceId = this.blocksPointerDragId || this.blocksSelectedPieceId || this.blocksDraggedPieceId;
+                if (!pieceId || !boardCell) {
+                    return false;
+                }
+
+                const row = Number(boardCell.dataset.blockRow);
+                const column = Number(boardCell.dataset.blockColumn);
+                if (!Number.isFinite(row) || !Number.isFinite(column)) {
+                    return false;
+                }
+
+                this.placeBlocksPiece(pieceId, row, column);
+                return true;
             }
 
             setBlocksGrabAnchor(event, pieceId, pieceX, pieceY) {
