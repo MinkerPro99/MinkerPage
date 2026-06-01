@@ -1,0 +1,1 @@
+Renew Certificate command: sudo sh -c 'systemctl stop nginx && certbot renew --force-renewal && cat /etc/letsencrypt/live/minkerpage.ch/privkey.pem /etc/letsencrypt/live/minkerpage.ch/fullchain.pem > /opt/psa/var/certificates/scf8o0f5undfqvj1wFzw8e && systemctl start nginx'
