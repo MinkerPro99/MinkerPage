@@ -1,1 +1,3 @@
 Renew Certificate command: sudo sh -c 'systemctl stop nginx && certbot renew --force-renewal && cat /etc/letsencrypt/live/minkerpage.ch/privkey.pem /etc/letsencrypt/live/minkerpage.ch/fullchain.pem > /opt/psa/var/certificates/scf8o0f5undfqvj1wFzw8e && systemctl start nginx'
+Manual pull: sudo plesk ext git --deploy -domain minkerpage.ch -name "MinkerPage.git"
+Refresh after pull: sudo touch /var/www/vhosts/minkerpage.ch/httpdocs/tmp/restart.txt

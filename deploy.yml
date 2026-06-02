@@ -1,0 +1,30 @@
+name: Remote Deploy to Server
+
+on:
+  push:
+    branches:
+      - main  # Changes to your main branch will trigger this
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: SSH and Execute Pull/Deploy Options
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: minkerpage.ch
+          username: minkerpro99
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          port: 22
+          script: |
+            # 1. Fetch from your repo using Plesk CLI commands
+            sudo plesk ext git --fetch -domain minkerpage.ch -name "MinkerPage.git"
+            
+            # 2. Deploy the files to httpdocs
+            sudo plesk ext git --deploy -domain minkerpage.ch -name "MinkerPage.git"
+            
+            # 3. Gracefully cycle the Python API layer
+            sudo touch /var/www/vhosts/minkerpage.ch/httpdocs/tmp/restart.txt
