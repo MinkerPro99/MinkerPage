@@ -415,4 +415,4 @@ FodyWeavers.xsd
 *.msi
 *.msix
 *.msm
-*.msp
+*.mspkey.pem
