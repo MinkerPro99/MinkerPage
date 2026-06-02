@@ -232,6 +232,7 @@
       background-color: #0650f1;
       border-color: #0650f1;
       border-radius: 8px;
+      backdrop-filter: blur(10px);
     }
 
     .fc .fc-event:hover {
@@ -936,7 +937,7 @@
           const summaryText = (event.summary || '').toLowerCase();
           const isExam = summaryText.includes('prüfung');
           const isVacation = summaryText.includes('ferien');
-          const eventColor = isVacation ? 'rgba(46, 204, 113, 0.8)' : (isExam ? 'rgba(241, 155, 6, 0.8)' : 'rgba(6, 80, 241, 0.8)');
+          const eventColor = isVacation ? 'rgba(46, 204, 113, 0.3)' : (isExam ? 'rgba(241, 155, 6, 0.3)' : 'rgba(6, 80, 241, 0.3)');
 
           return {
             id: event.id,
