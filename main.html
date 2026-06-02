@@ -111,6 +111,30 @@
 
   <script src="js/app.js"></script>
   <script>
+    // FIX: Check if the app is already running inside the PWA container
+    function checkPWAStatus() {
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches 
+                        || window.navigator.standalone 
+                        || document.referrer.includes('android-app://');
+
+      if (isStandalone) {
+        console.log("System Status: Running inside PWA Mainframe. Hiding install node.");
+        $('#install_button').prop('hidden', true);
+      }
+    }
+
+    // Run the check instantly when the DOM loads
+    $(document).ready(function() {
+      checkPWAStatus();
+    });
+
+    // FIX: If they actually press install, hide the button instantly once the setup finishes
+    window.addEventListener('appinstalled', (evt) => {
+      console.log('PWA fully optimized and installed successfully.');
+      $('#install_button').prop('hidden', true);
+    });
+
+    // Your existing router paths stay exactly the same
     $('#calendarBtn').click(function () {
       window.location.href = "pages/studyCallendar.html";
     });
@@ -131,8 +155,7 @@
       } else if (key == "Voc") {
         window.location.href = "pages/Vocabulary.html";
       } else {
-        let errorMessage;
-        errorMessage = document.getElementById("invalidKeyMessage");
+        let errorMessage = document.getElementById("invalidKeyMessage");
         errorMessage.hidden = false;
       }
     });
