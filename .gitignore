@@ -417,6 +417,6 @@ FodyWeavers.xsd
 *.msm
 *.msp
 
-# Custom
+# Key.pem and .env files
 *.pem
 .env*
