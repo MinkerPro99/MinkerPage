@@ -53,7 +53,6 @@
     /* ==========================================
        2. NAVIGATION NODE CONTROL UNITS
        ========================================== */
-    /* The main mainframe link button */
     .main-home-link {
       position: fixed;
       top: 14px;
@@ -195,13 +194,13 @@
     }
 
     /* ==========================================
-       4. FULLCALENDAR CORE MODS (Anti-Flashbang Patch)
+       4. FULLCALENDAR CORE MODS (Transparency Layer Patch)
        ========================================== */
     #calendar {
-      background-color: rgba(22, 22, 30, 0.65) !important; 
-      /* Blur scale set to minimum so background vector image renders clearly */
-      backdrop-filter: blur(3px) !important;
-      -webkit-backdrop-filter: blur(3px) !important;
+      background-color: rgba(22, 22, 30, 0.55) !important; 
+      /* Low blur scale so the logo is crisp and visible */
+      backdrop-filter: blur(2px) !important;
+      -webkit-backdrop-filter: blur(2px) !important;
       border: 1px solid rgba(255, 255, 255, 0.08) !important;
       padding: 24px;
       border-radius: 20px !important; 
@@ -253,7 +252,7 @@
       color: #fff !important;
     }
 
-    /* Overwrites the bright header bars where (Mon, Tue, etc.) live */
+    /* Overwrites the header bars where day names live */
     .fc .fc-col-header-cell {
       background-color: rgba(30, 30, 46, 0.85) !important; 
       border-color: rgba(255, 255, 255, 0.08) !important;
@@ -265,13 +264,22 @@
       font-weight: 600 !important;
     }
 
-    /* Deletes the white backgrounds beneath day cells and side grids */
-    .fc .fc-daygrid-day, 
-    .fc .fc-timegrid-slot, 
-    .fc .fc-timegrid-cell,
-    .fc .fc-scrollgrid-section td,
-    .fc .fc-scrollgrid-section th {
-      background-color: rgba(15, 15, 20, 0.4) !important; 
+    /* FIX: Force all middle layout containers to be 100% transparent */
+    .fc-theme-standard td, 
+    .fc-theme-standard th,
+    .fc-theme-standard .fc-scrollgrid,
+    .fc-theme-standard .fc-scrollgrid-chunk table,
+    .fc-scrollgrid-section,
+    .fc-scrollgrid-section-body,
+    .fc-scrollgrid-section-table {
+      background: transparent !important;
+      background-color: transparent !important;
+      border-color: rgba(255, 255, 255, 0.08) !important;
+    }
+
+    /* ONLY the individual day boxes get a single light tint */
+    .fc .fc-daygrid-day {
+      background-color: rgba(0, 0, 0, 0.2) !important; 
       border-color: rgba(255, 255, 255, 0.08) !important; 
     }
 
@@ -281,33 +289,25 @@
       font-weight: 500;
     }
 
-    /* Darkening dates outside current database map scope */
+    /* Darkening dates outside current scope */
     .fc .fc-daygrid-day.fc-day-other {
       background-color: rgba(0, 0, 0, 0.55) !important; 
       opacity: 0.3;
     }
 
-    /* Target current active day loop */
+    /* Active Today Cell Indicator */
     .fc .fc-daygrid-day.fc-day-today {
       background-color: rgba(166, 0, 207, 0.12) !important;
       border: 2px solid #a600cf !important;
     }
 
-    /* Hard-locking container tables to get rid of the white leaking outline code */
+    /* Hard-locking container tables to kill white leaking outline artifacts */
     .fc-theme-standard .fc-scrollgrid {
       border: 1px solid rgba(255, 255, 255, 0.08) !important;
       border-radius: 14px !important;
       border-collapse: separate !important;
       border-spacing: 0;
       overflow: hidden;
-      background: transparent !important;
-    }
-
-    .fc-theme-standard td, 
-    .fc-theme-standard th,
-    .fc-theme-standard .fc-scrollgrid-chunk table {
-      border-color: rgba(255, 255, 255, 0.08) !important;
-      background: transparent !important;
     }
 
     /* Interactive task entities inside grid */
