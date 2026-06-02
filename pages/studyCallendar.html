@@ -936,7 +936,7 @@
           const summaryText = (event.summary || '').toLowerCase();
           const isExam = summaryText.includes('prüfung');
           const isVacation = summaryText.includes('ferien');
-          const eventColor = isVacation ? '#2ecc71' : (isExam ? '#f19b06' : '#0650f1');
+          const eventColor = isVacation ? 'rgba(46, 204, 113, 0.8)' : (isExam ? 'rgba(241, 155, 6, 0.8)' : 'rgba(6, 80, 241, 0.8)');
 
           return {
             id: event.id,
