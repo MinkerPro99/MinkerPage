@@ -3,7 +3,7 @@
 
 // --- DEFINE THE MAIN IGNITION SEQUENCE ---
 // FIXED: Manually injected the '/api' base path so Express hooks the browser traffic
-app.post('/api/ignite-setup', async (req, res) => {
+app.post('minkerpage.ch/api/ignite-setup', async (req, res) => {
     try {
         console.log("🚀 Jarvis Protocol: Executing triple-threat macro chain...");
 
@@ -31,7 +31,7 @@ app.post('/api/ignite-setup', async (req, res) => {
 
 // --- BONUS ENDPOINT: THE SHUTDOWN PROTOCOL ---
 // FIXED: Added the missing '/api' string here too
-app.post('/api/kill-setup', async (req, res) => {
+app.post('minkerpage.ch/api/kill-setup', async (req, res) => {
     try {
         console.log("🛑 Jarvis Protocol: Initiating blackout routine...");
         await axios.post('https://api.switch-bot.com/v1.1/scenes/7b615cd9-ba6c-4938-9221-f1f9f5357935/execute', {}, { 
