@@ -1,5 +1,5 @@
 // --- DEFINE THE MAIN IGNITION SEQUENCE ---
-app.post('/api/ignite-setup', async (req, res) => {
+app.post('/ignite-setup', async (req, res) => {
     try {
         console.log("🚀 Jarvis Protocol: Executing triple-threat macro chain...");
 
@@ -28,7 +28,7 @@ app.post('/api/ignite-setup', async (req, res) => {
 
 // --- BONUS ENDPOINT: THE SHUTDOWN PROTOCOL ---
 // Since you looted the Power OFF ID anyway, might as well make it a full ecosystem loop
-app.post('/api/kill-setup', async (req, res) => {
+app.post('/kill-setup', async (req, res) => {
     try {
         console.log("🛑 Jarvis Protocol: Initiating blackout routine...");
         await axios.post('https://api.switch-bot.com/v1.1/scenes/7b615cd9-ba6c-4938-9221-f1f9f5357935/execute', {}, { 
