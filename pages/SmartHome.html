@@ -431,7 +431,7 @@
       logSequence("🕵️‍♂️ Pinging SwitchBot Cloud for device inventory...");
       try {
         const headers = await getSwitchBotHeadersDirect();
-        const res = await fetch('https://api.switchbotapi.com/v1.1/devices', { headers });
+        const res = await fetch('https://api.switch-bot.com/v1.1/devices', { headers });
         
         if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
         
