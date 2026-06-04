@@ -1,5 +1,9 @@
+// Keep your calendar routes mount intact:
+app.use('/api', calendarRoutes);
+
 // --- DEFINE THE MAIN IGNITION SEQUENCE ---
-app.post('/ignite-setup', async (req, res) => {
+// FIXED: Manually injected the '/api' base path so Express hooks the browser traffic
+app.post('/api/ignite-setup', async (req, res) => {
     try {
         console.log("🚀 Jarvis Protocol: Executing triple-threat macro chain...");
 
@@ -9,8 +13,7 @@ app.post('/ignite-setup', async (req, res) => {
             headers: getSwitchBotHeaders() 
         });
 
-        // 2-second delay. If you boot the PC before the motherboard capacitors 
-        // even register the wall power, you're literally throwing a flashbang at your own setup.
+        // 2-second delay.
         await new Promise(resolve => setTimeout(resolve, 2000));
 
         // 2. Click the PC Power button mechanical Bot
@@ -27,8 +30,8 @@ app.post('/ignite-setup', async (req, res) => {
 });
 
 // --- BONUS ENDPOINT: THE SHUTDOWN PROTOCOL ---
-// Since you looted the Power OFF ID anyway, might as well make it a full ecosystem loop
-app.post('/kill-setup', async (req, res) => {
+// FIXED: Added the missing '/api' string here too
+app.post('/api/kill-setup', async (req, res) => {
     try {
         console.log("🛑 Jarvis Protocol: Initiating blackout routine...");
         await axios.post('https://api.switch-bot.com/v1.1/scenes/7b615cd9-ba6c-4938-9221-f1f9f5357935/execute', {}, { 
