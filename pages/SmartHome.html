@@ -319,37 +319,31 @@
       return normalizeUsername(userProfile?.username) === ALLOWED_USERNAME;
     }
 
-    // FIXED: Corrected the fetch routing parameter to use the actual configured domain endpoint base path
     async function runSmartHomeSequence() {
       if (booting || !isAuthorizedUser()) return;
 
       booting = true;
       document.getElementById('bootBtn').disabled = true;
-      
+
       updateSequenceStep(0, 'running', 'Running');
-      updateSequenceStep(1, 'pending', 'Pending');
-      updateSequenceStep(2, 'pending', 'Pending');
-      
-      logSequence('🚀 Jarvis Protocol initialization payload sent to proxy gateway...');
+      updateSequenceStep(1, null, 'Pending');
+      updateSequenceStep(2, null, 'Pending');
+
+      logSequence('🚀 Jarvis Protocol initialization payload sent...');
 
       try {
-        const res = await fetch(`${CONFIG.API_BASE_URL}/ignite-setup`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' }
-        });
-
-        const data = await parseResponseJsonSafe(res);
-
-        if (!res.ok || data.success === false) {
-          throw new Error(data.error || `HTTP error ${res.status}`);
-        }
-
+        await executeSwitchBotScene(SWITCHBOT_CONFIG.POWER_ON_SCENE_ID);
         updateSequenceStep(0, 'done', 'Done');
-        updateSequenceStep(1, 'done', 'Done');
-        updateSequenceStep(2, 'done', 'Done');
         logSequence('⚡ Scene Execution 1: Power ON Complete.');
+
+        updateSequenceStep(1, 'running', 'Running');
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        updateSequenceStep(1, 'done', 'Done');
+
+        updateSequenceStep(2, 'running', 'Running');
+        await executeSwitchBotScene(SWITCHBOT_CONFIG.PC_TRIGGER_SCENE_ID);
+        updateSequenceStep(2, 'done', 'Done');
         logSequence('🖥️ Scene Execution 2: PC Trigger Complete.');
-        
         logSequence('🎯 All systems operational. Battlestation fully awake! GG.');
 
       } catch (error) {
