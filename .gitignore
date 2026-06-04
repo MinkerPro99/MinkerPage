@@ -420,3 +420,5 @@ FodyWeavers.xsd
 # Key.pem and .env files
 *.pem
 .env*
+
+config.js
