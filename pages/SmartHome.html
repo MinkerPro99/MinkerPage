@@ -185,72 +185,7 @@
   <script src="config.js"></script>
 
   <script>
-    // Safeguard extraction from the linked config.js object
-    const SWITCHBOT_TOKEN = typeof SWITCHBOT_CONFIG !== 'undefined' ? SWITCHBOT_CONFIG.TOKEN : '';
-    const SWITCHBOT_SECRET = typeof SWITCHBOT_CONFIG !== 'undefined' ? SWITCHBOT_CONFIG.SECRET : '';
-    const TARGET_DEVICE_ID = typeof SWITCHBOT_CONFIG !== 'undefined' ? SWITCHBOT_CONFIG.DEVICE_ID : '';
-    const TARGET_SCENE_ID = typeof SWITCHBOT_CONFIG !== 'undefined' ? SWITCHBOT_CONFIG.SCENE_ID : '';
-
-    // Helper function to generate SwitchBot API v1.1 Crypto signatures directly inside the browser
-    async function getSwitchBotHeaders() {
-      if (!SWITCHBOT_TOKEN || !SWITCHBOT_SECRET) {
-        throw new Error("Missing credentials. Please check your local config.js settings.");
-      }
-      
-      const t = Date.now().toString();
-      const nonce = crypto.randomUUID();
-      const message = SWITCHBOT_TOKEN + t + nonce;
-
-      const encoder = new TextEncoder();
-      const secretBuffer = encoder.encode(SWITCHBOT_SECRET);
-      const messageBuffer = encoder.encode(message);
-
-      const cryptoKey = await window.crypto.subtle.importKey(
-        "raw", secretBuffer, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]
-      );
-      const signatureBuffer = await window.crypto.subtle.sign("HMAC", cryptoKey, messageBuffer);
-      
-      const hashArray = Array.from(new Uint8Array(signatureBuffer));
-      const hashString = hashArray.map(b => String.fromCharCode(b)).join('');
-      const sign = btoa(hashString);
-
-      return {
-        'Authorization': SWITCHBOT_TOKEN,
-        'sign': sign,
-        'nonce': nonce,
-        't': t,
-        'Content-Type': 'application/json'
-      };
-    }
-
-    // Auto-discovery mapping framework to log out connected Hardware components
-    async function printSwitchBotDiscoveryLogs() {
-      if (!SWITCHBOT_TOKEN || SWITCHBOT_TOKEN.includes('YOUR_')) return;
-      try {
-        const headers = await getSwitchBotHeaders();
-        
-        // Scan Devices
-        const devRes = await fetch('https://api.switchbotapi.com/v1.1/devices', { headers });
-        if (devRes.ok) {
-          const devData = await devRes.json();
-          console.log("Devices list parsed:", devData);
-          logSequence("🔍 Found devices! Right-click page -> Inspect -> 'Console' tab to extract device IDs.");
-        } else {
-          logSequence(`⚠️ Device discovery return code error: ${devRes.status}`);
-        }
-
-        // Scan Scenes
-        const scenesRes = await fetch('https://api.switchbotapi.com/v1.1/scenes', { headers });
-        if (scenesRes.ok) {
-          const sceneData = await scenesRes.json();
-          console.log("Scenes list parsed:", sceneData);
-        }
-      } catch(e) {
-        console.error("Discovery log parsing error: ", e);
-        logSequence(`⚠️ Discovery failed. Check if keys in config.js are accurate.`);
-      }
-    }
-
+    // Config fallback setups
     const ALLOWED_USERNAME = 'minkerpro99';
     const defaultApiBase = (location.hostname === 'localhost' || location.hostname === '127.0.0.1') ? 'http://127.0.0.1:5050/api' : '/api';
     const CONFIG = { API_BASE_URL: localStorage.getItem('calendarApiBase') || defaultApiBase };
@@ -384,84 +319,41 @@
       return normalizeUsername(userProfile?.username) === ALLOWED_USERNAME;
     }
 
-    async function runSequenceTask(label, taskIndex, taskFn) {
-      updateSequenceStep(taskIndex, 'running', 'Running');
-      logSequence(label);
-      try {
-        await taskFn();
-        updateSequenceStep(taskIndex, 'done', 'Done');
-        logSequence(`${label} complete.`);
-      } catch (error) {
-        updateSequenceStep(taskIndex, 'error', 'Failed');
-        logSequence(`${label} failed: ${error.message}`);
-        throw error;
-      }
-    }
-
+    // FIXED: Delegation of core hardware triggers directly to your local proxy server!
     async function runSmartHomeSequence() {
       if (booting || !isAuthorizedUser()) return;
-      
-      if (!TARGET_DEVICE_ID || TARGET_DEVICE_ID.includes('YOUR_')) {
-        logSequence("🛑 Sequence halted: You must paste your real hardware Device ID into config.js first.");
-        return;
-      }
 
       booting = true;
       document.getElementById('bootBtn').disabled = true;
-      logSequence('Boot command received. Sending authenticated authorization signature.');
+      logSequence('🚀 Boot command verified. Signaling proxy server...');
 
-      const steps = [
-        { 
-          label: 'Wake SwitchBot hub mini', 
-          run: async () => { 
-            const headers = await getSwitchBotHeaders();
-            const res = await fetch(`https://api.switchbotapi.com/v1.1/devices/${TARGET_DEVICE_ID}/commands`, {
-              method: 'POST',
-              headers: headers,
-              body: JSON.stringify({ "command": "press", "parameter": "default", "commandType": "command" })
-            });
-            if (!res.ok) { 
-              const err = await parseResponseJsonSafe(res); 
-              throw new Error(err.message || `HTTP error ${res.status}`); 
-            }
-          } 
-        },
-        { 
-          label: 'Run home scene', 
-          run: async () => { 
-            if (!TARGET_SCENE_ID || TARGET_SCENE_ID.includes('YOUR_')) {
-              logSequence("ℹ️ Skipping scene execution step: No Scene ID listed in config.js.");
-              return;
-            }
-            const headers = await getSwitchBotHeaders();
-            const res = await fetch(`https://api.switchbotapi.com/v1.1/scenes/${TARGET_SCENE_ID}/execute`, {
-              method: 'POST',
-              headers: headers
-            });
-            if (!res.ok) { 
-              const err = await parseResponseJsonSafe(res); 
-              throw new Error(err.message || `HTTP error ${res.status}`); 
-            }
-          } 
-        },
-        { 
-          label: 'Confirm devices online', 
-          run: async () => { 
-            await new Promise(resolve => setTimeout(resolve, 800)); 
-          } 
-        }
-      ];
+      // Update UI for step 1
+      updateSequenceStep(0, 'running', 'Running');
+      logSequence('Firing up local webserver routing sequence...');
 
       try {
-        for (let index = 0; index < steps.length; index += 1) {
-          await runSequenceTask(steps[index].label, index, steps[index].run);
-          if (typeof window.smartHomeAutomationHooks?.[index] === 'function') {
-            await window.smartHomeAutomationHooks[index]({ user: userProfile, apiBaseUrl: CONFIG.API_BASE_URL, accessToken });
-          }
+        // Hand off the request to your local node.js backend server route we created earlier
+        const res = await fetch('/api/ignite-setup', { 
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        
+        const data = await parseResponseJsonSafe(res);
+
+        if (!res.ok || data.success === false) {
+          throw new Error(data.error || `HTTP error ${res.status}`);
         }
-        logSequence('Smart Home sequence complete. Hardware components synchronized successfully.');
+
+        // Fast-forward UI steps upon safe proxy completion
+        updateSequenceStep(0, 'done', 'Done');
+        updateSequenceStep(1, 'done', 'Done');
+        updateSequenceStep(2, 'done', 'Done');
+        logSequence('🎯 Jarvis system ignition complete. Everything is online! GG.');
+
       } catch (error) {
-        console.error('Smart Home sequence configuration failure:', error);
+        updateSequenceStep(0, 'error', 'Failed');
+        logSequence(`❌ Sequence failed: ${error.message}`);
+        console.error('Sequence execution failure:', error);
       } finally {
         booting = false;
         document.getElementById('bootBtn').disabled = false;
@@ -485,7 +377,6 @@
       document.getElementById('accessDenied')?.classList.add('hidden');
       document.getElementById('bootZone')?.classList.remove('hidden');
       logSequence('Smart Home unlocked. Boot system ready.');
-      await printSwitchBotDiscoveryLogs();
     }
 
     function logout() {
@@ -549,7 +440,6 @@
         if (isAuthorizedUser()) {
           document.getElementById('bootZone')?.classList.remove('hidden');
           logSequence('Smart Home unlocked from existing session.');
-          await printSwitchBotDiscoveryLogs();
         } else {
           document.getElementById('accessDenied')?.classList.remove('hidden');
           logSequence('Signed in, but this page is restricted to MinkerPro99.');
