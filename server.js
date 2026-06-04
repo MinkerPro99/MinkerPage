@@ -1,5 +1,5 @@
 // Keep your calendar routes mount intact:
-app.use('/api', calendarRoutes);
+//app.use('/api', calendarRoutes);
 
 // --- DEFINE THE MAIN IGNITION SEQUENCE ---
 // FIXED: Manually injected the '/api' base path so Express hooks the browser traffic
