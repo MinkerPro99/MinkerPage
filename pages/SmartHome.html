@@ -189,13 +189,6 @@
     const ALLOWED_USERNAME = 'minkerpro99';
     const defaultApiBase = (location.hostname === 'localhost' || location.hostname === '127.0.0.1') ? 'http://127.0.0.1:5050/api' : '/api';
     const CONFIG = { API_BASE_URL: localStorage.getItem('calendarApiBase') || defaultApiBase };
-    const SMART_HOME_SWITCHBOT_CONFIG = (typeof SWITCHBOT_CONFIG !== 'undefined') ? SWITCHBOT_CONFIG : {
-      TOKEN: '0a665f19682fd91fe341eb35c417271d7b5bc403aa8f949a595f6961be1784cbc7edbae42dfd0598e9b3f5910730ed8f',
-      SECRET: '843318da1ae3d2d7663c5a5253a8f249',
-      POWER_ON_SCENE_ID: 'a889c015-31f0-4027-ba1c-68ace7b07402',
-      PC_TRIGGER_SCENE_ID: '2dc358cb-6fc3-43b5-9d1e-a670917e9f8b',
-      SHUTDOWN_SCENE_ID: '7b615cd9-ba6c-4938-9221-f1f9f5357935'
-    };
 
     let accessToken = null;
     let userProfile = null;
@@ -229,68 +222,6 @@
       const headers = { ...(options.headers || {}) };
       if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
       return fetch(`${CONFIG.API_BASE_URL}${path}`, { ...options, headers });
-    }
-
-    function smartHomeToBase64(arrayBuffer) {
-      const bytes = new Uint8Array(arrayBuffer);
-      let binary = '';
-      for (const byte of bytes) {
-        binary += String.fromCharCode(byte);
-      }
-      return btoa(binary);
-    }
-
-    function smartHomeCreateNonce() {
-      if (window.crypto?.randomUUID) {
-        return window.crypto.randomUUID();
-      }
-
-      const bytes = new Uint8Array(16);
-      window.crypto.getRandomValues(bytes);
-      return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
-    }
-
-    async function smartHomeCreateSwitchBotHeaders() {
-      if (!window.crypto?.subtle) {
-        throw new Error('Secure crypto is unavailable in this browser context.');
-      }
-
-      const timestamp = Date.now().toString();
-      const nonce = smartHomeCreateNonce();
-      const payload = `${SMART_HOME_SWITCHBOT_CONFIG.TOKEN}${timestamp}${nonce}`;
-      const encodedSecret = new TextEncoder().encode(SMART_HOME_SWITCHBOT_CONFIG.SECRET);
-      const encodedPayload = new TextEncoder().encode(payload);
-      const key = await window.crypto.subtle.importKey(
-        'raw',
-        encodedSecret,
-        { name: 'HMAC', hash: 'SHA-256' },
-        false,
-        ['sign']
-      );
-      const signature = await window.crypto.subtle.sign('HMAC', key, encodedPayload);
-
-      return {
-        Authorization: SMART_HOME_SWITCHBOT_CONFIG.TOKEN,
-        'Content-Type': 'application/json; charset=utf-8',
-        charset: 'utf-8',
-        sign: smartHomeToBase64(signature),
-        t: timestamp,
-        nonce
-      };
-    }
-
-    async function smartHomeExecuteSwitchBotScene(sceneId) {
-      const response = await fetch(`https://api.switch-bot.com/v1.1/scenes/${sceneId}/execute`, {
-        method: 'POST',
-        headers: await smartHomeCreateSwitchBotHeaders()
-      });
-
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        throw new Error(data.message || data.error || `SwitchBot HTTP ${response.status}`);
-      }
-
-      return data;
     }
 
     function setLoginError(message) {
@@ -399,22 +330,24 @@
       updateSequenceStep(1, 'pending', 'Pending');
       updateSequenceStep(2, 'pending', 'Pending');
       
-      logSequence('🚀 Jarvis Protocol initialization payload sent to SwitchBot API...');
+      logSequence('🚀 Jarvis Protocol initialization payload sent to proxy gateway...');
 
       try {
-        await smartHomeExecuteSwitchBotScene(SMART_HOME_SWITCHBOT_CONFIG.POWER_ON_SCENE_ID);
+        const res = await fetch(`${CONFIG.API_BASE_URL}/ignite-setup`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+
+        const data = await parseResponseJsonSafe(res);
+
+        if (!res.ok || data.success === false) {
+          throw new Error(data.error || `HTTP error ${res.status}`);
+        }
+
         updateSequenceStep(0, 'done', 'Done');
-        
-        logSequence('⚡ Scene Execution 1: Power ON Complete.');
-        logSequence('⏳ Processing 2000ms motherboard loop interval...');
-        updateSequenceStep(1, 'running', 'Running');
-        
-        await new Promise(resolve => setTimeout(resolve, 2000));
         updateSequenceStep(1, 'done', 'Done');
-        
-        updateSequenceStep(2, 'running', 'Running');
-        await smartHomeExecuteSwitchBotScene(SMART_HOME_SWITCHBOT_CONFIG.PC_TRIGGER_SCENE_ID);
         updateSequenceStep(2, 'done', 'Done');
+        logSequence('⚡ Scene Execution 1: Power ON Complete.');
         logSequence('🖥️ Scene Execution 2: PC Trigger Complete.');
         
         logSequence('🎯 All systems operational. Battlestation fully awake! GG.');
