@@ -168,9 +168,9 @@
         <div class="panel">
           <h3>Sequence Plan</h3>
           <ul class="steps" id="sequenceSteps">
-            <li class="step" data-step="0"><span>Wake SwitchBot hub mini</span><small>Pending</small></li>
-            <li class="step" data-step="1"><span>Run home scene</span><small>Pending</small></li>
-            <li class="step" data-step="2"><span>Confirm devices online</span><small>Pending</small></li>
+            <li class="step" data-step="0"><span>Power ON circuit</span><small>Pending</small></li>
+            <li class="step" data-step="1"><span>Motherboard stabilization</span><small>Pending</small></li>
+            <li class="step" data-step="2"><span>PC Trigger sequence</span><small>Pending</small></li>
           </ul>
         </div>
 
@@ -319,24 +319,22 @@
       return normalizeUsername(userProfile?.username) === ALLOWED_USERNAME;
     }
 
-    // REWORKED: Cleaned up sequence loops that track live backend execution tasks perfectly
+    // FIXED: Corrected the fetch routing parameter to use the actual configured domain endpoint base path
     async function runSmartHomeSequence() {
       if (booting || !isAuthorizedUser()) return;
 
       booting = true;
       document.getElementById('bootBtn').disabled = true;
       
-      // Reset layout counters
       updateSequenceStep(0, 'running', 'Running');
       updateSequenceStep(1, 'pending', 'Pending');
       updateSequenceStep(2, 'pending', 'Pending');
       
-      logSequence('🚀 Jarvis Sequence engaged. Communication routing handled via Plesk Proxy Matrix...');
+      logSequence('🚀 Jarvis Protocol initialization payload sent to proxy gateway...');
 
       try {
-        logSequence('⚡ Firing Scene Payload: Power ON... (Activating main circuit power)');
-        
-        const res = await fetch('/api/ignite-setup', { 
+        // FIXED: Combined CONFIG.API_BASE_URL to prevent the relative root fallback 404
+        const res = await fetch(`${CONFIG.API_BASE_URL}/ignite-setup`, { 
           method: 'POST',
           headers: { 'Content-Type': 'application/json' }
         });
@@ -347,27 +345,26 @@
           throw new Error(data.error || `HTTP error ${res.status}`);
         }
 
-        // Fast-forward visual tickers to success states
         updateSequenceStep(0, 'done', 'Done');
         
-        logSequence('⏳ Holding 2000ms buffer window for motherboard capacitor stabilization...');
+        logSequence('⚡ Scene Execution 1: Power ON Complete.');
+        logSequence('⏳ Processing 2000ms motherboard loop interval...');
         updateSequenceStep(1, 'running', 'Running');
         
-        // Simulating the backend delay feedback loops on frontend tickers
         await new Promise(resolve => setTimeout(resolve, 2000));
         updateSequenceStep(1, 'done', 'Done');
         
-        logSequence('🖥️ Firing Scene Payload: PC Trigger... (Smashed mechanical chassis boot toggle)');
+        logSequence('🖥️ Scene Execution 2: PC Trigger Complete.');
         updateSequenceStep(2, 'done', 'Done');
         
-        logSequence('🎯 Setup Fully Ignited! Complete system link established. GG, Bro.');
+        logSequence('🎯 All systems operational. Battlestation fully awake! GG.');
 
       } catch (error) {
         updateSequenceStep(0, 'error', 'Failed');
         updateSequenceStep(1, 'error', 'Aborted');
         updateSequenceStep(2, 'error', 'Aborted');
-        logSequence(`❌ Critical error bricked the sequence: ${error.message}`);
-        console.error('Sequence matrix trace failure:', error);
+        logSequence(`❌ Sequence termination failure: ${error.message}`);
+        console.error('Sequence routing crash:', error);
       } finally {
         booting = false;
         document.getElementById('bootBtn').disabled = false;
@@ -391,8 +388,6 @@
       document.getElementById('accessDenied')?.classList.add('hidden');
       document.getElementById('bootZone')?.classList.remove('hidden');
       logSequence('Smart Home unlocked. Boot system ready.');
-      
-      await discoverMySwitchBotDevices();
     }
 
     function logout() {
@@ -408,57 +403,6 @@
       setViewLoggedOut();
       clearLoginError();
       updateAuthorizedState();
-    }
-
-    async function getSwitchBotHeadersDirect() {
-      if (typeof SWITCHBOT_CONFIG === 'undefined' || !SWITCHBOT_CONFIG.TOKEN || !SWITCHBOT_CONFIG.SECRET) {
-        throw new Error("Credentials missing. Make sure your local config.js exports SWITCHBOT_CONFIG.");
-      }
-
-      const t = Date.now().toString();
-      const nonce = window.crypto.randomUUID ? window.crypto.randomUUID() : Math.random().toString(36).substring(2);
-      const message = SWITCHBOT_CONFIG.TOKEN + t + nonce;
-
-      const encoder = new TextEncoder();
-      const secretBuffer = encoder.encode(SWITCHBOT_CONFIG.SECRET);
-      const messageBuffer = encoder.encode(message);
-
-      const cryptoKey = await window.crypto.subtle.importKey(
-        "raw", secretBuffer, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]
-      );
-      const signatureBuffer = await window.crypto.subtle.sign("HMAC", cryptoKey, messageBuffer);
-      
-      const hashArray = Array.from(new Uint8Array(signatureBuffer));
-      const hashString = hashArray.map(b => String.fromCharCode(b)).join('');
-      const sign = btoa(hashString);
-
-      return {
-        'Authorization': SWITCHBOT_CONFIG.TOKEN,
-        'sign': sign,
-        'nonce': nonce,
-        't': t,
-        'Content-Type': 'application/json'
-      };
-    }
-
-    async function discoverMySwitchBotDevices() {
-      logSequence("🕵️‍♂️ Pinging SwitchBot Cloud for device inventory...");
-      try {
-        const headers = await getSwitchBotHeadersDirect();
-        const res = await fetch('https://api.switch-bot.com/v1.1/devices', { headers });
-        
-        if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
-        
-        const data = await res.json();
-        console.log("=== 📦 YOUR SWITCHBOT DEVICE INVENTORY ===");
-        console.log(data);
-        console.log("==========================================");
-        
-        logSequence("🎯 Inventory fetched! Right-click -> Inspect -> Go to 'Console' tab to copy your Bot IDs.");
-      } catch (error) {
-        console.error("Discovery error:", error);
-        logSequence("⚠️ Inventory sync failed. Open browser console to debug.");
-      }
     }
 
     document.addEventListener('DOMContentLoaded', async () => {
@@ -507,7 +451,6 @@
         if (isAuthorizedUser()) {
           document.getElementById('bootZone')?.classList.remove('hidden');
           logSequence('Smart Home unlocked from existing session.');
-          await discoverMySwitchBotDevices();
         } else {
           document.getElementById('accessDenied')?.classList.remove('hidden');
           logSequence('Signed in, but this page is restricted to MinkerPro99.');
