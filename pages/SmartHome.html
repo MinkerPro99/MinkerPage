@@ -330,21 +330,10 @@
       updateSequenceStep(1, 'pending', 'Pending');
       updateSequenceStep(2, 'pending', 'Pending');
       
-      logSequence('🚀 Jarvis Protocol initialization payload sent to proxy gateway...');
+      logSequence('🚀 Jarvis Protocol initialization payload sent to SwitchBot API...');
 
       try {
-        // FIXED: Combined CONFIG.API_BASE_URL to prevent the relative root fallback 404
-        const res = await fetch(`${CONFIG.API_BASE_URL}/ignite-setup`, { 
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' }
-        });
-        
-        const data = await parseResponseJsonSafe(res);
-
-        if (!res.ok || data.success === false) {
-          throw new Error(data.error || `HTTP error ${res.status}`);
-        }
-
+        await executeSwitchBotScene(SWITCHBOT_CONFIG.POWER_ON_SCENE_ID);
         updateSequenceStep(0, 'done', 'Done');
         
         logSequence('⚡ Scene Execution 1: Power ON Complete.');
@@ -354,8 +343,10 @@
         await new Promise(resolve => setTimeout(resolve, 2000));
         updateSequenceStep(1, 'done', 'Done');
         
-        logSequence('🖥️ Scene Execution 2: PC Trigger Complete.');
+        updateSequenceStep(2, 'running', 'Running');
+        await executeSwitchBotScene(SWITCHBOT_CONFIG.PC_TRIGGER_SCENE_ID);
         updateSequenceStep(2, 'done', 'Done');
+        logSequence('🖥️ Scene Execution 2: PC Trigger Complete.');
         
         logSequence('🎯 All systems operational. Battlestation fully awake! GG.');
 
