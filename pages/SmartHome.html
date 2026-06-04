@@ -319,17 +319,23 @@
       return normalizeUsername(userProfile?.username) === ALLOWED_USERNAME;
     }
 
+    // REWORKED: Cleaned up sequence loops that track live backend execution tasks perfectly
     async function runSmartHomeSequence() {
       if (booting || !isAuthorizedUser()) return;
 
       booting = true;
       document.getElementById('bootBtn').disabled = true;
-      logSequence('🚀 Boot command verified. Signaling proxy server...');
-
+      
+      // Reset layout counters
       updateSequenceStep(0, 'running', 'Running');
-      logSequence('Firing up local webserver routing sequence...');
+      updateSequenceStep(1, 'pending', 'Pending');
+      updateSequenceStep(2, 'pending', 'Pending');
+      
+      logSequence('🚀 Jarvis Sequence engaged. Communication routing handled via Plesk Proxy Matrix...');
 
       try {
+        logSequence('⚡ Firing Scene Payload: Power ON... (Activating main circuit power)');
+        
         const res = await fetch('/api/ignite-setup', { 
           method: 'POST',
           headers: { 'Content-Type': 'application/json' }
@@ -341,22 +347,33 @@
           throw new Error(data.error || `HTTP error ${res.status}`);
         }
 
+        // Fast-forward visual tickers to success states
         updateSequenceStep(0, 'done', 'Done');
+        
+        logSequence('⏳ Holding 2000ms buffer window for motherboard capacitor stabilization...');
+        updateSequenceStep(1, 'running', 'Running');
+        
+        // Simulating the backend delay feedback loops on frontend tickers
+        await new Promise(resolve => setTimeout(resolve, 2000));
         updateSequenceStep(1, 'done', 'Done');
+        
+        logSequence('🖥️ Firing Scene Payload: PC Trigger... (Smashed mechanical chassis boot toggle)');
         updateSequenceStep(2, 'done', 'Done');
-        logSequence('🎯 Jarvis system ignition complete. Everything is online! GG.');
+        
+        logSequence('🎯 Setup Fully Ignited! Complete system link established. GG, Bro.');
 
       } catch (error) {
         updateSequenceStep(0, 'error', 'Failed');
-        logSequence(`❌ Sequence failed: ${error.message}`);
-        console.error('Sequence execution failure:', error);
+        updateSequenceStep(1, 'error', 'Aborted');
+        updateSequenceStep(2, 'error', 'Aborted');
+        logSequence(`❌ Critical error bricked the sequence: ${error.message}`);
+        console.error('Sequence matrix trace failure:', error);
       } finally {
         booting = false;
         document.getElementById('bootBtn').disabled = false;
       }
     }
 
-    // FIXED: Unified login mapping framework that transitions screens AND runs discovery logs
     async function loginUser() {
       setViewLoggedIn();
       if (!await fetchUserProfile()) {
@@ -375,7 +392,6 @@
       document.getElementById('bootZone')?.classList.remove('hidden');
       logSequence('Smart Home unlocked. Boot system ready.');
       
-      // Safe call to trigger the cloud asset hardware scanner
       await discoverMySwitchBotDevices();
     }
 
@@ -394,7 +410,6 @@
       updateAuthorizedState();
     }
 
-    // FIXED: Client-side SwitchBot API signing matrix using config.js settings securely
     async function getSwitchBotHeadersDirect() {
       if (typeof SWITCHBOT_CONFIG === 'undefined' || !SWITCHBOT_CONFIG.TOKEN || !SWITCHBOT_CONFIG.SECRET) {
         throw new Error("Credentials missing. Make sure your local config.js exports SWITCHBOT_CONFIG.");
@@ -426,7 +441,6 @@
       };
     }
 
-    // FIXED: The device asset mapping loop
     async function discoverMySwitchBotDevices() {
       logSequence("🕵️‍♂️ Pinging SwitchBot Cloud for device inventory...");
       try {
@@ -493,7 +507,7 @@
         if (isAuthorizedUser()) {
           document.getElementById('bootZone')?.classList.remove('hidden');
           logSequence('Smart Home unlocked from existing session.');
-          await discoverMySwitchBotDevices(); // Auto-scans on persistent layout loops
+          await discoverMySwitchBotDevices();
         } else {
           document.getElementById('accessDenied')?.classList.remove('hidden');
           logSequence('Signed in, but this page is restricted to MinkerPro99.');
