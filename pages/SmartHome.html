@@ -319,7 +319,6 @@
       return normalizeUsername(userProfile?.username) === ALLOWED_USERNAME;
     }
 
-    // FIXED: Delegation of core hardware triggers directly to your local proxy server!
     async function runSmartHomeSequence() {
       if (booting || !isAuthorizedUser()) return;
 
@@ -327,12 +326,10 @@
       document.getElementById('bootBtn').disabled = true;
       logSequence('🚀 Boot command verified. Signaling proxy server...');
 
-      // Update UI for step 1
       updateSequenceStep(0, 'running', 'Running');
       logSequence('Firing up local webserver routing sequence...');
 
       try {
-        // Hand off the request to your local node.js backend server route we created earlier
         const res = await fetch('/api/ignite-setup', { 
           method: 'POST',
           headers: { 'Content-Type': 'application/json' }
@@ -344,7 +341,6 @@
           throw new Error(data.error || `HTTP error ${res.status}`);
         }
 
-        // Fast-forward UI steps upon safe proxy completion
         updateSequenceStep(0, 'done', 'Done');
         updateSequenceStep(1, 'done', 'Done');
         updateSequenceStep(2, 'done', 'Done');
@@ -360,6 +356,7 @@
       }
     }
 
+    // FIXED: Unified login mapping framework that transitions screens AND runs discovery logs
     async function loginUser() {
       setViewLoggedIn();
       if (!await fetchUserProfile()) {
@@ -377,6 +374,9 @@
       document.getElementById('accessDenied')?.classList.add('hidden');
       document.getElementById('bootZone')?.classList.remove('hidden');
       logSequence('Smart Home unlocked. Boot system ready.');
+      
+      // Safe call to trigger the cloud asset hardware scanner
+      await discoverMySwitchBotDevices();
     }
 
     function logout() {
@@ -392,6 +392,59 @@
       setViewLoggedOut();
       clearLoginError();
       updateAuthorizedState();
+    }
+
+    // FIXED: Client-side SwitchBot API signing matrix using config.js settings securely
+    async function getSwitchBotHeadersDirect() {
+      if (typeof SWITCHBOT_CONFIG === 'undefined' || !SWITCHBOT_CONFIG.TOKEN || !SWITCHBOT_CONFIG.SECRET) {
+        throw new Error("Credentials missing. Make sure your local config.js exports SWITCHBOT_CONFIG.");
+      }
+
+      const t = Date.now().toString();
+      const nonce = window.crypto.randomUUID ? window.crypto.randomUUID() : Math.random().toString(36).substring(2);
+      const message = SWITCHBOT_CONFIG.TOKEN + t + nonce;
+
+      const encoder = new TextEncoder();
+      const secretBuffer = encoder.encode(SWITCHBOT_CONFIG.SECRET);
+      const messageBuffer = encoder.encode(message);
+
+      const cryptoKey = await window.crypto.subtle.importKey(
+        "raw", secretBuffer, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]
+      );
+      const signatureBuffer = await window.crypto.subtle.sign("HMAC", cryptoKey, messageBuffer);
+      
+      const hashArray = Array.from(new Uint8Array(signatureBuffer));
+      const hashString = hashArray.map(b => String.fromCharCode(b)).join('');
+      const sign = btoa(hashString);
+
+      return {
+        'Authorization': SWITCHBOT_CONFIG.TOKEN,
+        'sign': sign,
+        'nonce': nonce,
+        't': t,
+        'Content-Type': 'application/json'
+      };
+    }
+
+    // FIXED: The device asset mapping loop
+    async function discoverMySwitchBotDevices() {
+      logSequence("🕵️‍♂️ Pinging SwitchBot Cloud for device inventory...");
+      try {
+        const headers = await getSwitchBotHeadersDirect();
+        const res = await fetch('https://api.switchbotapi.com/v1.1/devices', { headers });
+        
+        if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
+        
+        const data = await res.json();
+        console.log("=== 📦 YOUR SWITCHBOT DEVICE INVENTORY ===");
+        console.log(data);
+        console.log("==========================================");
+        
+        logSequence("🎯 Inventory fetched! Right-click -> Inspect -> Go to 'Console' tab to copy your Bot IDs.");
+      } catch (error) {
+        console.error("Discovery error:", error);
+        logSequence("⚠️ Inventory sync failed. Open browser console to debug.");
+      }
     }
 
     document.addEventListener('DOMContentLoaded', async () => {
@@ -440,6 +493,7 @@
         if (isAuthorizedUser()) {
           document.getElementById('bootZone')?.classList.remove('hidden');
           logSequence('Smart Home unlocked from existing session.');
+          await discoverMySwitchBotDevices(); // Auto-scans on persistent layout loops
         } else {
           document.getElementById('accessDenied')?.classList.remove('hidden');
           logSequence('Signed in, but this page is restricted to MinkerPro99.');
