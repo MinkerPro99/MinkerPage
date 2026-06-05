@@ -422,3 +422,6 @@ FodyWeavers.xsd
 .env*
 
 config.js
+jarvis/secrets.py
+jarvis/kokoro-v1.0.onnx
+jarvis/voices-v1.0.bin
