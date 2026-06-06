@@ -24,7 +24,7 @@ WEATHER_CITY = "Mettmenstetten"      # Change to your city
 
 # ── Calendar ───────────────────────────────────────────────────────────────────
 CALENDAR_API = "https://minkerpage.ch/api"
-from jarvis.secrets import CALENDAR_USERNAME, CALENDAR_PASSWORD
+from credentials import CALENDAR_USERNAME, CALENDAR_PASSWORD
 
 
 def _ordinal(n: int) -> str:
@@ -89,12 +89,54 @@ def _fetch_weather() -> str:
         return ""
 
 
+MODULE_NAMES = {
+    "M":    "Math",
+    "F":    "French",
+    "D":    "German",
+    "GS":   "History",
+    "Phys": "Physics",
+    "E":    "English",
+}
+
+def _expand_title(title: str) -> str:
+    """Expand subject codes and translate German keywords in event titles."""
+    import re
+    # Expand M### (IT modules) e.g. M122 → IT Module 122
+    title = re.sub(r'\bM(\d+)\b', lambda m: f"IT Module {m.group(1)}", title)
+    # Expand single-letter and short subject codes before " -"
+    title = re.sub(
+        r'\b(' + '|'.join(re.escape(k) for k in sorted(MODULE_NAMES, key=len, reverse=True)) + r')\b(?= -| –|$)',
+        lambda m: MODULE_NAMES[m.group(1)],
+        title
+    )
+    # Translate common German words
+    translations = {
+        "Prüfung": "Exam", "Aufgaben": "Tasks", "erstellen": "create",
+        "abgeben": "submit", "Kapitel": "Chapter", "Rotes buch": "Red book",
+        "und": "and",
+    }
+    for de, en in translations.items():
+        title = re.sub(re.escape(de), en, title, flags=re.IGNORECASE)
+    return title
+
+
+def _parse_api_date(date_str: str) -> datetime.date:
+    """Parse dates in both ISO and RFC-2822 formats returned by the API."""
+    date_str = str(date_str)
+    for fmt in ("%a, %d %b %Y %H:%M:%S %Z", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%d"):
+        try:
+            return datetime.datetime.strptime(date_str, fmt).date()
+        except ValueError:
+            continue
+    # Last resort: grab first 10 chars and try ISO
+    return datetime.date.fromisoformat(date_str[:10])
+
+
 def _fetch_calendar_events() -> str:
     """Login to calendar API and fetch upcoming events in the next 7 days."""
     try:
         import requests
 
-        # Log in to get a fresh token
         login = requests.post(
             f"{CALENDAR_API}/auth/login",
             json={"username": CALENDAR_USERNAME, "password": CALENDAR_PASSWORD},
@@ -106,7 +148,6 @@ def _fetch_calendar_events() -> str:
             print("[Jarvis] Calendar login returned no token.")
             return ""
 
-        # Fetch events for the next 7 days
         today = datetime.date.today()
         end   = today + datetime.timedelta(days=7)
         response = requests.get(
@@ -119,25 +160,23 @@ def _fetch_calendar_events() -> str:
         events = data.get("events", [])
         if not events:
             return "No upcoming events in the next 7 days."
+
         lines = []
         for e in events:
-            title = e.get("title", "Untitled")
-            start = e.get("start_date", "")
-            end_d = e.get("end_date", "")
-            desc  = e.get("description", "")
+            title = _expand_title(e.get("title", "Untitled"))
+            desc  = e.get("description") or ""
             try:
-                # Handle both "2026-06-08" and "2026-06-08T00:00:00" formats
-                start_date = datetime.date.fromisoformat(str(start)[:10])
-                end_date   = datetime.date.fromisoformat(str(end_d)[:10])
+                start_date = _parse_api_date(e["start_date"])
                 start_fmt  = _format_date(start_date)
-                end_fmt    = _format_date(end_date)
-                entry = f"{title} ({start_fmt} to {end_fmt})"
-            except (ValueError, TypeError):
-                entry = f"{title} ({start} to {end_d})"
+            except Exception:
+                start_fmt = str(e.get("start_date", ""))
+            entry = f"{start_fmt}: {title}"
             if desc:
-                entry += f": {desc}"
+                entry += f" ({desc})"
             lines.append(entry)
-        return "; ".join(lines)
+
+        print(f"[Jarvis] Calendar: {lines}")
+        return "\n".join(f"- {l}" for l in lines)
     except Exception as e:
         print(f"[Jarvis] Calendar fetch failed: {e}")
         return ""
@@ -191,7 +230,7 @@ def _ai_greeting() -> str:
             - Start with "Good {tod}, sir."
             - Naturally mention the date and time early on.
             - Briefly mention the weather in one clause.
-            - Summarise the upcoming calendar events conversationally — translate any German titles or descriptions to English naturally.
+            - Read out ALL calendar events listed, grouped by day, using the exact day names given. Do not skip any.
             - Pick ONE gaming headline and slip it in briefly.
             - You MUST include the GTA 6 fact as a short aside — this is mandatory, do not skip it.
             - End with a short offer of assistance as a statement, not a question.
@@ -216,8 +255,13 @@ def build_greeting() -> str:
     return _ai_greeting() if OLLAMA_ENABLED else _template_greeting()
 
 
+_DIR = os.path.dirname(os.path.abspath(__file__))
+
 def speak(text: str) -> None:
-    kokoro = Kokoro("jarvis/kokoro-v1.0.onnx", "jarvis/voices-v1.0.bin")
+    kokoro = Kokoro(
+        os.path.join(_DIR, "kokoro-v1.0.onnx"),
+        os.path.join(_DIR, "voices-v1.0.bin"),
+    )
     samples, sample_rate = kokoro.create(text, voice=VOICE, speed=SPEED, lang="en-us")
     sd.play(samples, sample_rate)
     sd.wait()

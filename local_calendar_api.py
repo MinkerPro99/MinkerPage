@@ -1,9 +1,14 @@
+import asyncio
+import datetime as dt
+import io
 import os
+import re
 import secrets
 from datetime import datetime
 from typing import Any
 
-from flask import Flask, jsonify, request
+import requests as http_requests
+from flask import Flask, jsonify, request, send_file
 from mysql.connector import Error, pooling
 from werkzeug.security import check_password_hash, generate_password_hash
 
@@ -410,6 +415,120 @@ def delete_event(event_id: int):
         return jsonify({"ok": True, "deleted": True})
     except Error as exc:
         return json_error(f"Failed to delete event: {exc}", 500)
+
+
+# ── Jarvis TTS preview ────────────────────────────────────────────────────────
+
+JARVIS_VOICE   = "en-US-ChristopherNeural"
+JARVIS_RATE    = "-10%"
+JARVIS_PITCH   = "-5Hz"
+WEATHER_CITY   = "Mettmenstetten"
+GTA6_RELEASE   = dt.date(2026, 11, 19)
+
+MODULE_NAMES = {
+    "M": "Math", "F": "French", "D": "German",
+    "GS": "History", "Phys": "Physics", "E": "English",
+}
+
+def _jarvis_ordinal(n: int) -> str:
+    if 11 <= n <= 13: return f"{n}th"
+    return f"{n}{['th','st','nd','rd','th'][min(n % 10, 4)]}"
+
+def _jarvis_format_date(d: dt.date) -> str:
+    return d.strftime("%A, %B ") + _jarvis_ordinal(d.day)
+
+def _jarvis_expand_title(title: str) -> str:
+    title = re.sub(r'\bM(\d+)\b', lambda m: f"IT Module {m.group(1)}", title)
+    title = re.sub(
+        r'\b(' + '|'.join(re.escape(k) for k in sorted(MODULE_NAMES, key=len, reverse=True)) + r')\b(?= -| –|$)',
+        lambda m: MODULE_NAMES[m.group(1)], title
+    )
+    for de, en in {"Prüfung": "Exam", "Aufgaben": "Tasks", "erstellen": "create",
+                   "abgeben": "submit", "Kapitel": "Chapter", "Rotes buch": "Red book", "und": "and"}.items():
+        title = re.sub(re.escape(de), en, title, flags=re.IGNORECASE)
+    return title
+
+def _jarvis_weather() -> str:
+    try:
+        r = http_requests.get(
+            f"https://wttr.in/{WEATHER_CITY}?format=%C,+%t,+feels+like+%f",
+            headers={"User-Agent": "curl/7.0"}, timeout=8
+        )
+        raw = r.text.strip()
+        raw = re.sub(r'\+(-?\d+)°C', lambda m: f"{m.group(1)} degrees", raw)
+        raw = re.sub(r'(-\d+)°C', lambda m: f"minus {m.group(1)[1:]} degrees", raw)
+        return raw
+    except Exception:
+        return ""
+
+def _jarvis_calendar(user_id: int) -> str:
+    try:
+        today = dt.date.today()
+        end   = today + dt.timedelta(days=7)
+        conn   = pool.get_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("""
+            SELECT title, start_date, description FROM calendar_events
+            WHERE user_id = %s AND start_date >= %s AND start_date <= %s
+            ORDER BY start_date, event_id
+        """, (user_id, today.isoformat(), end.isoformat()))
+        rows = cursor.fetchall()
+        cursor.close(); conn.close()
+        if not rows:
+            return "No upcoming events in the next 7 days."
+        lines = []
+        for row in rows:
+            title = _jarvis_expand_title(row["title"])
+            d     = row["start_date"]
+            date  = d.date() if hasattr(d, 'date') else dt.date.fromisoformat(str(d)[:10])
+            lines.append(f"{_jarvis_format_date(date)}: {title}")
+        return "\n".join(f"- {l}" for l in lines)
+    except Exception as e:
+        return ""
+
+def _jarvis_build_script(user_id: int) -> str:
+    import random
+    now     = dt.datetime.now()
+    hour    = now.hour
+    tod     = "morning" if hour < 12 else "afternoon" if hour < 17 else "evening" if hour < 21 else "night"
+    day_str = _jarvis_format_date(now.date()) + now.strftime(" at %I:%M %p").replace(" 0", " ").lstrip()
+    days    = (GTA6_RELEASE - now.date()).days
+    gta6    = f"Grand Theft Auto 6 is releasing in {days} days." if days > 0 else "Grand Theft Auto 6 has already been released."
+    weather = _jarvis_weather()
+    calendar = _jarvis_calendar(user_id)
+    openers = [
+        f"Good {tod}, sir. It is {day_str}.",
+        f"Good {tod}, sir. {day_str}.",
+    ]
+    parts = [random.choice(openers)]
+    if weather:
+        parts.append(f"Weather in {WEATHER_CITY}: {weather}.")
+    parts.append(f"Upcoming schedule:\n{calendar}")
+    parts.append(gta6)
+    parts.append("All systems online.")
+    return "  ".join(parts)
+
+async def _jarvis_synthesise(text: str) -> bytes:
+    import edge_tts
+    buf = io.BytesIO()
+    communicate = edge_tts.Communicate(text, JARVIS_VOICE, rate=JARVIS_RATE, pitch=JARVIS_PITCH)
+    async for chunk in communicate.stream():
+        if chunk["type"] == "audio":
+            buf.write(chunk["data"])
+    buf.seek(0)
+    return buf.read()
+
+@app.route("/api/jarvis/greet", methods=["GET"])
+def jarvis_greet():
+    user_id = get_authenticated_user_id()
+    if not user_id:
+        return json_error("Unauthorized", 401)
+    try:
+        script = _jarvis_build_script(user_id)
+        audio  = asyncio.run(_jarvis_synthesise(script))
+        return send_file(io.BytesIO(audio), mimetype="audio/mpeg", as_attachment=False)
+    except Exception as e:
+        return json_error(f"Jarvis failed: {e}", 500)
 
 
 if __name__ == "__main__":

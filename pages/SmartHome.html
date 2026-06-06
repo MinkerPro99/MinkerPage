@@ -162,6 +162,15 @@
           </svg>
         </button>
         <div style="text-align: center; color: #cbd5e1; max-width: 560px;">Press boot to run the SwitchBot sequence. Cryptographic headers are handled dynamically directly within your webpage via config.js.</div>
+
+        <!-- TEMP: Jarvis voice test — remove once Echo Dot is set up -->
+        <div id="jarvisTestZone" style="margin-top:14px; text-align:center;">
+          <button id="jarvisTestBtn" onclick="testJarvisVoice()" style="background:rgba(166,0,207,.15); border:1px solid #a600cf; color:#d8b4fe; border-radius:8px; padding:7px 18px; font-size:0.82rem; cursor:pointer; opacity:0.8;">
+            🎙️ Test Jarvis Voice
+          </button>
+          <div id="jarvisTestStatus" style="font-size:0.75rem; color:#94a3b8; margin-top:5px;"></div>
+        </div>
+        <!-- END TEMP -->
       </div>
 
       <div class="sequence-panel">
@@ -339,6 +348,32 @@
         `Battlestation is fully operational. Welcome back.`
       ].join(' ... ');
     }
+
+    // TEMP: remove once Echo Dot is set up
+    async function testJarvisVoice() {
+      const btn    = document.getElementById('jarvisTestBtn');
+      const status = document.getElementById('jarvisTestStatus');
+      btn.disabled = true;
+      status.textContent = 'Generating greeting…';
+      try {
+        const res = await fetch('/api/jarvis/greet', {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
+        });
+        if (!res.ok) throw new Error(`Server error ${res.status}`);
+        const blob = await res.blob();
+        const url  = URL.createObjectURL(blob);
+        const audio = new Audio(url);
+        audio.onended = () => URL.revokeObjectURL(url);
+        await audio.play();
+        status.textContent = '▶ Playing…';
+        audio.onended = () => { status.textContent = ''; URL.revokeObjectURL(url); };
+      } catch(e) {
+        status.textContent = `❌ ${e.message}`;
+      } finally {
+        btn.disabled = false;
+      }
+    }
+    // END TEMP
 
     function speakJarvisGreeting() {
       if (!window.speechSynthesis) {
