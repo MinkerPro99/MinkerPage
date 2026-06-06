@@ -102,7 +102,7 @@ def _expand_title(title: str) -> str:
     """Expand subject codes and translate German keywords in event titles."""
     import re
     # Expand M### (IT modules) e.g. M122 → IT Module 122
-    title = re.sub(r'\bM(\d+)\b', lambda m: f"IT Module {m.group(1)}", title)
+    title = re.sub(r'\bM(\d+)\b', lambda m: f"Module {m.group(1)}", title)
     # Expand single-letter and short subject codes before " -"
     title = re.sub(
         r'\b(' + '|'.join(re.escape(k) for k in sorted(MODULE_NAMES, key=len, reverse=True)) + r')\b(?= -| –|$)',
