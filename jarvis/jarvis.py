@@ -228,6 +228,7 @@ def _ai_greeting() -> str:
             - GTA 6 aside: {gta6}
             Rules:
             - Start with "Good {tod} sir."
+            - Say that all systems are online.
             - Naturally mention the date and time early on.
             - Briefly mention the weather in one clause.
             - Read out ALL calendar events listed, grouped by day, using the exact day names given. Do not skip any.
