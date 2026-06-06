@@ -357,7 +357,7 @@
       status.textContent = 'Generating greeting…';
       try {
         const res = await fetch('/api/jarvis/greet', {
-          headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('calendarAuthToken')}` }
         });
         if (!res.ok) throw new Error(`Server error ${res.status}`);
         const blob = await res.blob();
