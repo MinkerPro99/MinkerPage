@@ -448,7 +448,7 @@ def _jarvis_format_date(d: dt.date) -> str:
     return d.strftime("%A, %B ") + _jarvis_ordinal(d.day)
 
 def _jarvis_expand_title(title: str) -> str:
-    title = re.sub(r'\bM(\d+)\b', lambda m: f"IT Module {m.group(1)}", title)
+    title = re.sub(r'\bM(\d+)\b', lambda m: f"Module {m.group(1)}", title)
     title = re.sub(
         r'\b(' + '|'.join(re.escape(k) for k in sorted(MODULE_NAMES, key=len, reverse=True)) + r')\b(?= -| –|$)',
         lambda m: MODULE_NAMES[m.group(1)], title
@@ -514,23 +514,23 @@ def _jarvis_build_script(user_id: int) -> str:
             weather_section  = f"Today's weather in {WEATHER_CITY}: {weather}" if weather else ""
             calendar_section = f"Upcoming study calendar events (next 7 days):\n{calendar}"
             prompt = f"""You are JARVIS, Tony Stark's AI. Write a single short spoken greeting (4-5 sentences, no more).
-Today is {day_str}. Use the exact day names provided for calendar events — do not infer "tomorrow" or "next week" yourself.
-Context:
-- Current date and time: {day_str}
-- {weather_section}
-- {calendar_section}
-- {news_section}
-- GTA 6 aside: {gta6}
-Rules:
-            - Start with "Good {tod} sir."
-            - You MUST say that all systems are online, as you run after system start.
-            - Naturally mention the date and time early on.
-            - Briefly mention the weather in one clause.
-            - Read out ALL calendar events listed, grouped by day, using the exact day names given. Do not skip any.
-            - Pick ONE gaming headline and slip it in briefly.
-            - You MUST include the GTA 6 fact as a short aside — this is mandatory, do not skip it.
-            - End with a short offer of assistance as a statement, not a question.
-            - Tone: calm, dry wit, slightly formal. No asterisks, no markdown, plain text only."""
+            Today is {day_str}. Use the exact day names provided for calendar events — do not infer "tomorrow" or "next week" yourself.
+            Context:
+            - Current date and time: {day_str}
+            - {weather_section}
+            - {calendar_section}
+            - {news_section}
+            - GTA 6 aside: {gta6}
+            Rules:
+                - Start with "Good {tod} sir."
+                - say that all systems are online, (somewhat like the voice in the game subnautica).
+                - Naturally mention the date and time early on.
+                - Briefly mention the weather in one clause.
+                - Read out ALL calendar events listed, grouped by day, using the exact day names given. Do not skip any.
+                - Pick ONE gaming headline and slip it in briefly.
+                - You MUST include the GTA 6 fact as a short aside — this is mandatory, do not skip it.
+                - End with a short offer of assistance as a statement, not a question (e.g., "I'm here if you need me").
+                - Tone: Sophisticated, understated, and impeccably polite, with a vein of dry, British-style wit. No asterisks, no markdown, plain text only."""
 
             resp = http_requests.post(
                 "https://api.groq.com/openai/v1/chat/completions",
