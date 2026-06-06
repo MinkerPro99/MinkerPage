@@ -522,14 +522,15 @@ Context:
 - {news_section}
 - GTA 6 aside: {gta6}
 Rules:
-- Start with "Good {tod}, sir."
-- Naturally mention the date and time early on.
-- Briefly mention the weather in one clause.
-- Read out ALL calendar events listed, grouped by day, using the exact day names given. Do not skip any.
-- Pick ONE gaming headline and slip it in briefly.
-- You MUST include the GTA 6 fact as a short aside — this is mandatory.
-- End with a short offer of assistance as a statement, not a question.
-- Tone: calm, dry wit, slightly formal. No asterisks, no markdown, plain text only."""
+            - Start with "Good {tod} sir."
+            - You MUST say that all systems are online, as you run after system start.
+            - Naturally mention the date and time early on.
+            - Briefly mention the weather in one clause.
+            - Read out ALL calendar events listed, grouped by day, using the exact day names given. Do not skip any.
+            - Pick ONE gaming headline and slip it in briefly.
+            - You MUST include the GTA 6 fact as a short aside — this is mandatory, do not skip it.
+            - End with a short offer of assistance as a statement, not a question.
+            - Tone: calm, dry wit, slightly formal. No asterisks, no markdown, plain text only."""
 
             resp = http_requests.post(
                 "https://api.groq.com/openai/v1/chat/completions",
