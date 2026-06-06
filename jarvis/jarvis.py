@@ -10,7 +10,7 @@ from kokoro_onnx import Kokoro
 
 # ── Voice config ──────────────────────────────────────────────────────────────
 VOICE  = "am_michael"   # Deep American male (Kokoro)
-SPEED  = 0.9            # Slightly slower for Jarvis calm delivery
+SPEED  = 1 #0.9            # Slightly slower for Jarvis calm delivery
 
 # ── Dates ─────────────────────────────────────────────────────────────────────
 GTA6_RELEASE = datetime.date(2026, 11, 19)
@@ -228,7 +228,7 @@ def _ai_greeting() -> str:
             - GTA 6 aside: {gta6}
             Rules:
             - Start with "Good {tod} sir."
-            - Say that all systems are online.
+            - You MUST say that all systems are online, as you run after system start.
             - Naturally mention the date and time early on.
             - Briefly mention the weather in one clause.
             - Read out ALL calendar events listed, grouped by day, using the exact day names given. Do not skip any.
