@@ -7,6 +7,16 @@ import secrets
 from datetime import datetime
 from typing import Any
 
+# Load .env if present
+_env_path = os.path.join(os.path.dirname(__file__), ".env")
+if os.path.exists(_env_path):
+    with open(_env_path) as _f:
+        for _line in _f:
+            _line = _line.strip()
+            if _line and not _line.startswith("#") and "=" in _line:
+                _k, _v = _line.split("=", 1)
+                os.environ.setdefault(_k.strip(), _v.strip())
+
 import requests as http_requests
 from flask import Flask, jsonify, request, send_file
 from mysql.connector import Error, pooling
@@ -487,26 +497,77 @@ def _jarvis_calendar(user_id: int) -> str:
         return ""
 
 def _jarvis_build_script(user_id: int) -> str:
-    import random
-    now     = dt.datetime.now()
-    hour    = now.hour
-    tod     = "morning" if hour < 12 else "afternoon" if hour < 17 else "evening" if hour < 21 else "night"
-    day_str = _jarvis_format_date(now.date()) + now.strftime(" at %I:%M %p").replace(" 0", " ").lstrip()
-    days    = (GTA6_RELEASE - now.date()).days
-    gta6    = f"Grand Theft Auto 6 is releasing in {days} days." if days > 0 else "Grand Theft Auto 6 has already been released."
-    weather = _jarvis_weather()
+    now      = dt.datetime.now()
+    hour     = now.hour
+    tod      = "morning" if hour < 12 else "afternoon" if hour < 17 else "evening" if hour < 21 else "night"
+    day_str  = _jarvis_format_date(now.date()) + now.strftime(" at %I:%M %p").replace(" 0", " ").lstrip()
+    days     = (GTA6_RELEASE - now.date()).days
+    gta6     = f"Grand Theft Auto 6 is releasing in {days} days." if days > 0 else "Grand Theft Auto 6 has already been released."
+    weather  = _jarvis_weather()
     calendar = _jarvis_calendar(user_id)
+
+    groq_key = os.getenv("GROQ_API_KEY", "")
+    if groq_key:
+        try:
+            news = _jarvis_fetch_news()
+            news_section     = f"Current gaming headlines: {news}" if news else ""
+            weather_section  = f"Today's weather in {WEATHER_CITY}: {weather}" if weather else ""
+            calendar_section = f"Upcoming study calendar events (next 7 days):\n{calendar}"
+            prompt = f"""You are JARVIS, Tony Stark's AI. Write a single short spoken greeting (4-5 sentences, no more).
+Today is {day_str}. Use the exact day names provided for calendar events — do not infer "tomorrow" or "next week" yourself.
+Context:
+- Current date and time: {day_str}
+- {weather_section}
+- {calendar_section}
+- {news_section}
+- GTA 6 aside: {gta6}
+Rules:
+- Start with "Good {tod}, sir."
+- Naturally mention the date and time early on.
+- Briefly mention the weather in one clause.
+- Read out ALL calendar events listed, grouped by day, using the exact day names given. Do not skip any.
+- Pick ONE gaming headline and slip it in briefly.
+- You MUST include the GTA 6 fact as a short aside — this is mandatory.
+- End with a short offer of assistance as a statement, not a question.
+- Tone: calm, dry wit, slightly formal. No asterisks, no markdown, plain text only."""
+
+            resp = http_requests.post(
+                "https://api.groq.com/openai/v1/chat/completions",
+                headers={"Authorization": f"Bearer {groq_key}", "Content-Type": "application/json"},
+                json={"model": "llama-3.1-8b-instant", "messages": [{"role": "user", "content": prompt}], "max_tokens": 400},
+                timeout=15,
+            )
+            resp.raise_for_status()
+            text = resp.json()["choices"][0]["message"]["content"].strip()
+            if text:
+                return text
+        except Exception as e:
+            print(f"[Jarvis] Groq failed: {e}")
+
+    # Fallback template
+    import random
     openers = [
         f"Good {tod}, sir. It is {day_str}.",
-        f"Good {tod}, sir. {day_str}.",
+        f"Good {tod}, sir. I've been expecting you. It is {day_str}.",
     ]
     parts = [random.choice(openers)]
     if weather:
         parts.append(f"Weather in {WEATHER_CITY}: {weather}.")
-    parts.append(f"Upcoming schedule:\n{calendar}")
+    parts.append(f"Upcoming schedule: {calendar}")
     parts.append(gta6)
     parts.append("All systems online.")
     return "  ".join(parts)
+
+
+def _jarvis_fetch_news(n: int = 3) -> str:
+    try:
+        import xml.etree.ElementTree as ET
+        r     = http_requests.get("https://www.pcgamer.com/rss/", headers={"User-Agent": "Mozilla/5.0"}, timeout=8)
+        root  = ET.fromstring(r.content)
+        items = root.findall(".//item")[:n]
+        return " | ".join(i.findtext("title", "").strip() for i in items if i.findtext("title"))
+    except Exception:
+        return ""
 
 async def _jarvis_synthesise(text: str) -> bytes:
     import edge_tts
