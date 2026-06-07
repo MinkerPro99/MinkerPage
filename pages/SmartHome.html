@@ -328,27 +328,6 @@
       return normalizeUsername(userProfile?.username) === ALLOWED_USERNAME;
     }
 
-    function buildJarvisScript() {
-      const now = new Date();
-      const hour = now.getHours();
-
-      const timeOfDay = hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : hour < 21 ? 'evening' : 'night';
-
-      const gta6Release = new Date('2025-11-19T00:00:00');
-      const msPerDay = 1000 * 60 * 60 * 24;
-      const daysUntilGta6 = Math.ceil((gta6Release - now) / msPerDay);
-      const gta6Line = daysUntilGta6 > 0
-        ? `Grand Theft Auto 6 is releasing in ${daysUntilGta6} days.`
-        : `Grand Theft Auto 6 has already been released.`;
-
-      return [
-        `Good ${timeOfDay}, sir.`,
-        `All systems online.`,
-        gta6Line,
-        `Battlestation is fully operational. Welcome back.`
-      ].join(' ... ');
-    }
-
     // TEMP: remove once Echo Dot is set up
     async function testJarvisVoice() {
       const btn    = document.getElementById('jarvisTestBtn');
@@ -375,43 +354,19 @@
     }
     // END TEMP
 
-    function speakJarvisGreeting() {
-      if (!window.speechSynthesis) {
-        console.warn('Speech synthesis not supported.');
-        return;
-      }
-
-      window.speechSynthesis.cancel();
-
-      const utterance = new SpeechSynthesisUtterance(buildJarvisScript());
-      utterance.rate = 0.88;
-      utterance.pitch = 0.75;
-      utterance.volume = 1;
-
-      // Pick the best available deep male voice
-      const pickVoice = () => {
-        const voices = window.speechSynthesis.getVoices();
-        const preferred = ['David', 'Mark', 'Google UK English Male', 'Daniel', 'Alex'];
-        for (const name of preferred) {
-          const match = voices.find(v => v.name.includes(name));
-          if (match) return match;
-        }
-        // Fall back to any male-sounding English voice
-        return voices.find(v => v.lang.startsWith('en') && /male/i.test(v.name))
-          || voices.find(v => v.lang.startsWith('en'))
-          || null;
-      };
-
-      const voices = window.speechSynthesis.getVoices();
-      if (voices.length > 0) {
-        utterance.voice = pickVoice();
-        window.speechSynthesis.speak(utterance);
-      } else {
-        // Voices load async on some browsers
-        window.speechSynthesis.onvoiceschanged = () => {
-          utterance.voice = pickVoice();
-          window.speechSynthesis.speak(utterance);
-        };
+    async function speakJarvisGreeting() {
+      try {
+        const res = await fetch('/api/jarvis/greet', {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('calendarAuthToken')}` }
+        });
+        if (!res.ok) throw new Error(`Jarvis error ${res.status}`);
+        const blob  = await res.blob();
+        const url   = URL.createObjectURL(blob);
+        const audio = new Audio(url);
+        audio.onended = () => URL.revokeObjectURL(url);
+        await audio.play();
+      } catch(e) {
+        console.error('Jarvis greeting failed:', e);
       }
     }
 
