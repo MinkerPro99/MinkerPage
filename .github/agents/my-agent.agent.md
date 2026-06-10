@@ -5,7 +5,7 @@
 # For format details, see: https://gh.io/customagents/config
 
 name: Minker Codex
-description:
+description:Codex By MinkerPro
 ---
 
 # My Agent
