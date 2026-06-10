@@ -34,6 +34,10 @@ console.log(`Writing Alexa auth data to: ${authPath}`);
 
 alexaCookie.generateAlexaCookie(config, (error, result) => {
     if (error) {
+        if (String(error.message || error).includes('Please open')) {
+            console.log(error.message || error);
+            return;
+        }
         console.error(error);
         process.exitCode = 1;
         return;

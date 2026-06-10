@@ -112,14 +112,56 @@ async function speakOnAlexa(text) {
         throw new Error('ALEXA_DEVICE_NAME is not configured');
     }
 
-    await new Promise((resolve, reject) => {
-        remote.sendSequenceCommand(device, 'speak', text, (error) => {
-            if (error) reject(error);
-            else resolve();
+    const chunks = splitAlexaSpeech(text);
+    for (const chunk of chunks) {
+        await new Promise((resolve, reject) => {
+            remote.sendSequenceCommand(device, 'speak', chunk, (error) => {
+                if (error) reject(error);
+                else resolve();
+            });
         });
-    });
+        await new Promise(resolve => setTimeout(resolve, 700));
+    }
 
     return { skipped: false };
+}
+
+function splitAlexaSpeech(text, maxLength = 240) {
+    const clean = text.replace(/\s+/g, ' ').trim();
+    const sentences = clean.match(/[^.!?]+[.!?]*/g) || [clean];
+    const chunks = [];
+    let current = '';
+
+    for (const sentence of sentences) {
+        const part = sentence.trim();
+        if (!part) continue;
+
+        if ((current + ' ' + part).trim().length <= maxLength) {
+            current = (current + ' ' + part).trim();
+            continue;
+        }
+
+        if (current) chunks.push(current);
+
+        if (part.length <= maxLength) {
+            current = part;
+            continue;
+        }
+
+        const words = part.split(/\s+/);
+        current = '';
+        for (const word of words) {
+            if ((current + ' ' + word).trim().length > maxLength) {
+                if (current) chunks.push(current);
+                current = word;
+            } else {
+                current = (current + ' ' + word).trim();
+            }
+        }
+    }
+
+    if (current) chunks.push(current);
+    return chunks;
 }
 
 async function announceJarvis(authorization) {
