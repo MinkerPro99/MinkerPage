@@ -1,0 +1,30 @@
+{
+  "apps": {
+    "opera gx": [
+      "%LOCALAPPDATA%\\Programs\\Opera GX\\opera.exe",
+      "%LOCALAPPDATA%\\Programs\\Opera GX\\launcher.exe",
+      "%USERPROFILE%\\AppData\\Local\\Programs\\Opera GX\\launcher.exe",
+      "%USERPROFILE%\\AppData\\Local\\Programs\\Opera GX\\opera.exe",
+      "C:\\Program Files\\Opera GX\\opera.exe",
+      "C:\\Program Files\\Opera GX\\launcher.exe"
+    ],
+    "discord": [
+      "%LOCALAPPDATA%\\Discord\\Update.exe --processStart Discord.exe"
+    ],
+    "steam": [
+      "C:\\Program Files (x86)\\Steam\\steam.exe"
+    ]
+  },
+  "folders": {
+    "downloads": "%USERPROFILE%\\Downloads",
+    "documents": "%USERPROFILE%\\Documents",
+    "homework": "%USERPROFILE%\\Documents"
+  },
+  "scripts": {
+    "shutdown setup": "%CD%\\shutdown.bat"
+  },
+  "defaults": {
+    "browser": "opera gx",
+    "search_engine": "https://www.google.com/search?q={query}"
+  }
+}

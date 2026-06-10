@@ -423,6 +423,7 @@ FodyWeavers.xsd
 
 config.js
 jarvis/credentials.py
+jarvis/pc_agent_config.json
 jarvis/kokoro-v1.0.onnx
 jarvis/voices-v1.0.bin
 alexa-auth.json
