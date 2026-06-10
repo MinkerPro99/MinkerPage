@@ -270,7 +270,7 @@ app.post('/api/ignite-setup/alexa-skill', async (req, res) => {
 
     const requestType = req.body?.request?.type;
     if (requestType === 'LaunchRequest') {
-        res.json(alexaResponse('Jarvis online. What shall I do?'));
+        res.json(alexaResponse('Jarvis online. What shall I do?', false));
         return;
     }
 
@@ -290,7 +290,7 @@ app.post('/api/ignite-setup/alexa-skill', async (req, res) => {
 
         const commandText = extractAlexaCommand(intent);
         if (!commandText) {
-            res.json(alexaResponse('I did not catch the command, sir. Please try again.'));
+            res.json(alexaResponse('I did not catch the command, sir. Please try again.', false));
             return;
         }
 
@@ -324,6 +324,12 @@ function alexaResponse(text, shouldEndSession = true) {
             outputSpeech: {
                 type: 'PlainText',
                 text
+            },
+            reprompt: {
+                outputSpeech: {
+                    type: 'PlainText',
+                    text: 'What shall I do?'
+                }
             },
             shouldEndSession
         }
