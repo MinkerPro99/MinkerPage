@@ -4,7 +4,7 @@
     "start": "node server.js"
   },
   "dependencies": {
-    "alexa-remote2": "^8.1.1",
+    "alexa-remote2": "^8.0.4",
     "axios": "^1.7.9",
     "express": "^4.21.2"
   }
