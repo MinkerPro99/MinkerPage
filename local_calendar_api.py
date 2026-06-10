@@ -593,5 +593,16 @@ def jarvis_greet():
         return json_error(f"Jarvis failed: {e}", 500)
 
 
+@app.route("/api/jarvis/script", methods=["GET"])
+def jarvis_script():
+    user_id = get_authenticated_user_id()
+    if not user_id:
+        return json_error("Unauthorized", 401)
+    try:
+        return jsonify({"ok": True, "script": _jarvis_build_script(user_id)})
+    except Exception as e:
+        return json_error(f"Jarvis failed: {e}", 500)
+
+
 if __name__ == "__main__":
     app.run(host="127.0.0.1", port=APP_PORT, debug=True)

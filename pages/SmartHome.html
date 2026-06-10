@@ -163,10 +163,10 @@
         </button>
         <div style="text-align: center; color: #cbd5e1; max-width: 560px;">Press boot to run the SwitchBot sequence. Cryptographic headers are handled dynamically directly within your webpage via config.js.</div>
 
-        <!-- TEMP: Jarvis voice test — remove once Echo Dot is set up -->
+        <!-- TEMP: Jarvis Echo test — remove once Echo setup is fully verified -->
         <div id="jarvisTestZone" style="margin-top:14px; text-align:center;">
           <button id="jarvisTestBtn" onclick="testJarvisVoice()" style="background:rgba(166,0,207,.15); border:1px solid #a600cf; color:#d8b4fe; border-radius:8px; padding:7px 18px; font-size:0.82rem; cursor:pointer; opacity:0.8;">
-            🎙️ Test Jarvis Voice
+            🎙️ Test Jarvis Echo
           </button>
           <div id="jarvisTestStatus" style="font-size:0.75rem; color:#94a3b8; margin-top:5px;"></div>
         </div>
@@ -328,47 +328,27 @@
       return normalizeUsername(userProfile?.username) === ALLOWED_USERNAME;
     }
 
-    // TEMP: remove once Echo Dot is set up
+    // TEMP: remove once Echo setup is fully verified
     async function testJarvisVoice() {
       const btn    = document.getElementById('jarvisTestBtn');
       const status = document.getElementById('jarvisTestStatus');
       btn.disabled = true;
-      status.textContent = 'Generating greeting…';
+      status.textContent = 'Sending to Echo...';
       try {
-        const res = await fetch('/api/jarvis/greet', {
+        const res = await fetch('/api/ignite-setup/jarvis-test', {
+          method: 'POST',
           headers: { 'Authorization': `Bearer ${localStorage.getItem('calendarAuthToken')}` }
         });
-        if (!res.ok) throw new Error(`Server error ${res.status}`);
-        const blob = await res.blob();
-        const url  = URL.createObjectURL(blob);
-        const audio = new Audio(url);
-        audio.onended = () => URL.revokeObjectURL(url);
-        await audio.play();
-        status.textContent = '▶ Playing…';
-        audio.onended = () => { status.textContent = ''; URL.revokeObjectURL(url); };
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || `Server error ${res.status}`);
+        status.textContent = 'Sent to Echo.';
       } catch(e) {
-        status.textContent = `❌ ${e.message}`;
+        status.textContent = `Failed: ${e.message}`;
       } finally {
         btn.disabled = false;
       }
     }
     // END TEMP
-
-    async function speakJarvisGreeting() {
-      try {
-        const res = await fetch('/api/jarvis/greet', {
-          headers: { 'Authorization': `Bearer ${localStorage.getItem('calendarAuthToken')}` }
-        });
-        if (!res.ok) throw new Error(`Jarvis error ${res.status}`);
-        const blob  = await res.blob();
-        const url   = URL.createObjectURL(blob);
-        const audio = new Audio(url);
-        audio.onended = () => URL.revokeObjectURL(url);
-        await audio.play();
-      } catch(e) {
-        console.error('Jarvis greeting failed:', e);
-      }
-    }
 
     async function runSmartHomeSequence() {
       if (booting || !isAuthorizedUser()) return;
@@ -384,7 +364,10 @@
 
       try {
         updateSequenceStep(0, 'running', 'Running');
-        const res = await fetch('/api/ignite-setup', { method: 'POST' });
+        const res = await fetch('/api/ignite-setup', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('calendarAuthToken')}` }
+        });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
         updateSequenceStep(0, 'done', 'Done');
@@ -395,7 +378,6 @@
         updateSequenceStep(2, 'done', 'Done');
         logSequence('🖥️ Scene Execution 2: PC Trigger Complete.');
         logSequence('🎯 All systems operational. Battlestation fully awake! GG.');
-        speakJarvisGreeting();
 
       } catch (error) {
         updateSequenceStep(0, 'error', 'Failed');
