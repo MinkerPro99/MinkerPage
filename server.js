@@ -120,13 +120,13 @@ async function speakOnAlexa(text) {
                 else resolve();
             });
         });
-        await new Promise(resolve => setTimeout(resolve, 700));
+        await new Promise(resolve => setTimeout(resolve, 120));
     }
 
     return { skipped: false };
 }
 
-function splitAlexaSpeech(text, maxLength = 240) {
+function splitAlexaSpeech(text, maxLength = 248) {
     const clean = text.replace(/\s+/g, ' ').trim();
     const sentences = clean.match(/[^.!?]+[.!?]*/g) || [clean];
     const chunks = [];
