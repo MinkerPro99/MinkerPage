@@ -113,15 +113,14 @@ async function speakOnAlexa(text) {
     }
 
     const chunks = splitAlexaSpeech(text);
-    for (const chunk of chunks) {
-        await new Promise((resolve, reject) => {
-            remote.sendSequenceCommand(device, 'speak', chunk, (error) => {
-                if (error) reject(error);
-                else resolve();
-            });
+    const commands = chunks.map(chunk => ({ command: 'speak', value: chunk }));
+
+    await new Promise((resolve, reject) => {
+        remote.sendMultiSequenceCommand(device, commands, 'SerialNode', (error) => {
+            if (error) reject(error);
+            else resolve();
         });
-        await new Promise(resolve => setTimeout(resolve, 120));
-    }
+    });
 
     return { skipped: false };
 }
