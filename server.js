@@ -50,12 +50,24 @@ function initAlexa() {
             return;
         }
 
+        const authPath = process.env.ALEXA_AUTH_FILE || path.join(__dirname, 'alexa-auth.json');
+        let authData = null;
+        if (fs.existsSync(authPath)) {
+            authData = JSON.parse(fs.readFileSync(authPath, 'utf8'));
+        }
+
         const remote = new AlexaRemote();
+        remote.on('cookie', () => {
+            if (remote.cookieData) {
+                fs.writeFileSync(authPath, JSON.stringify(remote.cookieData, null, 2));
+            }
+        });
+
         remote.init({
-            cookie: process.env.ALEXA_COOKIE,
-            refreshToken: process.env.ALEXA_REFRESH_TOKEN,
+            cookie: authData || process.env.ALEXA_COOKIE,
+            formerRegistrationData: authData || undefined,
             amazonPage: process.env.ALEXA_AMAZON_PAGE || 'amazon.de',
-            acceptLanguage: process.env.ALEXA_ACCEPT_LANGUAGE || 'de-DE',
+            acceptLanguage: process.env.ALEXA_ACCEPT_LANGUAGE || 'en-GB',
             useWsMqtt: true
         }, (error) => {
             if (error) {
@@ -101,7 +113,7 @@ async function speakOnAlexa(text) {
     }
 
     await new Promise((resolve, reject) => {
-        remote.sendCommand(device, 'speak', text, (error) => {
+        remote.sendSequenceCommand(device, 'speak', text, (error) => {
             if (error) reject(error);
             else resolve();
         });

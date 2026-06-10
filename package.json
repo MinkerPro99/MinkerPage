@@ -5,6 +5,7 @@
   },
   "dependencies": {
     "alexa-remote2": "^8.0.4",
+    "alexa-cookie2": "^5.0.3",
     "axios": "^1.7.9",
     "express": "^4.21.2"
   }

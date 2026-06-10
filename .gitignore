@@ -425,3 +425,5 @@ config.js
 jarvis/credentials.py
 jarvis/kokoro-v1.0.onnx
 jarvis/voices-v1.0.bin
+alexa-auth.json
+alexa-former-data.json
