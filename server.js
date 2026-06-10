@@ -29,8 +29,27 @@ function getSwitchBotHeaders() {
 const app = express();
 app.use(express.json());
 
+const pendingPcCommands = [];
+const pcCommandResults = new Map();
+
 let alexaRemote = null;
 let alexaInitPromise = null;
+
+function requireJarvisCommandAuth(req, res, next) {
+    const expected = process.env.JARVIS_COMMAND_TOKEN;
+    if (!expected) {
+        res.status(500).json({ success: false, error: 'JARVIS_COMMAND_TOKEN is not configured' });
+        return;
+    }
+
+    const provided = req.get('X-Jarvis-Token') || req.get('Authorization')?.replace(/^Bearer\s+/i, '');
+    if (provided !== expected) {
+        res.status(401).json({ success: false, error: 'Unauthorized' });
+        return;
+    }
+
+    next();
+}
 
 function alexaEnabled() {
     return process.env.ALEXA_ENABLED === 'true';
@@ -180,6 +199,54 @@ async function announceJarvis(authorization) {
     await speakOnAlexa(script);
     return script;
 }
+
+app.post('/api/ignite-setup/command', requireJarvisCommandAuth, async (req, res) => {
+    const text = String(req.body?.text || '').trim();
+    if (!text) {
+        res.status(400).json({ success: false, error: 'Missing command text' });
+        return;
+    }
+
+    const command = {
+        id: crypto.randomUUID(),
+        text,
+        createdAt: new Date().toISOString()
+    };
+    pendingPcCommands.push(command);
+    pcCommandResults.set(command.id, { status: 'queued', command });
+    console.log(`[Jarvis Command] Queued ${command.id}: ${text}`);
+    res.json({ success: true, commandId: command.id });
+});
+
+app.get('/api/ignite-setup/agent/poll', requireJarvisCommandAuth, async (req, res) => {
+    const command = pendingPcCommands.shift() || null;
+    res.json({ success: true, command });
+});
+
+app.post('/api/ignite-setup/agent/result', requireJarvisCommandAuth, async (req, res) => {
+    const commandId = String(req.body?.commandId || '').trim();
+    if (!commandId) {
+        res.status(400).json({ success: false, error: 'Missing commandId' });
+        return;
+    }
+
+    pcCommandResults.set(commandId, {
+        status: req.body?.ok ? 'complete' : 'failed',
+        result: req.body,
+        updatedAt: new Date().toISOString()
+    });
+    console.log(`[Jarvis Command] Result ${commandId}: ${req.body?.ok ? 'ok' : 'failed'}`);
+    res.json({ success: true });
+});
+
+app.get('/api/ignite-setup/command/:id', requireJarvisCommandAuth, async (req, res) => {
+    const result = pcCommandResults.get(req.params.id);
+    if (!result) {
+        res.status(404).json({ success: false, error: 'Unknown command id' });
+        return;
+    }
+    res.json({ success: true, ...result });
+});
 
 app.post('/api/ignite-setup/jarvis-test', async (req, res) => {
     try {

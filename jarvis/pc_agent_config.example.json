@@ -26,5 +26,15 @@
   "defaults": {
     "browser": "opera gx",
     "search_engine": "https://www.google.com/search?q={query}"
+  },
+  "sort_categories": {
+    "Images": [".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".svg"],
+    "Documents": [".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx", ".txt", ".md"],
+    "Videos": [".mp4", ".mkv", ".mov", ".avi", ".webm"],
+    "Audio": [".mp3", ".wav", ".flac", ".m4a", ".ogg"],
+    "Archives": [".zip", ".rar", ".7z", ".tar", ".gz"],
+    "Installers": [".exe", ".msi", ".dmg", ".iso"],
+    "Code": [".py", ".js", ".ts", ".html", ".css", ".json", ".xml", ".yml", ".yaml"],
+    "Other": []
   }
 }
