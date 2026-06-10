@@ -113,14 +113,20 @@ async function speakOnAlexa(text) {
     }
 
     const chunks = splitAlexaSpeech(text);
-    const commands = chunks.map(chunk => ({ command: 'speak', value: chunk }));
+    console.log(`[Alexa] Speaking ${chunks.length} chunk(s).`);
 
-    await new Promise((resolve, reject) => {
-        remote.sendMultiSequenceCommand(device, commands, 'SerialNode', (error) => {
-            if (error) reject(error);
-            else resolve();
+    for (const [index, chunk] of chunks.entries()) {
+        await new Promise((resolve, reject) => {
+            remote.sendSequenceCommand(device, 'speak', chunk, (error) => {
+                if (error) reject(error);
+                else resolve();
+            });
         });
-    });
+
+        if (index < chunks.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, estimateAlexaSpeechMs(chunk)));
+        }
+    }
 
     return { skipped: false };
 }
@@ -161,6 +167,12 @@ function splitAlexaSpeech(text, maxLength = 248) {
 
     if (current) chunks.push(current);
     return chunks;
+}
+
+function estimateAlexaSpeechMs(text) {
+    const words = text.trim().split(/\s+/).filter(Boolean).length;
+    const estimated = (words / 2.7) * 1000;
+    return Math.max(1800, Math.min(9000, Math.round(estimated + 650)));
 }
 
 async function announceJarvis(authorization) {
