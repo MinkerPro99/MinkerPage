@@ -51,6 +51,19 @@ function requireJarvisCommandAuth(req, res, next) {
     next();
 }
 
+function queuePcCommand(text, source = 'api') {
+    const command = {
+        id: crypto.randomUUID(),
+        text,
+        source,
+        createdAt: new Date().toISOString()
+    };
+    pendingPcCommands.push(command);
+    pcCommandResults.set(command.id, { status: 'queued', command });
+    console.log(`[Jarvis Command] Queued ${command.id} from ${source}: ${text}`);
+    return command;
+}
+
 function alexaEnabled() {
     return process.env.ALEXA_ENABLED === 'true';
 }
@@ -207,14 +220,7 @@ app.post('/api/ignite-setup/command', requireJarvisCommandAuth, async (req, res)
         return;
     }
 
-    const command = {
-        id: crypto.randomUUID(),
-        text,
-        createdAt: new Date().toISOString()
-    };
-    pendingPcCommands.push(command);
-    pcCommandResults.set(command.id, { status: 'queued', command });
-    console.log(`[Jarvis Command] Queued ${command.id}: ${text}`);
+    const command = queuePcCommand(text, 'api');
     res.json({ success: true, commandId: command.id });
 });
 
@@ -247,6 +253,82 @@ app.get('/api/ignite-setup/command/:id', requireJarvisCommandAuth, async (req, r
     }
     res.json({ success: true, ...result });
 });
+
+app.post('/api/ignite-setup/alexa-skill', async (req, res) => {
+    const expectedToken = process.env.ALEXA_SKILL_TOKEN;
+    if (expectedToken && req.query.token !== expectedToken) {
+        res.status(401).json({ error: 'Unauthorized' });
+        return;
+    }
+
+    const expectedSkillId = process.env.ALEXA_SKILL_ID;
+    const actualSkillId = req.body?.session?.application?.applicationId || req.body?.context?.System?.application?.applicationId;
+    if (expectedSkillId && actualSkillId !== expectedSkillId) {
+        res.status(401).json(alexaResponse('This Jarvis endpoint is not configured for that skill.'));
+        return;
+    }
+
+    const requestType = req.body?.request?.type;
+    if (requestType === 'LaunchRequest') {
+        res.json(alexaResponse('Jarvis online. What shall I do?'));
+        return;
+    }
+
+    if (requestType === 'IntentRequest') {
+        const intent = req.body?.request?.intent;
+        const intentName = intent?.name;
+
+        if (intentName === 'AMAZON.CancelIntent' || intentName === 'AMAZON.StopIntent') {
+            res.json(alexaResponse('Very good, sir.'));
+            return;
+        }
+
+        if (intentName === 'AMAZON.HelpIntent') {
+            res.json(alexaResponse('You can ask me to open apps, visit websites, search YouTube, or sort configured folders.'));
+            return;
+        }
+
+        const commandText = extractAlexaCommand(intent);
+        if (!commandText) {
+            res.json(alexaResponse('I did not catch the command, sir. Please try again.'));
+            return;
+        }
+
+        const command = queuePcCommand(commandText, 'alexa');
+        res.json(alexaResponse(`Understood. I have sent that to your PC. Command ${command.id.slice(0, 8)} is queued.`));
+        return;
+    }
+
+    if (requestType === 'SessionEndedRequest') {
+        res.json({});
+        return;
+    }
+
+    res.json(alexaResponse('Jarvis received an unsupported Alexa request.'));
+});
+
+function extractAlexaCommand(intent) {
+    const slots = intent?.slots || {};
+    const slotNames = ['command', 'Command', 'task', 'Task', 'query', 'Query'];
+    for (const name of slotNames) {
+        const value = slots[name]?.value;
+        if (value && String(value).trim()) return String(value).trim();
+    }
+    return '';
+}
+
+function alexaResponse(text, shouldEndSession = true) {
+    return {
+        version: '1.0',
+        response: {
+            outputSpeech: {
+                type: 'PlainText',
+                text
+            },
+            shouldEndSession
+        }
+    };
+}
 
 app.post('/api/ignite-setup/jarvis-test', async (req, res) => {
     try {
