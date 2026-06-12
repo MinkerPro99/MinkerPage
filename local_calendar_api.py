@@ -1,10 +1,13 @@
 import asyncio
 import datetime as dt
 import io
+import json
 import os
 import re
 import secrets
+import uuid
 from datetime import datetime
+from pathlib import Path
 from typing import Any
 
 # Load .env if present
@@ -21,6 +24,7 @@ import requests as http_requests
 from flask import Flask, jsonify, request, send_file
 from mysql.connector import Error, pooling
 from werkzeug.security import check_password_hash, generate_password_hash
+from werkzeug.utils import secure_filename
 
 #TEST
 # DB_CONFIG = {
@@ -42,6 +46,8 @@ DB_CONFIG = {
 
 APP_PORT = int(os.getenv("APP_PORT", "5050"))
 TOKEN_DAYS = int(os.getenv("TOKEN_DAYS", "30"))
+STUDY_TRAINER_STORE = Path(os.getenv("STUDY_TRAINER_STORE", Path(__file__).with_name("data") / "study_trainer.json"))
+STUDY_TRAINER_MAX_TEXT = int(os.getenv("STUDY_TRAINER_MAX_TEXT", "60000"))
 
 app = Flask(__name__)
 
@@ -425,6 +431,419 @@ def delete_event(event_id: int):
         return jsonify({"ok": True, "deleted": True})
     except Error as exc:
         return json_error(f"Failed to delete event: {exc}", 500)
+
+
+# ── Study Trainer ─────────────────────────────────────────────────────────────
+
+def _utc_now_iso() -> str:
+    return dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat()
+
+
+def _load_study_trainer_store() -> dict[str, Any]:
+    if not STUDY_TRAINER_STORE.exists():
+        return {"version": 1, "users": {}}
+
+    try:
+        with STUDY_TRAINER_STORE.open("r", encoding="utf-8") as f:
+            data = json.load(f)
+    except (json.JSONDecodeError, OSError):
+        return {"version": 1, "users": {}}
+
+    if not isinstance(data, dict):
+        return {"version": 1, "users": {}}
+    data.setdefault("version", 1)
+    data.setdefault("users", {})
+    return data
+
+
+def _save_study_trainer_store(data: dict[str, Any]) -> None:
+    STUDY_TRAINER_STORE.parent.mkdir(parents=True, exist_ok=True)
+    tmp_path = STUDY_TRAINER_STORE.with_suffix(".tmp")
+    with tmp_path.open("w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+    tmp_path.replace(STUDY_TRAINER_STORE)
+
+
+def _get_user_study_data(store: dict[str, Any], user_id: int) -> dict[str, Any]:
+    users = store.setdefault("users", {})
+    key = str(user_id)
+    if key not in users:
+        users[key] = {"sessions": [], "updated_at": _utc_now_iso()}
+    users[key].setdefault("sessions", [])
+    return users[key]
+
+
+def _fetch_calendar_events_for_user(user_id: int, event_ids: list[int] | None = None) -> list[dict[str, Any]]:
+    conn = None
+    cursor = None
+    try:
+        conn = pool.get_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        if event_ids:
+            placeholders = ", ".join(["%s"] * len(event_ids))
+            cursor.execute(
+                f"""
+                SELECT event_id, title, start_date, end_date, description, color_hex
+                FROM calendar_events
+                WHERE user_id = %s
+                  AND event_id IN ({placeholders})
+                ORDER BY start_date, event_id
+                """,
+                (user_id, *event_ids),
+            )
+        else:
+            today = dt.date.today().isoformat()
+            cursor.execute(
+                """
+                SELECT event_id, title, start_date, end_date, description, color_hex
+                FROM calendar_events
+                WHERE user_id = %s
+                  AND start_date >= %s
+                ORDER BY start_date, event_id
+                LIMIT 40
+                """,
+                (user_id, today),
+            )
+
+        return cursor.fetchall()
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+
+def _event_to_json(event: dict[str, Any]) -> dict[str, Any]:
+    def clean_date(value: Any) -> str:
+        if hasattr(value, "isoformat"):
+            return value.isoformat()
+        return str(value or "")
+
+    return {
+        "event_id": int(event["event_id"]),
+        "title": event.get("title") or "Untitled event",
+        "start_date": clean_date(event.get("start_date")),
+        "end_date": clean_date(event.get("end_date")),
+        "description": event.get("description") or "",
+        "color_hex": event.get("color_hex") or "",
+    }
+
+
+def _extract_uploaded_file_text() -> tuple[list[dict[str, str]], str]:
+    file_summaries: list[dict[str, str]] = []
+    collected: list[str] = []
+    readable_exts = {".txt", ".md", ".csv", ".json", ".html", ".htm", ".log"}
+
+    for file in request.files.getlist("files"):
+        filename = secure_filename(file.filename or "uploaded-file")
+        raw = file.read()
+        ext = Path(filename).suffix.lower()
+
+        if ext in readable_exts:
+            text = raw.decode("utf-8", errors="ignore")
+        elif ext == ".pdf":
+            try:
+                from pypdf import PdfReader
+
+                reader = PdfReader(io.BytesIO(raw))
+                text = "\n".join(page.extract_text() or "" for page in reader.pages)
+            except Exception:
+                text = f"[{filename}: PDF uploaded, but text extraction is unavailable.]"
+        elif ext == ".docx":
+            try:
+                import docx
+
+                document = docx.Document(io.BytesIO(raw))
+                text = "\n".join(paragraph.text for paragraph in document.paragraphs)
+            except Exception:
+                text = f"[{filename}: Word document uploaded, but text extraction is unavailable.]"
+        else:
+            text = f"[{filename}: binary file uploaded. The filename may still indicate the topic.]"
+
+        text = text[:20000]
+        file_summaries.append({"filename": filename, "characters_used": str(len(text))})
+        collected.append(f"File: {filename}\n{text}")
+
+    return file_summaries, "\n\n".join(collected)
+
+
+def _compact_source_text(*parts: str) -> str:
+    text = "\n\n".join(part.strip() for part in parts if part and part.strip())
+    text = re.sub(r"\s+", " ", text).strip()
+    return text[:STUDY_TRAINER_MAX_TEXT]
+
+
+def _fallback_questions(source_text: str, count: int = 8) -> list[dict[str, Any]]:
+    sentences = [
+        s.strip()
+        for s in re.split(r"(?<=[.!?])\s+", source_text)
+        if len(s.strip()) > 40
+    ]
+    if not sentences:
+        sentences = [
+            "Explain the most important idea from the uploaded material.",
+            "Describe how the selected exam topics connect to each other.",
+            "List the definitions, formulas, or facts you still need to memorize.",
+        ]
+
+    questions = []
+    for index in range(count):
+        source = sentences[index % len(sentences)]
+        short = source[:180].rstrip()
+        questions.append(
+            {
+                "id": f"q{index + 1}",
+                "topic": "Core material",
+                "difficulty": "medium" if index < 5 else "hard",
+                "prompt": f"Explain this in your own words: {short}",
+                "expected_answer": short,
+                "hint": "Use the uploaded notes and include the key terms, not only a short conclusion.",
+            }
+        )
+    return questions
+
+
+def _fallback_plan(events: list[dict[str, Any]], source_text: str) -> dict[str, Any]:
+    event_titles = ", ".join((event.get("title") or "selected exam") for event in events) or "selected exam"
+    questions = _fallback_questions(source_text)
+    return {
+        "summary": f"Study plan for {event_titles}.",
+        "study_plan": [
+            {"day": 1, "focus": "Map the material", "tasks": ["Skim all sources", "Write a topic checklist", "Answer questions 1-2"]},
+            {"day": 2, "focus": "Practice recall", "tasks": ["Create flashcards", "Answer questions 3-5", "Review weak answers"]},
+            {"day": 3, "focus": "Exam simulation", "tasks": ["Answer questions 6-8 without notes", "Revise the weakest topic"]},
+        ],
+        "questions": questions,
+        "insights": {
+            "strengths": [],
+            "needs_work": ["No AI provider was configured, so this plan was generated locally from the supplied text."],
+            "next_tasks": ["Add more source text or configure GROQ_API_KEY for richer question generation."],
+        },
+    }
+
+
+def _normalise_ai_plan(plan: dict[str, Any], events: list[dict[str, Any]], source_text: str) -> dict[str, Any]:
+    fallback = _fallback_plan(events, source_text)
+    if not isinstance(plan, dict):
+        return fallback
+
+    questions = plan.get("questions")
+    if not isinstance(questions, list) or not questions:
+        questions = fallback["questions"]
+
+    normalised_questions = []
+    for index, question in enumerate(questions[:12]):
+        if not isinstance(question, dict):
+            continue
+        normalised_questions.append(
+            {
+                "id": str(question.get("id") or f"q{index + 1}"),
+                "topic": str(question.get("topic") or "Core material"),
+                "difficulty": str(question.get("difficulty") or "medium"),
+                "prompt": str(question.get("prompt") or question.get("question") or fallback["questions"][index % len(fallback["questions"])]["prompt"]),
+                "expected_answer": str(question.get("expected_answer") or question.get("answer") or ""),
+                "hint": str(question.get("hint") or "Review the source material and explain the reasoning step by step."),
+            }
+        )
+
+    return {
+        "summary": str(plan.get("summary") or fallback["summary"]),
+        "study_plan": plan.get("study_plan") if isinstance(plan.get("study_plan"), list) else fallback["study_plan"],
+        "questions": normalised_questions or fallback["questions"],
+        "insights": plan.get("insights") if isinstance(plan.get("insights"), dict) else fallback["insights"],
+    }
+
+
+def _generate_ai_study_plan(events: list[dict[str, Any]], source_text: str, links: list[str], notes: str) -> dict[str, Any]:
+    groq_key = os.getenv("GROQ_API_KEY", "")
+    if not groq_key:
+        return _fallback_plan(events, source_text)
+
+    prompt = f"""Create an adaptive study plan as strict JSON only.
+Return this schema:
+{{
+  "summary": "short summary",
+  "study_plan": [{{"day": 1, "focus": "topic", "tasks": ["task"]}}],
+  "questions": [{{"id": "q1", "topic": "topic", "difficulty": "easy|medium|hard", "prompt": "question", "expected_answer": "answer rubric", "hint": "hint"}}],
+  "insights": {{"strengths": [], "needs_work": [], "next_tasks": []}}
+}}
+Selected calendar events:
+{json.dumps(events, ensure_ascii=False)}
+Links:
+{json.dumps(links, ensure_ascii=False)}
+User notes:
+{notes}
+Source material:
+{source_text}
+"""
+
+    try:
+        resp = http_requests.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            headers={"Authorization": f"Bearer {groq_key}", "Content-Type": "application/json"},
+            json={
+                "model": os.getenv("STUDY_TRAINER_MODEL", "llama-3.1-8b-instant"),
+                "messages": [{"role": "user", "content": prompt}],
+                "temperature": 0.35,
+                "max_tokens": 2400,
+                "response_format": {"type": "json_object"},
+            },
+            timeout=35,
+        )
+        resp.raise_for_status()
+        raw = resp.json()["choices"][0]["message"]["content"].strip()
+        return _normalise_ai_plan(json.loads(raw), events, source_text)
+    except Exception as exc:
+        print(f"[StudyTrainer] AI generation failed: {exc}")
+        return _fallback_plan(events, source_text)
+
+
+def _score_answer(user_answer: str, expected: str) -> tuple[float, str]:
+    user_words = set(re.findall(r"[a-zA-Z0-9äöüÄÖÜß]{4,}", user_answer.lower()))
+    expected_words = set(re.findall(r"[a-zA-Z0-9äöüÄÖÜß]{4,}", expected.lower()))
+    if not user_answer.strip():
+        return 0.0, "No answer submitted."
+    if not expected_words:
+        return (0.65 if len(user_answer.strip()) > 80 else 0.35), "Answer saved; no detailed rubric was available."
+
+    overlap = len(user_words & expected_words) / max(1, len(expected_words))
+    score = max(0.0, min(1.0, overlap))
+    if score >= 0.65:
+        feedback = "Good coverage of the expected key ideas."
+    elif score >= 0.35:
+        feedback = "Partly correct. Add more of the key terms and explain the reasoning."
+    else:
+        feedback = "Needs more work. Revisit the source and answer with the central terms."
+    return round(score, 2), feedback
+
+
+@app.route("/api/study-trainer/sessions", methods=["GET"])
+def study_trainer_sessions():
+    try:
+        user_id = require_auth_user_id()
+    except PermissionError:
+        return json_error("Unauthorized", 401)
+
+    store = _load_study_trainer_store()
+    user_data = _get_user_study_data(store, user_id)
+    return jsonify({"ok": True, "sessions": user_data["sessions"]})
+
+
+@app.route("/api/study-trainer/generate", methods=["POST"])
+def study_trainer_generate():
+    try:
+        user_id = require_auth_user_id()
+    except PermissionError:
+        return json_error("Unauthorized", 401)
+
+    try:
+        selected_raw = request.form.get("selected_event_ids", "[]")
+        selected_event_ids = [int(value) for value in json.loads(selected_raw) if str(value).isdigit()]
+    except (TypeError, ValueError, json.JSONDecodeError):
+        return json_error("selected_event_ids must be a JSON array of event ids")
+
+    if not selected_event_ids:
+        return json_error("Select at least one calendar event")
+
+    try:
+        links = [str(link).strip() for link in json.loads(request.form.get("links", "[]")) if str(link).strip()]
+    except json.JSONDecodeError:
+        links = []
+
+    notes = (request.form.get("notes") or "").strip()
+    events = [_event_to_json(event) for event in _fetch_calendar_events_for_user(user_id, selected_event_ids)]
+    if not events:
+        return json_error("No matching calendar events found", 404)
+
+    uploaded_files, file_text = _extract_uploaded_file_text()
+    source_text = _compact_source_text(notes, "\n".join(links), file_text)
+    if not source_text:
+        return json_error("Add notes, links, or at least one file before generating a plan")
+
+    ai_plan = _generate_ai_study_plan(events, source_text, links, notes)
+    session = {
+        "id": str(uuid.uuid4()),
+        "created_at": _utc_now_iso(),
+        "updated_at": _utc_now_iso(),
+        "events": events,
+        "links": links,
+        "notes": notes,
+        "files": uploaded_files,
+        "summary": ai_plan["summary"],
+        "study_plan": ai_plan["study_plan"],
+        "questions": ai_plan["questions"],
+        "insights": ai_plan["insights"],
+        "answers": [],
+    }
+
+    store = _load_study_trainer_store()
+    user_data = _get_user_study_data(store, user_id)
+    user_data["sessions"].insert(0, session)
+    user_data["sessions"] = user_data["sessions"][:20]
+    user_data["updated_at"] = _utc_now_iso()
+    _save_study_trainer_store(store)
+
+    return jsonify({"ok": True, "session": session}), 201
+
+
+@app.route("/api/study-trainer/sessions/<session_id>/answers", methods=["POST"])
+def study_trainer_submit_answers(session_id: str):
+    try:
+        user_id = require_auth_user_id()
+    except PermissionError:
+        return json_error("Unauthorized", 401)
+
+    data: dict[str, Any] = request.get_json(silent=True) or {}
+    submitted = data.get("answers") or []
+    if not isinstance(submitted, list):
+        return json_error("answers must be an array")
+
+    store = _load_study_trainer_store()
+    user_data = _get_user_study_data(store, user_id)
+    session = next((item for item in user_data["sessions"] if item.get("id") == session_id), None)
+    if not session:
+        return json_error("Study session not found", 404)
+
+    questions = {question["id"]: question for question in session.get("questions", [])}
+    results = []
+    strengths = []
+    needs_work = []
+
+    for item in submitted:
+        question_id = str(item.get("question_id") or "")
+        answer = str(item.get("answer") or "")
+        question = questions.get(question_id)
+        if not question:
+            continue
+        score, feedback = _score_answer(answer, question.get("expected_answer", ""))
+        result = {
+            "question_id": question_id,
+            "answer": answer,
+            "score": score,
+            "feedback": feedback,
+            "submitted_at": _utc_now_iso(),
+        }
+        results.append(result)
+        if score >= 0.65:
+            strengths.append(question.get("topic", "Core material"))
+        else:
+            needs_work.append(question.get("topic", "Core material"))
+
+    session["answers"] = results
+    session["updated_at"] = _utc_now_iso()
+    session["insights"] = {
+        "strengths": sorted(set(strengths)),
+        "needs_work": sorted(set(needs_work)),
+        "next_tasks": [
+            f"Redo questions about {topic} and write a one paragraph explanation."
+            for topic in sorted(set(needs_work))[:4]
+        ] or ["Move to a timed exam simulation."],
+    }
+    user_data["updated_at"] = _utc_now_iso()
+    _save_study_trainer_store(store)
+
+    return jsonify({"ok": True, "results": results, "insights": session["insights"], "session": session})
 
 
 # ── Jarvis TTS preview ────────────────────────────────────────────────────────

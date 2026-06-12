@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" type="image/png" href="/img/1kIcon.png">
+  <meta name="theme-color" content="#1f1f1f">
+  <meta name="description" content="Adaptive study trainer connected to the study calendar login">
+  <title>Study Trainer</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <style>
+    * {
+      box-sizing: border-box;
+      color-scheme: dark;
+    }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      background: #1f1f1f;
+      color: #ffffff;
+      font-family: 'Roboto', 'Segoe UI', Arial, sans-serif;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url('/img/1kIcon.png');
+      background-repeat: no-repeat;
+      background-position: center;
+      background-size: min(78vmin, 720px);
+      opacity: 0.11;
+      filter: grayscale(1) brightness(1.2);
+      z-index: -1;
+      pointer-events: none;
+    }
+
+    .main-home-link {
+      position: fixed;
+      top: 14px;
+      right: 14px;
+      z-index: 20;
+      padding: 8px 16px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(30, 30, 46, 0.65);
+      color: #e2e8f0;
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 14px;
+      backdrop-filter: blur(12px);
+    }
+
+    .main-home-link:hover,
+    .ghost-link:hover,
+    button:hover {
+      border-color: rgba(166, 0, 207, 0.5);
+      box-shadow: 0 8px 20px rgba(166, 0, 207, 0.18);
+      color: #ffffff;
+    }
+
+    .login-screen {
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 24px;
+    }
+
+    .login-card,
+    .panel,
+    .event-card,
+    .question-card {
+      background: rgba(22, 22, 30, 0.68);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      box-shadow: 0 20px 45px rgba(0, 0, 0, 0.45);
+      backdrop-filter: blur(14px);
+    }
+
+    .login-card {
+      width: min(420px, 92vw);
+      padding: 38px;
+      text-align: center;
+    }
+
+    .login-card h1,
+    .header h1 {
+      margin: 0;
+      font-size: clamp(1.7rem, 4vw, 2.4rem);
+      font-weight: 800;
+      letter-spacing: 0.2px;
+    }
+
+    .login-card p,
+    .muted {
+      color: #94a3b8;
+    }
+
+    .field,
+    textarea,
+    input[type="file"] {
+      width: 100%;
+      padding: 11px 14px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(0, 0, 0, 0.28);
+      color: #ffffff;
+      font: inherit;
+    }
+
+    textarea {
+      min-height: 130px;
+      resize: vertical;
+    }
+
+    .primary-btn,
+    .secondary-btn,
+    .logout-btn {
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #ffffff;
+      border-radius: 10px;
+      padding: 11px 16px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .primary-btn {
+      background: #a600cf;
+      border-color: #a600cf;
+    }
+
+    .secondary-btn,
+    .logout-btn {
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .primary-btn:disabled,
+    .secondary-btn:disabled {
+      opacity: 0.55;
+      cursor: wait;
+    }
+
+    .trainer-screen {
+      display: none;
+      width: min(1240px, 100%);
+      margin: 0 auto;
+      padding: 30px 20px 50px;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+
+    .user-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .user-pill,
+    .tag {
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 999px;
+      padding: 8px 12px;
+      color: #e2e8f0;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: minmax(280px, 0.9fr) minmax(0, 1.3fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .panel {
+      padding: 20px;
+    }
+
+    .panel h2,
+    .panel h3 {
+      margin: 0 0 14px;
+      font-size: 1.15rem;
+    }
+
+    .stack {
+      display: grid;
+      gap: 12px;
+    }
+
+    .event-list,
+    .session-list {
+      display: grid;
+      gap: 10px;
+      max-height: 360px;
+      overflow: auto;
+    }
+
+    .event-card {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 10px;
+      align-items: start;
+      padding: 12px;
+      box-shadow: none;
+    }
+
+    .event-card strong {
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .message {
+      display: none;
+      padding: 12px 14px;
+      border-radius: 10px;
+      margin-bottom: 16px;
+      font-weight: 700;
+    }
+
+    .message.error {
+      display: block;
+      background: rgba(239, 68, 68, 0.13);
+      border: 1px solid rgba(239, 68, 68, 0.28);
+      color: #fecaca;
+    }
+
+    .message.success {
+      display: block;
+      background: rgba(166, 0, 207, 0.13);
+      border: 1px solid rgba(166, 0, 207, 0.3);
+      color: #f5d0fe;
+    }
+
+    .plan-days,
+    .questions {
+      display: grid;
+      gap: 12px;
+    }
+
+    .day-card,
+    .question-card,
+    .session-item {
+      padding: 14px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      background: rgba(255, 255, 255, 0.035);
+    }
+
+    .question-card textarea {
+      margin-top: 10px;
+      min-height: 90px;
+    }
+
+    .feedback {
+      margin-top: 10px;
+      color: #c4b5fd;
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    .insight-list {
+      margin: 0;
+      padding-left: 18px;
+      color: #cbd5e1;
+    }
+
+    .empty {
+      color: #64748b;
+      font-weight: 700;
+    }
+
+    .ghost-link {
+      color: #c084fc;
+      font-weight: 700;
+      text-decoration: none;
+    }
+
+    @media (max-width: 860px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .trainer-screen {
+        padding: 18px 12px 80px;
+      }
+
+      .main-home-link {
+        top: auto;
+        right: 10px;
+        bottom: 10px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="color-circles"></div>
+  <a class="main-home-link" href="../main.html">Main Page</a>
+
+  <section id="loginScreen" class="login-screen">
+    <div class="login-card">
+      <h1>Study Trainer</h1>
+      <p>Use your Study Calendar account to build adaptive exam practice.</p>
+      <div id="loginErrorMessage" class="message error"></div>
+      <div class="stack">
+        <input id="usernameInput" class="field" type="text" placeholder="Username">
+        <input id="passwordInput" class="field" type="password" placeholder="Password">
+        <button id="loginBtn" class="primary-btn">Login</button>
+        <a class="ghost-link" href="./register.html">Create account</a>
+      </div>
+    </div>
+  </section>
+
+  <main id="trainerScreen" class="trainer-screen">
+    <header class="header">
+      <div>
+        <h1>Study Trainer</h1>
+        <div class="muted">Select exam events, add material, solve generated questions.</div>
+      </div>
+      <div class="user-actions">
+        <a class="ghost-link" href="./studyCallendar.html">Open Calendar</a>
+        <span id="userName" class="user-pill">Unknown user</span>
+        <button id="logoutBtn" class="logout-btn">Logout</button>
+      </div>
+    </header>
+
+    <div id="messageContainer" class="message"></div>
+
+    <div class="grid">
+      <section class="panel stack">
+        <div>
+          <h2>Calendar Events</h2>
+          <p class="muted">Choose the exams or deadlines this plan should train for.</p>
+        </div>
+        <div id="eventList" class="event-list">
+          <div class="empty">Loading events...</div>
+        </div>
+
+        <div>
+          <h2>Study Material</h2>
+          <div class="stack">
+            <textarea id="notesInput" placeholder="Paste notes, topics, formulas, teacher hints, or chapter summaries."></textarea>
+            <input id="linksInput" class="field" type="text" placeholder="Links, separated by commas">
+            <input id="fileInput" type="file" multiple>
+            <button id="generateBtn" class="primary-btn">Generate Study Plan</button>
+          </div>
+        </div>
+
+        <div>
+          <h2>Saved Sessions</h2>
+          <div id="sessionList" class="session-list">
+            <div class="empty">No saved sessions yet.</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel stack">
+        <div>
+          <h2>Dynamic Plan</h2>
+          <p id="planSummary" class="muted">Generate a plan to start.</p>
+        </div>
+
+        <div id="planDays" class="plan-days"></div>
+
+        <div>
+          <h2>Exam Questions</h2>
+          <div id="questions" class="questions"></div>
+          <button id="submitAnswersBtn" class="secondary-btn" style="display: none; margin-top: 12px;">Analyze Answers</button>
+        </div>
+
+        <div>
+          <h2>AI Feedback</h2>
+          <div id="insights" class="muted">Feedback appears after generating or solving questions.</div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    const defaultApiBase = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
+      ? 'http://127.0.0.1:5050/api'
+      : '/api';
+
+    const CONFIG = {
+      API_BASE_URL: localStorage.getItem('calendarApiBase') || defaultApiBase
+    };
+
+    let accessToken = null;
+    let userProfile = null;
+    let currentSession = null;
+
+    const loginScreen = document.getElementById('loginScreen');
+    const trainerScreen = document.getElementById('trainerScreen');
+    const messageContainer = document.getElementById('messageContainer');
+
+    function setStoredAuth(token) {
+      accessToken = token;
+      localStorage.setItem('calendarAuthToken', token);
+    }
+
+    function clearStoredAuth() {
+      accessToken = null;
+      localStorage.removeItem('calendarAuthToken');
+    }
+
+    function getStoredAccessToken() {
+      const token = localStorage.getItem('calendarAuthToken');
+      if (!token) return false;
+      accessToken = token;
+      return true;
+    }
+
+    function showMessage(message, type = 'success') {
+      messageContainer.textContent = message;
+      messageContainer.className = `message ${type}`;
+      setTimeout(() => {
+        messageContainer.textContent = '';
+        messageContainer.className = 'message';
+      }, 5000);
+    }
+
+    function showLoginError(message) {
+      const el = document.getElementById('loginErrorMessage');
+      el.textContent = message;
+      el.style.display = 'block';
+    }
+
+    function clearLoginError() {
+      const el = document.getElementById('loginErrorMessage');
+      el.textContent = '';
+      el.style.display = 'none';
+    }
+
+    async function parseResponseJsonSafe(response) {
+      const rawText = await response.text();
+      if (!rawText) return {};
+      try {
+        return JSON.parse(rawText);
+      } catch {
+        return { error: `Unexpected non-JSON response (HTTP ${response.status})` };
+      }
+    }
+
+    async function apiFetch(path, options = {}) {
+      const headers = options.headers ? { ...options.headers } : {};
+      if (!(options.body instanceof FormData)) {
+        headers['Content-Type'] = 'application/json';
+      }
+      if (accessToken) {
+        headers.Authorization = `Bearer ${accessToken}`;
+      }
+
+      const response = await fetch(`${CONFIG.API_BASE_URL}${path}`, { ...options, headers });
+      if (response.status === 401) {
+        logout();
+      }
+      return response;
+    }
+
+    async function loginWithPassword(username, password) {
+      const response = await fetch(`${CONFIG.API_BASE_URL}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      const data = await parseResponseJsonSafe(response);
+      if (!response.ok || !data.token) {
+        throw new Error(data.error || 'Invalid username or password');
+      }
+      setStoredAuth(data.token);
+      userProfile = data.user || null;
+      updateUserInfo();
+    }
+
+    async function fetchUserProfile() {
+      if (!accessToken) return false;
+      const response = await apiFetch('/auth/me', { method: 'GET' });
+      if (!response.ok) return false;
+      const data = await parseResponseJsonSafe(response);
+      userProfile = data.user || null;
+      updateUserInfo();
+      return true;
+    }
+
+    function updateUserInfo() {
+      document.getElementById('userName').textContent = userProfile?.username || 'Unknown user';
+    }
+
+    async function enterApp() {
+      loginScreen.style.display = 'none';
+      trainerScreen.style.display = 'block';
+      await Promise.all([loadEvents(), loadSessions()]);
+    }
+
+    function logout() {
+      clearStoredAuth();
+      userProfile = null;
+      currentSession = null;
+      loginScreen.style.display = 'flex';
+      trainerScreen.style.display = 'none';
+      clearLoginError();
+    }
+
+    function formatDate(value) {
+      if (!value) return '';
+      const date = new Date(`${value}T00:00:00`);
+      if (Number.isNaN(date.getTime())) return value;
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+
+    async function loadEvents() {
+      const eventList = document.getElementById('eventList');
+      eventList.innerHTML = '<div class="empty">Loading events...</div>';
+
+      try {
+        const response = await apiFetch('/events', { method: 'GET' });
+        const data = await parseResponseJsonSafe(response);
+        if (!response.ok) throw new Error(data.error || 'Failed to load events');
+
+        const now = new Date();
+        const events = (data.events || [])
+          .filter(event => new Date(`${event.start_date}T00:00:00`) >= new Date(now.toDateString()))
+          .sort((a, b) => String(a.start_date).localeCompare(String(b.start_date)));
+
+        if (!events.length) {
+          eventList.innerHTML = '<div class="empty">No upcoming calendar events found.</div>';
+          return;
+        }
+
+        eventList.innerHTML = events.map(event => {
+          const title = escapeHtml(event.title || 'Untitled event');
+          const date = escapeHtml(formatDate(event.start_date));
+          return `
+            <label class="event-card">
+              <input type="checkbox" class="event-checkbox" value="${event.event_id}">
+              <span>
+                <strong>${title}</strong>
+                <span class="muted">${date}</span>
+              </span>
+            </label>
+          `;
+        }).join('');
+      } catch (error) {
+        eventList.innerHTML = `<div class="empty">${escapeHtml(error.message)}</div>`;
+      }
+    }
+
+    async function loadSessions() {
+      const sessionList = document.getElementById('sessionList');
+      try {
+        const response = await apiFetch('/study-trainer/sessions', { method: 'GET' });
+        const data = await parseResponseJsonSafe(response);
+        if (!response.ok) throw new Error(data.error || 'Failed to load sessions');
+        renderSessions(data.sessions || []);
+        if (!currentSession && data.sessions?.length) {
+          renderSession(data.sessions[0]);
+        }
+      } catch (error) {
+        sessionList.innerHTML = `<div class="empty">${escapeHtml(error.message)}</div>`;
+      }
+    }
+
+    function renderSessions(sessions) {
+      const sessionList = document.getElementById('sessionList');
+      if (!sessions.length) {
+        sessionList.innerHTML = '<div class="empty">No saved sessions yet.</div>';
+        return;
+      }
+      sessionList.innerHTML = sessions.map(session => {
+        const date = new Date(session.created_at).toLocaleString();
+        const events = (session.events || []).map(event => event.title).join(', ');
+        return `
+          <button class="session-item secondary-btn" data-session-id="${session.id}" type="button">
+            <strong>${escapeHtml(events || 'Study session')}</strong><br>
+            <span class="muted">${escapeHtml(date)}</span>
+          </button>
+        `;
+      }).join('');
+
+      sessionList.querySelectorAll('[data-session-id]').forEach(button => {
+        button.addEventListener('click', () => {
+          const session = sessions.find(item => item.id === button.dataset.sessionId);
+          if (session) renderSession(session);
+        });
+      });
+    }
+
+    async function generatePlan() {
+      const selectedIds = [...document.querySelectorAll('.event-checkbox:checked')].map(input => Number(input.value));
+      const notes = document.getElementById('notesInput').value.trim();
+      const links = document.getElementById('linksInput').value
+        .split(',')
+        .map(link => link.trim())
+        .filter(Boolean);
+      const files = [...document.getElementById('fileInput').files];
+
+      if (!selectedIds.length) {
+        showMessage('Select at least one calendar event.', 'error');
+        return;
+      }
+      if (!notes && !links.length && !files.length) {
+        showMessage('Add notes, links, or files before generating a plan.', 'error');
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('selected_event_ids', JSON.stringify(selectedIds));
+      formData.append('links', JSON.stringify(links));
+      formData.append('notes', notes);
+      files.forEach(file => formData.append('files', file));
+
+      const btn = document.getElementById('generateBtn');
+      btn.disabled = true;
+      btn.textContent = 'Generating...';
+
+      try {
+        const response = await apiFetch('/study-trainer/generate', {
+          method: 'POST',
+          body: formData
+        });
+        const data = await parseResponseJsonSafe(response);
+        if (!response.ok) throw new Error(data.error || 'Failed to generate plan');
+
+        renderSession(data.session);
+        await loadSessions();
+        showMessage('Study plan generated and saved.', 'success');
+      } catch (error) {
+        showMessage(error.message || 'Failed to generate plan', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Generate Study Plan';
+      }
+    }
+
+    function renderSession(session) {
+      currentSession = session;
+      document.getElementById('planSummary').textContent = session.summary || 'Study plan';
+
+      document.getElementById('planDays').innerHTML = (session.study_plan || []).map(day => {
+        const tasks = Array.isArray(day.tasks) ? day.tasks : [];
+        return `
+          <div class="day-card">
+            <span class="tag">Day ${escapeHtml(String(day.day || ''))}</span>
+            <h3>${escapeHtml(day.focus || 'Study focus')}</h3>
+            <ul class="insight-list">${tasks.map(task => `<li>${escapeHtml(String(task))}</li>`).join('')}</ul>
+          </div>
+        `;
+      }).join('');
+
+      document.getElementById('questions').innerHTML = (session.questions || []).map(question => {
+        const existing = (session.answers || []).find(answer => answer.question_id === question.id);
+        return `
+          <article class="question-card" data-question-id="${escapeHtml(question.id)}">
+            <div>
+              <span class="tag">${escapeHtml(question.difficulty || 'medium')}</span>
+              <span class="tag">${escapeHtml(question.topic || 'Core material')}</span>
+            </div>
+            <h3>${escapeHtml(question.prompt || 'Question')}</h3>
+            <div class="muted">Hint: ${escapeHtml(question.hint || '')}</div>
+            <textarea placeholder="Write your answer here.">${escapeHtml(existing?.answer || '')}</textarea>
+            <div class="feedback">${existing ? `Score ${Math.round(existing.score * 100)}% - ${escapeHtml(existing.feedback)}` : ''}</div>
+          </article>
+        `;
+      }).join('');
+
+      document.getElementById('submitAnswersBtn').style.display = (session.questions || []).length ? 'inline-block' : 'none';
+      renderInsights(session.insights || {});
+    }
+
+    function renderInsights(insights) {
+      const block = (title, items) => {
+        if (!Array.isArray(items) || !items.length) return '';
+        return `<h3>${title}</h3><ul class="insight-list">${items.map(item => `<li>${escapeHtml(String(item))}</li>`).join('')}</ul>`;
+      };
+      document.getElementById('insights').innerHTML =
+        block('Understood Well', insights.strengths) +
+        block('Needs More Work', insights.needs_work) +
+        block('Next Tasks', insights.next_tasks) ||
+        '<span class="muted">No feedback yet.</span>';
+    }
+
+    async function submitAnswers() {
+      if (!currentSession) return;
+
+      const answers = [...document.querySelectorAll('.question-card')].map(card => ({
+        question_id: card.dataset.questionId,
+        answer: card.querySelector('textarea').value.trim()
+      }));
+
+      const btn = document.getElementById('submitAnswersBtn');
+      btn.disabled = true;
+      btn.textContent = 'Analyzing...';
+
+      try {
+        const response = await apiFetch(`/study-trainer/sessions/${currentSession.id}/answers`, {
+          method: 'POST',
+          body: JSON.stringify({ answers })
+        });
+        const data = await parseResponseJsonSafe(response);
+        if (!response.ok) throw new Error(data.error || 'Failed to analyze answers');
+
+        renderSession(data.session);
+        await loadSessions();
+        showMessage('Answers analyzed and progress saved.', 'success');
+      } catch (error) {
+        showMessage(error.message || 'Failed to analyze answers', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Analyze Answers';
+      }
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+    }
+
+    document.getElementById('loginBtn').addEventListener('click', async () => {
+      const username = document.getElementById('usernameInput').value.trim();
+      const password = document.getElementById('passwordInput').value;
+      if (!username || !password) {
+        showLoginError('Please enter both username and password');
+        return;
+      }
+
+      const btn = document.getElementById('loginBtn');
+      btn.disabled = true;
+      btn.textContent = 'Logging in...';
+
+      try {
+        clearLoginError();
+        await loginWithPassword(username, password);
+        await enterApp();
+      } catch (error) {
+        showLoginError(error.message || 'Login failed');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Login';
+      }
+    });
+
+    document.getElementById('passwordInput').addEventListener('keydown', event => {
+      if (event.key === 'Enter') {
+        document.getElementById('loginBtn').click();
+      }
+    });
+
+    document.getElementById('logoutBtn').addEventListener('click', logout);
+    document.getElementById('generateBtn').addEventListener('click', generatePlan);
+    document.getElementById('submitAnswersBtn').addEventListener('click', submitAnswers);
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      if (getStoredAccessToken() && await fetchUserProfile()) {
+        await enterApp();
+      }
+    });
+  </script>
+</body>
+
+</html>

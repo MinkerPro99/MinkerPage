@@ -87,6 +87,10 @@
             <i class="bi bi-calendar-event-fill" aria-hidden="true"></i>
             <span>Open Calendar</span>
           </button>
+          <button type="button" class="btn quick-link-btn quick-link-study-trainer" id="studyTrainerBtn" aria-label="Open Study Trainer">
+            <i class="bi bi-mortarboard-fill" aria-hidden="true"></i>
+            <span>Open Study Trainer</span>
+          </button>
           <button type="button" class="btn quick-link-btn quick-link-smart-home" id="smartHomeBtn" aria-label="Open Smart Home">
             <i class="bi bi-house-gear-fill" aria-hidden="true"></i>
             <span>Open Smart Home</span>
@@ -143,6 +147,10 @@
       window.location.href = "pages/studyCallendar.html";
     });
 
+    $('#studyTrainerBtn').click(function () {
+      window.location.href = "pages/studyTrainer.html";
+    });
+
     $('#smartHomeBtn').click(function () {
       window.location.href = "pages/SmartHome.html";
     });
@@ -160,6 +168,8 @@
         window.location.href = "pages/williamBirthday.html";
       } else if (key == "IWannaStudy") {
         window.location.href = "pages/studyCallendar.html";
+      } else if (key == "StudyTrainer") {
+        window.location.href = "pages/studyTrainer.html";
       } else if (key === "SmartHome") {
         window.location.href = "pages/SmartHome.html";
       } else if (key == "Voc") {
