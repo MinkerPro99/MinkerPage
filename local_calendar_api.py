@@ -468,9 +468,14 @@ def _get_user_study_data(store: dict[str, Any], user_id: int) -> dict[str, Any]:
     users = store.setdefault("users", {})
     key = str(user_id)
     if key not in users:
-        users[key] = {"sessions": [], "updated_at": _utc_now_iso()}
+        users[key] = {"subjects": [], "sessions": [], "updated_at": _utc_now_iso()}
+    users[key].setdefault("subjects", [])
     users[key].setdefault("sessions", [])
     return users[key]
+
+
+def _find_subject(user_data: dict[str, Any], subject_id: str) -> dict[str, Any] | None:
+    return next((subject for subject in user_data.get("subjects", []) if subject.get("id") == subject_id), None)
 
 
 def _fetch_calendar_events_for_user(user_id: int, event_ids: list[int] | None = None) -> list[dict[str, Any]]:
@@ -730,6 +735,100 @@ def study_trainer_sessions():
     return jsonify({"ok": True, "sessions": user_data["sessions"]})
 
 
+@app.route("/api/study-trainer/subjects", methods=["GET"])
+def study_trainer_subjects():
+    try:
+        user_id = require_auth_user_id()
+    except PermissionError:
+        return json_error("Unauthorized", 401)
+
+    store = _load_study_trainer_store()
+    user_data = _get_user_study_data(store, user_id)
+    return jsonify({"ok": True, "subjects": user_data["subjects"]})
+
+
+@app.route("/api/study-trainer/subjects", methods=["POST"])
+def study_trainer_create_subject():
+    try:
+        user_id = require_auth_user_id()
+    except PermissionError:
+        return json_error("Unauthorized", 401)
+
+    data: dict[str, Any] = request.get_json(silent=True) or {}
+    name = (data.get("name") or "").strip()
+    if len(name) < 2:
+        return json_error("Subject name must be at least 2 characters")
+
+    store = _load_study_trainer_store()
+    user_data = _get_user_study_data(store, user_id)
+    subject = {
+        "id": str(uuid.uuid4()),
+        "name": name,
+        "event_ids": [],
+        "created_at": _utc_now_iso(),
+        "updated_at": _utc_now_iso(),
+    }
+    user_data["subjects"].append(subject)
+    user_data["updated_at"] = _utc_now_iso()
+    _save_study_trainer_store(store)
+    return jsonify({"ok": True, "subject": subject}), 201
+
+
+@app.route("/api/study-trainer/subjects/<subject_id>", methods=["PUT"])
+def study_trainer_update_subject(subject_id: str):
+    try:
+        user_id = require_auth_user_id()
+    except PermissionError:
+        return json_error("Unauthorized", 401)
+
+    data: dict[str, Any] = request.get_json(silent=True) or {}
+    store = _load_study_trainer_store()
+    user_data = _get_user_study_data(store, user_id)
+    subject = _find_subject(user_data, subject_id)
+    if not subject:
+        return json_error("Subject not found", 404)
+
+    if "name" in data:
+        name = (data.get("name") or "").strip()
+        if len(name) < 2:
+            return json_error("Subject name must be at least 2 characters")
+        subject["name"] = name
+
+    if "event_ids" in data:
+        event_ids = []
+        for value in data.get("event_ids") or []:
+            try:
+                event_ids.append(int(value))
+            except (TypeError, ValueError):
+                continue
+        subject["event_ids"] = sorted(set(event_ids))
+
+    subject["updated_at"] = _utc_now_iso()
+    user_data["updated_at"] = _utc_now_iso()
+    _save_study_trainer_store(store)
+    return jsonify({"ok": True, "subject": subject})
+
+
+@app.route("/api/study-trainer/subjects/<subject_id>/complete", methods=["POST"])
+def study_trainer_complete_subject(subject_id: str):
+    try:
+        user_id = require_auth_user_id()
+    except PermissionError:
+        return json_error("Unauthorized", 401)
+
+    store = _load_study_trainer_store()
+    user_data = _get_user_study_data(store, user_id)
+    subject = _find_subject(user_data, subject_id)
+    if not subject:
+        return json_error("Subject not found", 404)
+
+    user_data["subjects"] = [item for item in user_data["subjects"] if item.get("id") != subject_id]
+    user_data["sessions"] = [item for item in user_data["sessions"] if item.get("subject_id") != subject_id]
+    user_data["updated_at"] = _utc_now_iso()
+    _save_study_trainer_store(store)
+    return jsonify({"ok": True, "deleted_subject": subject_id})
+
+
 @app.route("/api/study-trainer/generate", methods=["POST"])
 def study_trainer_generate():
     try:
@@ -746,6 +845,8 @@ def study_trainer_generate():
     if not selected_event_ids:
         return json_error("Select at least one calendar event")
 
+    subject_id = (request.form.get("subject_id") or "").strip()
+
     try:
         links = [str(link).strip() for link in json.loads(request.form.get("links", "[]")) if str(link).strip()]
     except json.JSONDecodeError:
@@ -761,11 +862,19 @@ def study_trainer_generate():
     if not source_text:
         return json_error("Add notes, links, or at least one file before generating a plan")
 
+    store = _load_study_trainer_store()
+    user_data = _get_user_study_data(store, user_id)
+    subject = _find_subject(user_data, subject_id) if subject_id else None
+    if subject_id and not subject:
+        return json_error("Selected subject was not found", 404)
+
     ai_plan = _generate_ai_study_plan(events, source_text, links, notes)
     session = {
         "id": str(uuid.uuid4()),
         "created_at": _utc_now_iso(),
         "updated_at": _utc_now_iso(),
+        "subject_id": subject_id,
+        "subject_name": "",
         "events": events,
         "links": links,
         "notes": notes,
@@ -777,8 +886,11 @@ def study_trainer_generate():
         "answers": [],
     }
 
-    store = _load_study_trainer_store()
-    user_data = _get_user_study_data(store, user_id)
+    if subject:
+        session["subject_name"] = subject.get("name") or ""
+        subject["event_ids"] = sorted(set([*subject.get("event_ids", []), *selected_event_ids]))
+        subject["updated_at"] = _utc_now_iso()
+
     user_data["sessions"].insert(0, session)
     user_data["sessions"] = user_data["sessions"][:20]
     user_data["updated_at"] = _utc_now_iso()

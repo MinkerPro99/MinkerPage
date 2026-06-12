@@ -111,6 +111,10 @@
       font: inherit;
     }
 
+    input[type="file"] {
+      display: none;
+    }
+
     textarea {
       min-height: 130px;
       resize: vertical;
@@ -206,6 +210,58 @@
       gap: 10px;
       max-height: 360px;
       overflow: auto;
+    }
+
+    .subject-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+    }
+
+    .subject-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .upload-zone {
+      display: grid;
+      gap: 10px;
+      place-items: center;
+      min-height: 140px;
+      padding: 18px;
+      border: 1px dashed rgba(255, 255, 255, 0.22);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.035);
+      text-align: center;
+      transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease;
+    }
+
+    .upload-zone.drag-over {
+      border-color: rgba(166, 0, 207, 0.9);
+      background: rgba(166, 0, 207, 0.14);
+      transform: translateY(-1px);
+    }
+
+    .upload-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 10px;
+      padding: 10px 16px;
+      background: #a600cf;
+      color: #ffffff;
+      font-weight: 800;
+      cursor: pointer;
+      border: 1px solid #a600cf;
+    }
+
+    .file-list {
+      display: grid;
+      gap: 6px;
+      width: 100%;
+      color: #cbd5e1;
+      font-size: 14px;
     }
 
     .event-card {
@@ -342,8 +398,26 @@
     <div class="grid">
       <section class="panel stack">
         <div>
+          <h2>Subjects</h2>
+          <p class="muted">Create subjects yourself, assign calendar events to them, and clear the subject when the exam is over.</p>
+          <div class="stack">
+            <div class="subject-row">
+              <input id="subjectNameInput" class="field" type="text" placeholder="New subject, e.g. Math">
+              <button id="createSubjectBtn" class="secondary-btn" type="button">Create</button>
+            </div>
+            <select id="subjectSelect" class="field">
+              <option value="">No subject selected</option>
+            </select>
+            <div class="subject-actions">
+              <button id="assignEventsBtn" class="secondary-btn" type="button">Assign Events</button>
+              <button id="completeSubjectBtn" class="secondary-btn" type="button">Exam Over</button>
+            </div>
+          </div>
+        </div>
+
+        <div>
           <h2>Calendar Events</h2>
-          <p class="muted">Choose the exams or deadlines this plan should train for.</p>
+          <p class="muted">Choose exams or deadlines. Assigned events stay checked when their subject is selected.</p>
         </div>
         <div id="eventList" class="event-list">
           <div class="empty">Loading events...</div>
@@ -355,6 +429,11 @@
             <textarea id="notesInput" placeholder="Paste notes, topics, formulas, teacher hints, or chapter summaries."></textarea>
             <input id="linksInput" class="field" type="text" placeholder="Links, separated by commas">
             <input id="fileInput" type="file" multiple>
+            <div id="uploadZone" class="upload-zone">
+              <label for="fileInput" class="upload-button">Upload Files</label>
+              <div class="muted">Drag files here while preparing a plan.</div>
+              <div id="fileList" class="file-list"></div>
+            </div>
             <button id="generateBtn" class="primary-btn">Generate Study Plan</button>
           </div>
         </div>
@@ -401,6 +480,9 @@
     let accessToken = null;
     let userProfile = null;
     let currentSession = null;
+    let allEvents = [];
+    let subjects = [];
+    let selectedFiles = [];
 
     const loginScreen = document.getElementById('loginScreen');
     const trainerScreen = document.getElementById('trainerScreen');
@@ -502,7 +584,7 @@
     async function enterApp() {
       loginScreen.style.display = 'none';
       trainerScreen.style.display = 'block';
-      await Promise.all([loadEvents(), loadSessions()]);
+      await Promise.all([loadEvents(), loadSubjects(), loadSessions()]);
     }
 
     function logout() {
@@ -516,9 +598,30 @@
 
     function formatDate(value) {
       if (!value) return '';
-      const date = new Date(`${value}T00:00:00`);
+      const clean = normalizeEventDate(value);
+      const date = new Date(`${clean}T00:00:00`);
       if (Number.isNaN(date.getTime())) return value;
       return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+
+    function normalizeEventDate(value) {
+      if (!value) return '';
+      if (typeof value === 'string') {
+        const match = value.match(/\d{4}-\d{2}-\d{2}/);
+        if (match) return match[0];
+      }
+      const date = new Date(value);
+      return Number.isNaN(date.getTime()) ? '' : date.toISOString().slice(0, 10);
+    }
+
+    function normalizeCalendarEvent(event) {
+      return {
+        id: Number(event.event_id ?? event.id),
+        title: event.title || event.summary || 'Untitled event',
+        startDate: normalizeEventDate(event.start_date ?? event.start?.date ?? event.start?.dateTime),
+        endDate: normalizeEventDate(event.end_date ?? event.end?.date ?? event.end?.dateTime),
+        raw: event
+      };
     }
 
     async function loadEvents() {
@@ -530,32 +633,156 @@
         const data = await parseResponseJsonSafe(response);
         if (!response.ok) throw new Error(data.error || 'Failed to load events');
 
-        const now = new Date();
-        const events = (data.events || [])
-          .filter(event => new Date(`${event.start_date}T00:00:00`) >= new Date(now.toDateString()))
-          .sort((a, b) => String(a.start_date).localeCompare(String(b.start_date)));
+        allEvents = (data.events || [])
+          .map(normalizeCalendarEvent)
+          .filter(event => event.id && event.startDate)
+          .sort((a, b) => String(a.startDate).localeCompare(String(b.startDate)));
 
-        if (!events.length) {
-          eventList.innerHTML = '<div class="empty">No upcoming calendar events found.</div>';
+        if (!allEvents.length) {
+          eventList.innerHTML = '<div class="empty">No calendar events found for this account.</div>';
           return;
         }
 
-        eventList.innerHTML = events.map(event => {
+        renderEvents();
+      } catch (error) {
+        eventList.innerHTML = `<div class="empty">${escapeHtml(error.message)}</div>`;
+      }
+    }
+
+    function getSelectedSubject() {
+      const subjectId = document.getElementById('subjectSelect').value;
+      return subjects.find(subject => subject.id === subjectId) || null;
+    }
+
+    function getCheckedEventIds() {
+      return [...document.querySelectorAll('.event-checkbox:checked')].map(input => Number(input.value));
+    }
+
+    function renderEvents() {
+      const eventList = document.getElementById('eventList');
+      const subject = getSelectedSubject();
+      const assigned = new Set((subject?.event_ids || []).map(Number));
+
+      eventList.innerHTML = allEvents.map(event => {
           const title = escapeHtml(event.title || 'Untitled event');
-          const date = escapeHtml(formatDate(event.start_date));
+          const date = escapeHtml(formatDate(event.startDate));
+          const checked = assigned.has(event.id) ? 'checked' : '';
+          const assignedTag = assigned.has(event.id) ? '<span class="tag">Assigned</span>' : '';
           return `
             <label class="event-card">
-              <input type="checkbox" class="event-checkbox" value="${event.event_id}">
+              <input type="checkbox" class="event-checkbox" value="${event.id}" ${checked}>
               <span>
                 <strong>${title}</strong>
                 <span class="muted">${date}</span>
+                ${assignedTag}
               </span>
             </label>
           `;
         }).join('');
-      } catch (error) {
-        eventList.innerHTML = `<div class="empty">${escapeHtml(error.message)}</div>`;
+    }
+
+    async function loadSubjects() {
+      const response = await apiFetch('/study-trainer/subjects', { method: 'GET' });
+      const data = await parseResponseJsonSafe(response);
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to load subjects');
       }
+      subjects = data.subjects || [];
+      renderSubjects();
+    }
+
+    function renderSubjects() {
+      const select = document.getElementById('subjectSelect');
+      const current = select.value;
+      select.innerHTML = '<option value="">No subject selected</option>' + subjects.map(subject => (
+        `<option value="${escapeHtml(subject.id)}">${escapeHtml(subject.name)}</option>`
+      )).join('');
+
+      if (subjects.some(subject => subject.id === current)) {
+        select.value = current;
+      } else if (subjects.length && !current) {
+        select.value = subjects[0].id;
+      }
+      renderEvents();
+    }
+
+    async function createSubject() {
+      const input = document.getElementById('subjectNameInput');
+      const name = input.value.trim();
+      if (name.length < 2) {
+        showMessage('Enter a subject name first.', 'error');
+        return;
+      }
+
+      const response = await apiFetch('/study-trainer/subjects', {
+        method: 'POST',
+        body: JSON.stringify({ name })
+      });
+      const data = await parseResponseJsonSafe(response);
+      if (!response.ok) {
+        showMessage(data.error || 'Failed to create subject', 'error');
+        return;
+      }
+
+      input.value = '';
+      subjects.push(data.subject);
+      renderSubjects();
+      document.getElementById('subjectSelect').value = data.subject.id;
+      renderEvents();
+      showMessage('Subject created.', 'success');
+    }
+
+    async function assignEventsToSubject() {
+      const subject = getSelectedSubject();
+      if (!subject) {
+        showMessage('Create or select a subject first.', 'error');
+        return;
+      }
+
+      const eventIds = getCheckedEventIds();
+      const response = await apiFetch(`/study-trainer/subjects/${subject.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ event_ids: eventIds })
+      });
+      const data = await parseResponseJsonSafe(response);
+      if (!response.ok) {
+        showMessage(data.error || 'Failed to assign events', 'error');
+        return;
+      }
+
+      subjects = subjects.map(item => item.id === data.subject.id ? data.subject : item);
+      renderSubjects();
+      showMessage('Events assigned to subject.', 'success');
+    }
+
+    async function completeSubject() {
+      const subject = getSelectedSubject();
+      if (!subject) {
+        showMessage('Select the subject whose exam is over.', 'error');
+        return;
+      }
+
+      if (!confirm(`Clear ${subject.name} study sessions and subject data?`)) {
+        return;
+      }
+
+      const response = await apiFetch(`/study-trainer/subjects/${subject.id}/complete`, { method: 'POST' });
+      const data = await parseResponseJsonSafe(response);
+      if (!response.ok) {
+        showMessage(data.error || 'Failed to clear subject', 'error');
+        return;
+      }
+
+      subjects = subjects.filter(item => item.id !== subject.id);
+      currentSession = null;
+      document.getElementById('planSummary').textContent = 'Generate a plan to start.';
+      document.getElementById('planDays').innerHTML = '';
+      document.getElementById('questions').innerHTML = '';
+      document.getElementById('insights').innerHTML = '<span class="muted">No feedback yet.</span>';
+      document.getElementById('submitAnswersBtn').style.display = 'none';
+      renderSubjects();
+      await loadSessions();
+      showMessage('Exam data cleared.', 'success');
     }
 
     async function loadSessions() {
@@ -582,9 +809,10 @@
       sessionList.innerHTML = sessions.map(session => {
         const date = new Date(session.created_at).toLocaleString();
         const events = (session.events || []).map(event => event.title).join(', ');
+        const subject = session.subject_name ? `${session.subject_name} - ` : '';
         return `
           <button class="session-item secondary-btn" data-session-id="${session.id}" type="button">
-            <strong>${escapeHtml(events || 'Study session')}</strong><br>
+            <strong>${escapeHtml(subject + (events || 'Study session'))}</strong><br>
             <span class="muted">${escapeHtml(date)}</span>
           </button>
         `;
@@ -599,13 +827,14 @@
     }
 
     async function generatePlan() {
-      const selectedIds = [...document.querySelectorAll('.event-checkbox:checked')].map(input => Number(input.value));
+      const selectedIds = getCheckedEventIds();
+      const subject = getSelectedSubject();
       const notes = document.getElementById('notesInput').value.trim();
       const links = document.getElementById('linksInput').value
         .split(',')
         .map(link => link.trim())
         .filter(Boolean);
-      const files = [...document.getElementById('fileInput').files];
+      const files = selectedFiles;
 
       if (!selectedIds.length) {
         showMessage('Select at least one calendar event.', 'error');
@@ -618,6 +847,7 @@
 
       const formData = new FormData();
       formData.append('selected_event_ids', JSON.stringify(selectedIds));
+      formData.append('subject_id', subject?.id || '');
       formData.append('links', JSON.stringify(links));
       formData.append('notes', notes);
       files.forEach(file => formData.append('files', file));
@@ -723,6 +953,55 @@
       }
     }
 
+    function setSelectedFiles(files) {
+      const existing = new Map(selectedFiles.map(file => [`${file.name}:${file.size}:${file.lastModified}`, file]));
+      for (const file of files) {
+        existing.set(`${file.name}:${file.size}:${file.lastModified}`, file);
+      }
+      selectedFiles = [...existing.values()];
+      renderFileList();
+    }
+
+    function renderFileList() {
+      const fileList = document.getElementById('fileList');
+      if (!selectedFiles.length) {
+        fileList.innerHTML = '<span class="muted">No files selected yet.</span>';
+        return;
+      }
+      fileList.innerHTML = selectedFiles.map(file => (
+        `<div>${escapeHtml(file.name)} <span class="muted">(${Math.ceil(file.size / 1024)} KB)</span></div>`
+      )).join('');
+    }
+
+    function initializeUploadZone() {
+      const fileInput = document.getElementById('fileInput');
+      const uploadZone = document.getElementById('uploadZone');
+
+      fileInput.addEventListener('change', () => {
+        setSelectedFiles(fileInput.files);
+      });
+
+      ['dragenter', 'dragover'].forEach(eventName => {
+        uploadZone.addEventListener(eventName, event => {
+          event.preventDefault();
+          uploadZone.classList.add('drag-over');
+        });
+      });
+
+      ['dragleave', 'drop'].forEach(eventName => {
+        uploadZone.addEventListener(eventName, event => {
+          event.preventDefault();
+          uploadZone.classList.remove('drag-over');
+        });
+      });
+
+      uploadZone.addEventListener('drop', event => {
+        setSelectedFiles(event.dataTransfer.files);
+      });
+
+      renderFileList();
+    }
+
     function escapeHtml(value) {
       return String(value ?? '')
         .replaceAll('&', '&amp;')
@@ -765,8 +1044,18 @@
     document.getElementById('logoutBtn').addEventListener('click', logout);
     document.getElementById('generateBtn').addEventListener('click', generatePlan);
     document.getElementById('submitAnswersBtn').addEventListener('click', submitAnswers);
+    document.getElementById('createSubjectBtn').addEventListener('click', createSubject);
+    document.getElementById('assignEventsBtn').addEventListener('click', assignEventsToSubject);
+    document.getElementById('completeSubjectBtn').addEventListener('click', completeSubject);
+    document.getElementById('subjectSelect').addEventListener('change', renderEvents);
+    document.getElementById('subjectNameInput').addEventListener('keydown', event => {
+      if (event.key === 'Enter') {
+        createSubject();
+      }
+    });
 
     document.addEventListener('DOMContentLoaded', async () => {
+      initializeUploadZone();
       if (getStoredAccessToken() && await fetchUserProfile()) {
         await enterApp();
       }
