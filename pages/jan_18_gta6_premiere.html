@@ -80,6 +80,31 @@
       mix-blend-mode: screen;
     }
 
+    .splash {
+      position: fixed;
+      inset: 0;
+      z-index: 30;
+      display: grid;
+      place-items: center;
+      background:
+        radial-gradient(circle at 50% 42%, rgba(255, 42, 163, .34), transparent 26rem),
+        radial-gradient(circle at 50% 58%, rgba(41, 244, 255, .24), transparent 24rem),
+        #05020a;
+      transition: opacity .8s ease, visibility .8s ease;
+    }
+
+    .splash.hide {
+      visibility: hidden;
+      opacity: 0;
+    }
+
+    .splash-mark {
+      width: min(76vw, 560px);
+      filter: drop-shadow(0 26px 52px rgba(0, 0, 0, .6)) drop-shadow(0 0 38px rgba(255, 42, 163, .55));
+      transform: scale(.88);
+      animation: introPop 1.2s cubic-bezier(.2, .8, .2, 1) forwards;
+    }
+
     #sparkCanvas {
       position: fixed;
       inset: 0;
@@ -601,6 +626,21 @@
       }
     }
 
+    @keyframes introPop {
+      0% {
+        opacity: 0;
+        transform: scale(.72) rotate(-3deg);
+      }
+      58% {
+        opacity: 1;
+        transform: scale(1.05) rotate(1deg);
+      }
+      100% {
+        opacity: 1;
+        transform: scale(1) rotate(0);
+      }
+    }
+
     @keyframes chroma {
       0%, 100% {
         background-position: 0 50%;
@@ -743,6 +783,9 @@
   </style>
 </head>
 <body>
+  <div class="splash" id="splash" aria-hidden="true">
+    <img class="splash-mark" alt="" src="https://www.rockstargames.com/VI/_next/static/media/vi.090rq9yxxe7c~.png?akim=1&imwidth=1200">
+  </div>
   <canvas id="sparkCanvas" aria-hidden="true"></canvas>
   <div class="noise" aria-hidden="true"></div>
 
@@ -865,7 +908,15 @@
   <script>
     const copyButton = document.getElementById("copyButton");
     const keyValue = document.getElementById("keyValue");
+    const splash = document.getElementById("splash");
     const toast = document.getElementById("toast");
+
+    function hideSplash() {
+      splash.classList.add("hide");
+    }
+
+    addEventListener("load", () => setTimeout(hideSplash, 620));
+    setTimeout(hideSplash, 1800);
 
     function showToast(message) {
       toast.textContent = message;
