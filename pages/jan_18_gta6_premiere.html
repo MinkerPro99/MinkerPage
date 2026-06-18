@@ -90,7 +90,7 @@
         radial-gradient(circle at 50% 42%, rgba(255, 42, 163, .34), transparent 26rem),
         radial-gradient(circle at 50% 58%, rgba(41, 244, 255, .24), transparent 24rem),
         #05020a;
-      transition: opacity .8s ease, visibility .8s ease;
+      transition: opacity 2s ease, visibility 2s ease;
     }
 
     .splash.hide {
@@ -102,7 +102,7 @@
       width: min(76vw, 560px);
       filter: drop-shadow(0 26px 52px rgba(0, 0, 0, .6)) drop-shadow(0 0 38px rgba(255, 42, 163, .55));
       transform: scale(.88);
-      animation: introPop 1.2s cubic-bezier(.2, .8, .2, 1) forwards;
+      animation: introPop 2.4s cubic-bezier(.2, .8, .2, 1) forwards;
     }
 
     #sparkCanvas {
@@ -915,8 +915,8 @@
       splash.classList.add("hide");
     }
 
-    addEventListener("load", () => setTimeout(hideSplash, 620));
-    setTimeout(hideSplash, 1800);
+    addEventListener("load", () => setTimeout(hideSplash, 1620));
+    setTimeout(hideSplash, 3200);
 
     function showToast(message) {
       toast.textContent = message;
