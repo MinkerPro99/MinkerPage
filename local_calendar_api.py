@@ -35,14 +35,22 @@ from werkzeug.utils import secure_filename
 #     "database": os.getenv("DB_NAME", "minker_calendar_test"),
 # }
 
-#PROD
 DB_CONFIG = {
     "host": os.getenv("DB_HOST", "127.0.0.1"),
     "port": int(os.getenv("DB_PORT", "3306")),
-    "user": os.getenv("DB_USER", "minker_api2"),
-    "password": os.getenv("DB_PASSWORD", "Init.12345!"),
+    "user": os.getenv("DB_USER", "root"),
+    "password": os.getenv("DB_PASSWORD", "Init.1234"),
     "database": os.getenv("DB_NAME", "minker_calendar_prod2"),
 }
+
+#PROD
+# DB_CONFIG = {
+#     "host": os.getenv("DB_HOST", "127.0.0.1"),
+#     "port": int(os.getenv("DB_PORT", "3306")),
+#     "user": os.getenv("DB_USER", "minker_api2"),
+#     "password": os.getenv("DB_PASSWORD", "Init.12345!"),
+#     "database": os.getenv("DB_NAME", "minker_calendar_prod2"),
+# }
 
 APP_PORT = int(os.getenv("APP_PORT", "5050"))
 TOKEN_DAYS = int(os.getenv("TOKEN_DAYS", "30"))
@@ -478,6 +486,70 @@ def _find_subject(user_data: dict[str, Any], subject_id: str) -> dict[str, Any] 
     return next((subject for subject in user_data.get("subjects", []) if subject.get("id") == subject_id), None)
 
 
+def _normalise_subject_exams(subject: dict[str, Any]) -> dict[str, Any]:
+    exams = subject.setdefault("exams", {})
+    if not isinstance(exams, dict):
+        exams = {}
+        subject["exams"] = exams
+
+    for event_id in subject.get("event_ids", []) or []:
+        key = str(event_id)
+        exam = exams.setdefault(key, {})
+        exam.setdefault("event_id", int(event_id))
+        exam.setdefault("mastery", None)
+        exam.setdefault("links", [])
+        exam.setdefault("prompt", "")
+        exam.setdefault("chat_messages", [])
+        exam.setdefault("notes", "")
+        exam.setdefault("files", [])
+        exam.setdefault("file_text", "")
+        exam.setdefault("mock_exam", None)
+        exam.setdefault("answers", [])
+        exam.setdefault("insights", {})
+        exam.setdefault("created_at", _utc_now_iso())
+        exam.setdefault("updated_at", _utc_now_iso())
+
+    return exams
+
+
+def _get_subject_exam(subject: dict[str, Any], event_id: int) -> dict[str, Any]:
+    exams = _normalise_subject_exams(subject)
+    key = str(event_id)
+    exam = exams.setdefault(
+        key,
+        {
+            "event_id": event_id,
+            "mastery": None,
+            "links": [],
+            "prompt": "",
+            "chat_messages": [],
+            "notes": "",
+            "files": [],
+            "file_text": "",
+            "mock_exam": None,
+            "answers": [],
+            "insights": {},
+            "created_at": _utc_now_iso(),
+            "updated_at": _utc_now_iso(),
+        },
+    )
+    if event_id not in [int(value) for value in subject.get("event_ids", []) or []]:
+        subject["event_ids"] = sorted(set([*subject.get("event_ids", []), event_id]))
+    return exam
+
+
+def _subject_average_mastery(subject: dict[str, Any]) -> int:
+    exams = _normalise_subject_exams(subject)
+    scores = [
+        int(exam.get("mastery"))
+        for exam in exams.values()
+        if isinstance(exam, dict) and exam.get("mastery") is not None
+    ]
+    if not scores:
+        return max(0, min(100, int(subject.get("mastery", 35) or 35)))
+    return round(sum(scores) / len(scores))
+
+
 def _fetch_calendar_events_for_user(user_id: int, event_ids: list[int] | None = None) -> list[dict[str, Any]]:
     conn = None
     cursor = None
@@ -579,31 +651,85 @@ def _compact_source_text(*parts: str) -> str:
     return text[:STUDY_TRAINER_MAX_TEXT]
 
 
+def _fetch_link_source_text(links: list[str]) -> str:
+    collected: list[str] = []
+    for link in links[:6]:
+        if not re.match(r"^https?://", link, re.I):
+            collected.append(f"Link: {link}\n[Skipped: only http and https links can be read.]")
+            continue
+        try:
+            response = http_requests.get(
+                link,
+                timeout=8,
+                headers={"User-Agent": "MinkerPage StudyTrainer/1.0"},
+            )
+            response.raise_for_status()
+            content_type = response.headers.get("content-type", "")
+            raw = response.text[:120000]
+            if "html" in content_type.lower():
+                raw = re.sub(r"(?is)<(script|style|noscript).*?</\1>", " ", raw)
+                raw = re.sub(r"(?is)<[^>]+>", " ", raw)
+            raw = re.sub(r"\s+", " ", raw).strip()
+            collected.append(f"Link: {link}\n{raw[:14000]}")
+        except Exception as exc:
+            collected.append(f"Link: {link}\n[Could not read linked source: {exc}]")
+    return "\n\n".join(collected)
+
+
+def _extract_source_topics(source_text: str, limit: int = 8) -> list[str]:
+    stop_words = {
+        "about", "after", "also", "because", "before", "between", "could", "from", "have", "into",
+        "more", "most", "only", "should", "that", "their", "there", "these", "this", "with",
+        "your", "will", "would", "exam", "study", "material", "question", "answer",
+    }
+    words = re.findall(r"[A-Za-zÄÖÜäöüß][A-Za-zÄÖÜäöüß\-]{3,}", source_text.lower())
+    counts: dict[str, int] = {}
+    for word in words:
+        clean = word.strip("-")
+        if clean in stop_words:
+            continue
+        counts[clean] = counts.get(clean, 0) + 1
+    return [word for word, _count in sorted(counts.items(), key=lambda item: item[1], reverse=True)[:limit]]
+
+
 def _fallback_questions(source_text: str, count: int = 8) -> list[dict[str, Any]]:
     sentences = [
         s.strip()
         for s in re.split(r"(?<=[.!?])\s+", source_text)
         if len(s.strip()) > 40
     ]
+    topics = _extract_source_topics(source_text, count)
     if not sentences:
         sentences = [
-            "Explain the most important idea from the uploaded material.",
-            "Describe how the selected exam topics connect to each other.",
-            "List the definitions, formulas, or facts you still need to memorize.",
+            "The available source material is short. Build answers from the uploaded files, links, and prompt.",
+            "Use the central definitions, formulas, examples, and relationships from the source collection.",
+            "Focus on applying the material instead of repeating isolated facts.",
         ]
+    if not topics:
+        topics = ["core concept", "definitions", "applications", "connections", "common mistakes"]
 
+    stems = [
+        "Explain the concept of {topic} and show how it would appear in an exam task.",
+        "Compare {topic} with a related idea from the sources. What is the key difference?",
+        "Solve a realistic exam-style problem involving {topic}. Explain each step.",
+        "Identify a common mistake about {topic} and correct it with evidence from the sources.",
+        "Create a short example that demonstrates {topic}, then explain why it works.",
+        "Summarize the most important rule or definition for {topic} and apply it.",
+        "Connect {topic} to another source topic and explain the relationship.",
+        "Answer as if this were a timed exam: what are the required points for {topic}?",
+    ]
     questions = []
     for index in range(count):
-        source = sentences[index % len(sentences)]
-        short = source[:180].rstrip()
+        topic = topics[index % len(topics)]
+        evidence = sentences[index % len(sentences)][:260].rstrip()
         questions.append(
             {
                 "id": f"q{index + 1}",
-                "topic": "Core material",
+                "topic": topic.title(),
                 "difficulty": "medium" if index < 5 else "hard",
-                "prompt": f"Explain this in your own words: {short}",
-                "expected_answer": short,
-                "hint": "Use the uploaded notes and include the key terms, not only a short conclusion.",
+                "prompt": stems[index % len(stems)].format(topic=topic),
+                "expected_answer": evidence,
+                "hint": "Use the sources to build an answer with definitions, reasoning, and an example where possible.",
             }
         )
     return questions
@@ -665,8 +791,12 @@ def _generate_ai_study_plan(events: list[dict[str, Any]], source_text: str, link
     if not groq_key:
         return _fallback_plan(events, source_text)
 
-    prompt = f"""Create an adaptive study plan as strict JSON only.
-Return this schema:
+    prompt = f"""You are an advanced exam study assistant similar to NotebookLM, but stricter about testing understanding.
+Analyze the student's prompt, uploaded files, and linked source text. Create a mock exam that SYNTHESIZES the material.
+Do not copy the user's prompt as a question. Do not ask generic questions like "explain the material".
+Questions must be realistic exam questions with a clear topic, rubric, expected answer, and hint.
+
+Return strict JSON only with this schema:
 {{
   "summary": "short summary",
   "study_plan": [{{"day": 1, "focus": "topic", "tasks": ["task"]}}],
@@ -702,6 +832,47 @@ Source material:
     except Exception as exc:
         print(f"[StudyTrainer] AI generation failed: {exc}")
         return _fallback_plan(events, source_text)
+
+
+def _review_answers_with_ai(questions: list[dict[str, Any]], submitted: list[dict[str, str]], source_text: str) -> list[dict[str, Any]] | None:
+    groq_key = os.getenv("GROQ_API_KEY", "")
+    if not groq_key:
+        return None
+
+    prompt = f"""You are an exam answer reviewer. Grade each student answer against the expected answer and source material.
+Be strict but fair. Decide whether the answer is correct enough for exam readiness.
+Return strict JSON only:
+{{"results": [{{"question_id": "q1", "score": 0.0, "is_correct": false, "feedback": "short feedback", "review": "specific review", "target_points": "missing required points", "needed_area": "topic to study"}}]}}
+
+Questions and rubrics:
+{json.dumps(questions, ensure_ascii=False)}
+
+Student answers:
+{json.dumps(submitted, ensure_ascii=False)}
+
+Source material excerpt:
+{source_text[:20000]}
+"""
+    try:
+        resp = http_requests.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            headers={"Authorization": f"Bearer {groq_key}", "Content-Type": "application/json"},
+            json={
+                "model": os.getenv("STUDY_TRAINER_REVIEW_MODEL", os.getenv("STUDY_TRAINER_MODEL", "llama-3.1-8b-instant")),
+                "messages": [{"role": "user", "content": prompt}],
+                "temperature": 0.1,
+                "max_tokens": 2200,
+                "response_format": {"type": "json_object"},
+            },
+            timeout=45,
+        )
+        resp.raise_for_status()
+        raw = resp.json()["choices"][0]["message"]["content"]
+        parsed = json.loads(raw)
+        results = parsed.get("results")
+        return results if isinstance(results, list) else None
+    except Exception:
+        return None
 
 
 def _score_answer(user_answer: str, expected: str) -> tuple[float, str]:
@@ -765,6 +936,8 @@ def study_trainer_create_subject():
         "id": str(uuid.uuid4()),
         "name": name,
         "event_ids": [],
+        "mastery": 35,
+        "exams": {},
         "created_at": _utc_now_iso(),
         "updated_at": _utc_now_iso(),
     }
@@ -802,6 +975,13 @@ def study_trainer_update_subject(subject_id: str):
             except (TypeError, ValueError):
                 continue
         subject["event_ids"] = sorted(set(event_ids))
+        _normalise_subject_exams(subject)
+
+    if "mastery" in data:
+        try:
+            subject["mastery"] = max(0, min(100, int(data.get("mastery"))))
+        except (TypeError, ValueError):
+            return json_error("mastery must be a number between 0 and 100")
 
     subject["updated_at"] = _utc_now_iso()
     user_data["updated_at"] = _utc_now_iso()
@@ -827,6 +1007,227 @@ def study_trainer_complete_subject(subject_id: str):
     user_data["updated_at"] = _utc_now_iso()
     _save_study_trainer_store(store)
     return jsonify({"ok": True, "deleted_subject": subject_id})
+
+
+@app.route("/api/study-trainer/subjects/<subject_id>/exams/<int:event_id>", methods=["DELETE"])
+def study_trainer_remove_exam(subject_id: str, event_id: int):
+    try:
+        user_id = require_auth_user_id()
+    except PermissionError:
+        return json_error("Unauthorized", 401)
+
+    store = _load_study_trainer_store()
+    user_data = _get_user_study_data(store, user_id)
+    subject = _find_subject(user_data, subject_id)
+    if not subject:
+        return json_error("Subject not found", 404)
+
+    subject["event_ids"] = [int(value) for value in subject.get("event_ids", []) if int(value) != event_id]
+    exams = subject.setdefault("exams", {})
+    if isinstance(exams, dict):
+        exams.pop(str(event_id), None)
+    subject["mastery"] = _subject_average_mastery(subject)
+    subject["updated_at"] = _utc_now_iso()
+    user_data["updated_at"] = _utc_now_iso()
+    _save_study_trainer_store(store)
+    return jsonify({"ok": True, "subject": subject})
+
+
+@app.route("/api/study-trainer/subjects/<subject_id>/exams/<int:event_id>/material", methods=["POST"])
+def study_trainer_save_exam_material(subject_id: str, event_id: int):
+    try:
+        user_id = require_auth_user_id()
+    except PermissionError:
+        return json_error("Unauthorized", 401)
+
+    store = _load_study_trainer_store()
+    user_data = _get_user_study_data(store, user_id)
+    subject = _find_subject(user_data, subject_id)
+    if not subject:
+        return json_error("Subject not found", 404)
+
+    events = _fetch_calendar_events_for_user(user_id, [event_id])
+    if not events:
+        return json_error("Matching calendar event not found", 404)
+
+    try:
+        links = [str(link).strip() for link in json.loads(request.form.get("links", "[]")) if str(link).strip()]
+    except json.JSONDecodeError:
+        links = []
+
+    prompt = (request.form.get("prompt") or "").strip()
+    chat_message = (request.form.get("chat_message") or "").strip()
+    notes = (request.form.get("notes") or "").strip()
+    uploaded_files, file_text = _extract_uploaded_file_text()
+
+    exam = _get_subject_exam(subject, event_id)
+    exam["links"] = links
+    exam["prompt"] = prompt
+    exam["notes"] = notes
+    if chat_message:
+        messages = exam.setdefault("chat_messages", [])
+        messages.append({
+            "role": "user",
+            "content": chat_message,
+            "created_at": _utc_now_iso(),
+        })
+        exam["chat_messages"] = messages[-20:]
+    if uploaded_files:
+        exam["files"] = [*exam.get("files", []), *uploaded_files]
+    if file_text:
+        exam["file_text"] = _compact_source_text(exam.get("file_text", ""), file_text)
+    exam["event"] = _event_to_json(events[0])
+    exam["updated_at"] = _utc_now_iso()
+    subject["updated_at"] = _utc_now_iso()
+    user_data["updated_at"] = _utc_now_iso()
+    _save_study_trainer_store(store)
+    return jsonify({"ok": True, "subject": subject, "exam": exam})
+
+
+@app.route("/api/study-trainer/subjects/<subject_id>/exams/<int:event_id>/generate", methods=["POST"])
+def study_trainer_generate_exam(subject_id: str, event_id: int):
+    try:
+        user_id = require_auth_user_id()
+    except PermissionError:
+        return json_error("Unauthorized", 401)
+
+    store = _load_study_trainer_store()
+    user_data = _get_user_study_data(store, user_id)
+    subject = _find_subject(user_data, subject_id)
+    if not subject:
+        return json_error("Subject not found", 404)
+
+    events = [_event_to_json(event) for event in _fetch_calendar_events_for_user(user_id, [event_id])]
+    if not events:
+        return json_error("Matching calendar event not found", 404)
+
+    exam = _get_subject_exam(subject, event_id)
+    links = [str(link) for link in exam.get("links", []) if str(link).strip()]
+    prompt = str(exam.get("prompt") or "")
+    chat_text = "\n".join(str(message.get("content", "")) for message in exam.get("chat_messages", []) if isinstance(message, dict))
+    notes = str(exam.get("notes") or "")
+    file_text = str(exam.get("file_text") or "")
+    link_text = _fetch_link_source_text(links)
+    source_text = _compact_source_text(prompt, chat_text, notes, "\n".join(links), link_text, file_text)
+    if not source_text:
+        return json_error("Add files, links, or an extra prompt before generating a mock exam")
+
+    ai_plan = _generate_ai_study_plan(events, source_text, links, prompt or notes)
+    exam["event"] = events[0]
+    exam["mock_exam"] = {
+        "id": str(uuid.uuid4()),
+        "created_at": _utc_now_iso(),
+        "summary": ai_plan["summary"],
+        "study_plan": ai_plan["study_plan"],
+        "questions": ai_plan["questions"],
+    }
+    exam["answers"] = []
+    exam["insights"] = ai_plan["insights"]
+    exam["updated_at"] = _utc_now_iso()
+    subject["updated_at"] = _utc_now_iso()
+    user_data["updated_at"] = _utc_now_iso()
+    _save_study_trainer_store(store)
+    return jsonify({"ok": True, "subject": subject, "exam": exam})
+
+
+@app.route("/api/study-trainer/subjects/<subject_id>/exams/<int:event_id>/answers", methods=["POST"])
+def study_trainer_submit_exam_answers(subject_id: str, event_id: int):
+    try:
+        user_id = require_auth_user_id()
+    except PermissionError:
+        return json_error("Unauthorized", 401)
+
+    data: dict[str, Any] = request.get_json(silent=True) or {}
+    submitted = data.get("answers") or []
+    if not isinstance(submitted, list):
+        return json_error("answers must be an array")
+
+    store = _load_study_trainer_store()
+    user_data = _get_user_study_data(store, user_id)
+    subject = _find_subject(user_data, subject_id)
+    if not subject:
+        return json_error("Subject not found", 404)
+
+    exam = _get_subject_exam(subject, event_id)
+    mock_exam = exam.get("mock_exam") or {}
+    questions = {question["id"]: question for question in mock_exam.get("questions", [])}
+    if not questions:
+        return json_error("Generate a mock exam before submitting answers")
+
+    results = []
+    strengths = []
+    needs_work = []
+    study_material = []
+    link_text = _fetch_link_source_text([str(link) for link in exam.get("links", []) if str(link).strip()])
+    source_text = _compact_source_text(
+        str(exam.get("prompt") or ""),
+        "\n".join(str(message.get("content", "")) for message in exam.get("chat_messages", []) if isinstance(message, dict)),
+        str(exam.get("notes") or ""),
+        link_text,
+        str(exam.get("file_text") or ""),
+    )
+    ai_results = _review_answers_with_ai(list(questions.values()), submitted, source_text)
+    ai_by_id = {
+        str(item.get("question_id") or ""): item
+        for item in ai_results or []
+        if isinstance(item, dict)
+    }
+
+    for item in submitted:
+        question_id = str(item.get("question_id") or "")
+        answer = str(item.get("answer") or "")
+        question = questions.get(question_id)
+        if not question:
+            continue
+        ai_review = ai_by_id.get(question_id)
+        if ai_review:
+            try:
+                score = max(0.0, min(1.0, float(ai_review.get("score", 0))))
+            except (TypeError, ValueError):
+                score = 0.0
+            feedback = str(ai_review.get("feedback") or "")
+        else:
+            score, feedback = _score_answer(answer, question.get("expected_answer", ""))
+        topic = question.get("topic", "Core material")
+        expected = question.get("expected_answer", "")
+        missing_focus = expected[:220] if score < 0.65 and expected else question.get("hint", "")
+        result = {
+            "question_id": question_id,
+            "answer": answer,
+            "score": score,
+            "feedback": feedback or ("Good coverage of the rubric." if score >= 0.65 else "Important rubric points are missing."),
+            "is_correct": bool(ai_review.get("is_correct")) if ai_review else score >= 0.65,
+            "review": str(ai_review.get("review") or "") if ai_review else ("Correct enough for exam readiness." if score >= 0.65 else "This answer misses important expected ideas. Rework it using the target points below."),
+            "target_points": str(ai_review.get("target_points") or missing_focus) if ai_review else missing_focus,
+            "needed_area": str(ai_review.get("needed_area") or (topic if score < 0.65 else "")) if ai_review else (topic if score < 0.65 else ""),
+            "topic": topic,
+            "submitted_at": _utc_now_iso(),
+        }
+        results.append(result)
+        if score >= 0.65:
+            strengths.append(topic)
+        else:
+            needs_work.append(topic)
+            study_material.append(f"Review {topic}: {question.get('expected_answer') or question.get('hint') or 'revisit the source material.'}")
+
+    mastery = round((sum(float(item["score"]) for item in results) / max(1, len(results))) * 100)
+    exam["answers"] = results
+    exam["mastery"] = mastery
+    exam["insights"] = {
+        "strengths": sorted(set(strengths)),
+        "needs_work": sorted(set(needs_work)),
+        "next_tasks": [
+            f"Redo the missed questions about {topic}, then explain the concept without notes."
+            for topic in sorted(set(needs_work))[:4]
+        ] or ["Run one timed recap before the exam."],
+        "study_material": study_material[:8],
+    }
+    exam["updated_at"] = _utc_now_iso()
+    subject["mastery"] = _subject_average_mastery(subject)
+    subject["updated_at"] = _utc_now_iso()
+    user_data["updated_at"] = _utc_now_iso()
+    _save_study_trainer_store(store)
+    return jsonify({"ok": True, "subject": subject, "exam": exam})
 
 
 @app.route("/api/study-trainer/generate", methods=["POST"])

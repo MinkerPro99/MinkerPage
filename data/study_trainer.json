@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "users": {
+    "1": {
+      "subjects": [
+        {
+          "id": "e97d98ed-56f3-4745-83c1-8290c6fc8dd2",
+          "name": "M123",
+          "event_ids": [],
+          "mastery": 50,
+          "created_at": "2026-06-14T18:39:14+00:00",
+          "updated_at": "2026-06-14T19:09:54+00:00",
+          "exams": {}
+        },
+        {
+          "id": "cc81a4b5-e8ee-4577-8902-991e963b8892",
+          "name": "Math",
+          "event_ids": [],
+          "mastery": 35,
+          "exams": {},
+          "created_at": "2026-06-14T19:09:40+00:00",
+          "updated_at": "2026-06-14T19:33:28+00:00"
+        }
+      ],
+      "sessions": [],
+      "updated_at": "2026-06-14T19:33:28+00:00"
+    }
+  }
+}

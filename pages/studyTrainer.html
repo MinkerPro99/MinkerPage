@@ -189,6 +189,23 @@
       align-items: start;
     }
 
+    .workspace-grid {
+      display: grid;
+      grid-template-columns: minmax(240px, 0.8fr) minmax(320px, 1.25fr) minmax(240px, 0.9fr);
+      gap: 18px;
+      align-items: start;
+      margin-top: 18px;
+    }
+
+    .trainer-screen.exam-open {
+      width: min(1480px, 100%);
+    }
+
+    .trainer-screen.exam-open > .grid,
+    .trainer-screen.exam-open #workspaceEmpty {
+      display: none;
+    }
+
     .panel {
       padding: 20px;
     }
@@ -222,6 +239,88 @@
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 8px;
+    }
+
+    .subject-picker {
+      display: grid;
+      gap: 8px;
+    }
+
+    .subject-option {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      padding: 11px 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.035);
+      color: #e2e8f0;
+      cursor: pointer;
+      font: inherit;
+      font-weight: 700;
+      transition: all 0.2s ease;
+      text-align: left;
+    }
+
+    .subject-option.active {
+      border-color: rgba(166, 0, 207, 0.68);
+      background: rgba(166, 0, 207, 0.16);
+      box-shadow: 0 8px 24px rgba(166, 0, 207, 0.14);
+      color: #ffffff;
+    }
+
+    .mastery-panel {
+      display: none;
+      gap: 10px;
+      padding: 12px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.035);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+    }
+
+    .mastery-panel.visible {
+      display: grid;
+    }
+
+    .mastery-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      color: #e2e8f0;
+      font-weight: 800;
+    }
+
+    input[type="range"].mastery-range {
+      width: 100%;
+      height: 10px;
+      border-radius: 999px;
+      appearance: none;
+      background: linear-gradient(90deg, #ef4444 0%, #f59e0b 50%, #22c55e 100%);
+      outline: none;
+    }
+
+    input[type="range"].mastery-range::-webkit-slider-thumb {
+      appearance: none;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: #ffffff;
+      border: 4px solid #a600cf;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+      cursor: pointer;
+    }
+
+    input[type="range"].mastery-range::-moz-range-thumb {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #ffffff;
+      border: 4px solid #a600cf;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+      cursor: pointer;
     }
 
     .upload-zone {
@@ -271,11 +370,170 @@
       align-items: start;
       padding: 12px;
       box-shadow: none;
+      cursor: pointer;
+      transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease;
     }
 
     .event-card strong {
       display: block;
       margin-bottom: 4px;
+    }
+
+    .event-card:has(.event-checkbox:checked) {
+      border-color: rgba(166, 0, 207, 0.55);
+      background: rgba(166, 0, 207, 0.11);
+    }
+
+    .event-checkbox {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .event-checkmark {
+      width: 22px;
+      height: 22px;
+      display: inline-grid;
+      place-items: center;
+      border-radius: 7px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      background: rgba(0, 0, 0, 0.25);
+      color: transparent;
+      font-size: 14px;
+      font-weight: 900;
+      transition: all 0.2s ease;
+    }
+
+    .event-checkbox:checked + .event-checkmark {
+      background: #a600cf;
+      border-color: #a600cf;
+      color: #ffffff;
+      box-shadow: 0 0 16px rgba(166, 0, 207, 0.35);
+    }
+
+    .priority-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+      gap: 12px;
+    }
+
+    .priority-card {
+      padding: 14px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      background: rgba(255, 255, 255, 0.035);
+      display: grid;
+      gap: 10px;
+      cursor: pointer;
+      text-align: left;
+      color: #ffffff;
+      font: inherit;
+    }
+
+    .priority-card.active {
+      border-color: rgba(166, 0, 207, 0.75);
+      box-shadow: 0 12px 28px rgba(166, 0, 207, 0.18);
+    }
+
+    .priority-card.high {
+      border-color: rgba(239, 68, 68, 0.32);
+      background: rgba(239, 68, 68, 0.08);
+    }
+
+    .priority-card.medium {
+      border-color: rgba(245, 158, 11, 0.28);
+      background: rgba(245, 158, 11, 0.06);
+    }
+
+    .priority-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 10px;
+    }
+
+    .priority-title {
+      margin: 0;
+      font-size: 1rem;
+      font-weight: 800;
+    }
+
+    .priority-days {
+      color: #ffffff;
+      font-weight: 900;
+      font-size: 1.5rem;
+      line-height: 1;
+      text-align: right;
+    }
+
+    .priority-days span {
+      display: block;
+      color: #94a3b8;
+      font-size: 0.72rem;
+      font-weight: 700;
+      margin-top: 3px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .priority-track {
+      height: 10px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .priority-fill {
+      height: 100%;
+      width: var(--priority, 0%);
+      border-radius: inherit;
+      background: var(--priority-color, #22c55e);
+      box-shadow: 0 0 16px color-mix(in srgb, var(--priority-color, #22c55e), transparent 55%);
+      transition: width 0.25s ease, background 0.25s ease;
+    }
+
+    .priority-meta {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      color: #94a3b8;
+      font-size: 13px;
+      font-weight: 700;
+      flex-wrap: wrap;
+    }
+
+    .workspace-empty {
+      margin-top: 18px;
+      padding: 18px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      background: rgba(255, 255, 255, 0.035);
+    }
+
+    .active-exam-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 18px;
+    }
+
+    .active-exam-head h2 {
+      margin: 0 0 5px;
+    }
+
+    .active-exam-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .workspace-grid[hidden],
+    .active-exam-head[hidden],
+    .workspace-empty[hidden] {
+      display: none;
     }
 
     .message {
@@ -327,6 +585,36 @@
       line-height: 1.45;
     }
 
+    .review-details {
+      margin-top: 8px;
+      color: #cbd5e1;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .chat-thread {
+      display: grid;
+      gap: 8px;
+      max-height: 240px;
+      overflow: auto;
+    }
+
+    .chat-message {
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      background: rgba(255, 255, 255, 0.035);
+      color: #cbd5e1;
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    .chat-message.user {
+      border-color: rgba(166, 0, 207, 0.28);
+      background: rgba(166, 0, 207, 0.11);
+      color: #f5d0fe;
+    }
+
     .insight-list {
       margin: 0;
       padding-left: 18px;
@@ -346,6 +634,10 @@
 
     @media (max-width: 860px) {
       .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .workspace-grid {
         grid-template-columns: 1fr;
       }
 
@@ -405,9 +697,17 @@
               <input id="subjectNameInput" class="field" type="text" placeholder="New subject, e.g. Math">
               <button id="createSubjectBtn" class="secondary-btn" type="button">Create</button>
             </div>
-            <select id="subjectSelect" class="field">
-              <option value="">No subject selected</option>
-            </select>
+            <div id="subjectPicker" class="subject-picker">
+              <div class="empty">No subjects yet.</div>
+            </div>
+            <div id="masteryPanel" class="mastery-panel">
+              <div class="mastery-head">
+                <span>Current skill level</span>
+                <span id="masteryValue">35%</span>
+              </div>
+              <input id="masteryInput" class="mastery-range" type="range" min="0" max="100" step="5" value="35">
+              <div class="muted">Lower mastery raises study priority. Fully mastered exams can drop to low priority even when they are soon.</div>
+            </div>
             <div class="subject-actions">
               <button id="assignEventsBtn" class="secondary-btn" type="button">Assign Events</button>
               <button id="completeSubjectBtn" class="secondary-btn" type="button">Exam Over</button>
@@ -417,58 +717,89 @@
 
         <div>
           <h2>Calendar Events</h2>
-          <p class="muted">Choose exams or deadlines. Assigned events stay checked when their subject is selected.</p>
+          <p class="muted">Choose the calendar events that are exams for the selected subject.</p>
         </div>
         <div id="eventList" class="event-list">
           <div class="empty">Loading events...</div>
-        </div>
-
-        <div>
-          <h2>Study Material</h2>
-          <div class="stack">
-            <textarea id="notesInput" placeholder="Paste notes, topics, formulas, teacher hints, or chapter summaries."></textarea>
-            <input id="linksInput" class="field" type="text" placeholder="Links, separated by commas">
-            <input id="fileInput" type="file" multiple>
-            <div id="uploadZone" class="upload-zone">
-              <label for="fileInput" class="upload-button">Upload Files</label>
-              <div class="muted">Drag files here while preparing a plan.</div>
-              <div id="fileList" class="file-list"></div>
-            </div>
-            <button id="generateBtn" class="primary-btn">Generate Study Plan</button>
-          </div>
-        </div>
-
-        <div>
-          <h2>Saved Sessions</h2>
-          <div id="sessionList" class="session-list">
-            <div class="empty">No saved sessions yet.</div>
-          </div>
         </div>
       </section>
 
       <section class="panel stack">
         <div>
-          <h2>Dynamic Plan</h2>
-          <p id="planSummary" class="muted">Generate a plan to start.</p>
+          <h2>Exam Priority</h2>
+          <p class="muted">Only assigned subject exams appear here. Click a widget to open its trainer workspace.</p>
         </div>
 
-        <div id="planDays" class="plan-days"></div>
-
-        <div>
-          <h2>Exam Questions</h2>
-          <div id="questions" class="questions"></div>
-          <button id="submitAnswersBtn" class="secondary-btn" style="display: none; margin-top: 12px;">Analyze Answers</button>
+        <div id="priorityWidgets" class="priority-grid">
+          <div class="empty">Assign calendar exams to subjects to see priorities.</div>
         </div>
+      </section>
+    </div>
 
+    <div id="workspaceEmpty" class="workspace-empty">
+      <div class="empty">Open an assigned exam widget to upload material, generate a mock exam, and calculate skill level.</div>
+    </div>
+
+    <section id="activeExamHead" class="active-exam-head" hidden>
+      <div>
+        <h2 id="activeExamTitle">Selected exam</h2>
+        <div id="activeExamMeta" class="muted"></div>
+      </div>
+      <div class="active-exam-actions">
+        <button id="backToDashboardBtn" class="secondary-btn" type="button">Back to Dashboard</button>
+        <button id="removeExamBtn" class="secondary-btn" type="button">Remove Widget</button>
+      </div>
+    </section>
+
+    <div id="workspaceGrid" class="workspace-grid" hidden>
+      <section class="panel stack">
         <div>
-          <h2>AI Feedback</h2>
-          <div id="insights" class="muted">Feedback appears after generating or solving questions.</div>
+          <h2>Sources</h2>
+          <p class="muted">Files and links are stored on this exam, like a focused source notebook.</p>
+        </div>
+        <input id="linksInput" class="field" type="text" placeholder="Links, separated by commas">
+        <input id="fileInput" type="file" multiple>
+        <div id="uploadZone" class="upload-zone">
+          <label for="fileInput" class="upload-button">Upload Files</label>
+          <div class="muted">Drag files here for this exam.</div>
+          <div id="fileList" class="file-list"></div>
+        </div>
+        <button id="saveMaterialBtn" class="secondary-btn" type="button">Save Material</button>
+      </section>
+
+      <section class="panel stack">
+        <div>
+          <h2>Question Sheet</h2>
+          <p id="mockExamSummary" class="muted">Save sources, then generate a mock exam.</p>
+        </div>
+        <button id="generateBtn" class="primary-btn" type="button">Generate Mock Exam</button>
+        <div id="questions" class="questions"></div>
+        <button id="submitAnswersBtn" class="secondary-btn" style="display: none;" type="button">Submit Question Sheet</button>
+      </section>
+
+      <section class="panel stack">
+        <div>
+          <h2>AI Chat & Prompt</h2>
+          <p class="muted">Guide the AI like NotebookLM, then use answer review to expose weak spots.</p>
+        </div>
+        <div id="chatThread" class="chat-thread">
+          <div class="empty">No chat notes yet.</div>
+        </div>
+        <textarea id="promptInput" placeholder="Ask for focus areas, question style, chapters, teacher hints, or review angle..."></textarea>
+        <button id="savePromptBtn" class="secondary-btn" type="button">Save Chat Note</button>
+        <div>
+          <h2>Answer Review</h2>
+          <div id="insights" class="muted">Feedback appears after submitting the mock exam.</div>
+        </div>
+        <div>
+          <h2>Study Material</h2>
+          <div id="planDays" class="plan-days"></div>
         </div>
       </section>
     </div>
   </main>
 
-  <script>
+  <script type="application/json" id="legacyStudyTrainerScript">
     const defaultApiBase = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
       ? 'http://127.0.0.1:5050/api'
       : '/api';
@@ -483,6 +814,8 @@
     let allEvents = [];
     let subjects = [];
     let selectedFiles = [];
+    let selectedSubjectId = '';
+    let masterySaveTimer = null;
 
     const loginScreen = document.getElementById('loginScreen');
     const trainerScreen = document.getElementById('trainerScreen');
@@ -604,6 +937,16 @@
       return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     }
 
+    function daysUntil(value) {
+      const clean = normalizeEventDate(value);
+      if (!clean) return null;
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const examDate = new Date(`${clean}T00:00:00`);
+      if (Number.isNaN(examDate.getTime())) return null;
+      return Math.ceil((examDate - today) / 86400000);
+    }
+
     function normalizeEventDate(value) {
       if (!value) return '';
       if (typeof value === 'string') {
@@ -640,18 +983,20 @@
 
         if (!allEvents.length) {
           eventList.innerHTML = '<div class="empty">No calendar events found for this account.</div>';
+          renderPriorityWidgets();
           return;
         }
 
         renderEvents();
+        renderPriorityWidgets();
       } catch (error) {
         eventList.innerHTML = `<div class="empty">${escapeHtml(error.message)}</div>`;
+        renderPriorityWidgets();
       }
     }
 
     function getSelectedSubject() {
-      const subjectId = document.getElementById('subjectSelect').value;
-      return subjects.find(subject => subject.id === subjectId) || null;
+      return subjects.find(subject => subject.id === selectedSubjectId) || null;
     }
 
     function getCheckedEventIds() {
@@ -666,14 +1011,23 @@
       eventList.innerHTML = allEvents.map(event => {
           const title = escapeHtml(event.title || 'Untitled event');
           const date = escapeHtml(formatDate(event.startDate));
+          const days = daysUntil(event.startDate);
+          const dayText = days === null
+            ? ''
+            : days < 0
+              ? 'Already passed'
+              : days === 0
+                ? 'Today'
+                : `${days} day${days === 1 ? '' : 's'} left`;
           const checked = assigned.has(event.id) ? 'checked' : '';
           const assignedTag = assigned.has(event.id) ? '<span class="tag">Assigned</span>' : '';
           return `
             <label class="event-card">
               <input type="checkbox" class="event-checkbox" value="${event.id}" ${checked}>
+              <span class="event-checkmark">&check;</span>
               <span>
                 <strong>${title}</strong>
-                <span class="muted">${date}</span>
+                <span class="muted">${date}${dayText ? ` - ${escapeHtml(dayText)}` : ''}</span>
                 ${assignedTag}
               </span>
             </label>
@@ -692,18 +1046,170 @@
     }
 
     function renderSubjects() {
-      const select = document.getElementById('subjectSelect');
-      const current = select.value;
-      select.innerHTML = '<option value="">No subject selected</option>' + subjects.map(subject => (
-        `<option value="${escapeHtml(subject.id)}">${escapeHtml(subject.name)}</option>`
-      )).join('');
+      const picker = document.getElementById('subjectPicker');
 
-      if (subjects.some(subject => subject.id === current)) {
-        select.value = current;
-      } else if (subjects.length && !current) {
-        select.value = subjects[0].id;
+      if (subjects.some(subject => subject.id === selectedSubjectId)) {
+        // Keep the current subject selected.
+      } else if (subjects.length) {
+        selectedSubjectId = subjects[0].id;
+      } else {
+        selectedSubjectId = '';
       }
+
+      if (!subjects.length) {
+        picker.innerHTML = '<div class="empty">No subjects yet.</div>';
+      } else {
+        picker.innerHTML = subjects.map(subject => {
+          const mastery = getSubjectMastery(subject);
+          const active = subject.id === selectedSubjectId ? 'active' : '';
+          return `
+            <button class="subject-option ${active}" type="button" data-subject-id="${escapeHtml(subject.id)}">
+              <span>${escapeHtml(subject.name)}</span>
+              <span class="tag">${mastery}% mastered</span>
+            </button>
+          `;
+        }).join('');
+
+        picker.querySelectorAll('[data-subject-id]').forEach(button => {
+          button.addEventListener('click', () => {
+            selectedSubjectId = button.dataset.subjectId;
+            renderSubjects();
+          });
+        });
+      }
+
+      renderMasteryPanel();
       renderEvents();
+      renderPriorityWidgets();
+    }
+
+    function getSubjectMastery(subject) {
+      const value = Number(subject?.mastery ?? 35);
+      return Number.isFinite(value) ? Math.max(0, Math.min(100, Math.round(value))) : 35;
+    }
+
+    function renderMasteryPanel() {
+      const panel = document.getElementById('masteryPanel');
+      const input = document.getElementById('masteryInput');
+      const value = document.getElementById('masteryValue');
+      const subject = getSelectedSubject();
+
+      if (!subject) {
+        panel.classList.remove('visible');
+        return;
+      }
+
+      const mastery = getSubjectMastery(subject);
+      panel.classList.add('visible');
+      input.value = mastery;
+      value.textContent = `${mastery}%`;
+    }
+
+    function classifyPriority(priority) {
+      if (priority >= 70) return 'high';
+      if (priority >= 38) return 'medium';
+      return 'low';
+    }
+
+    function getPriorityColor(priority) {
+      const hue = Math.round(120 - (Math.max(0, Math.min(100, priority)) * 1.2));
+      return `hsl(${hue} 78% 48%)`;
+    }
+
+    function calculatePriority(days, mastery) {
+      if (days === null || days < 0) return 0;
+      const knowledgeGap = 100 - mastery;
+      const urgency = Math.max(20, 100 - Math.min(days, 21) * (80 / 21));
+      return Math.round(knowledgeGap * (0.45 + (urgency / 100) * 0.55));
+    }
+
+    function getStudyLoad(priority) {
+      if (priority >= 70) return 'Heavy focus';
+      if (priority >= 38) return 'Steady practice';
+      if (priority > 0) return 'Light review';
+      return 'Maintained';
+    }
+
+    function isExamEvent(event) {
+      const title = String(event?.title || '').toLowerCase();
+      return ['exam', 'test', 'pruefung', 'prüfung', 'klausur', 'arbeit'].some(word => title.includes(word));
+    }
+
+    function inferSubjectNameFromEvent(event) {
+      return String(event?.title || 'Exam')
+        .replace(/\b(exam|test|pruefung|prüfung|klausur|arbeit)\b/ig, '')
+        .replace(/[-_:]+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim() || 'Exam';
+    }
+
+    function renderPriorityWidgets() {
+      const container = document.getElementById('priorityWidgets');
+      const widgets = [];
+      const assignedEventIds = new Set();
+
+      subjects.forEach(subject => {
+        const mastery = getSubjectMastery(subject);
+        (subject.event_ids || []).forEach(eventId => {
+          const event = allEvents.find(item => item.id === Number(eventId));
+          if (!event) return;
+          assignedEventIds.add(event.id);
+          const days = daysUntil(event.startDate);
+          if (days !== null && days < 0) return;
+          const priority = calculatePriority(days, mastery);
+          widgets.push({ subjectName: subject.name, event, days, mastery, priority, assigned: true });
+        });
+      });
+
+      allEvents
+        .filter(event => !assignedEventIds.has(event.id) && isExamEvent(event))
+        .forEach(event => {
+          const days = daysUntil(event.startDate);
+          if (days !== null && days < 0) return;
+          const mastery = 35;
+          const priority = calculatePriority(days, mastery);
+          widgets.push({
+            subjectName: inferSubjectNameFromEvent(event),
+            event,
+            days,
+            mastery,
+            priority,
+            assigned: false
+          });
+        });
+
+      widgets.sort((a, b) => b.priority - a.priority || (a.days ?? 9999) - (b.days ?? 9999));
+
+      if (!widgets.length) {
+        container.innerHTML = '<div class="empty">Add exam events to your calendar or assign events to subjects to see priorities.</div>';
+        return;
+      }
+
+      container.innerHTML = widgets.map(item => {
+        const className = classifyPriority(item.priority);
+        const color = getPriorityColor(item.priority);
+        const daysLabel = item.days === 0 ? 'Today' : String(item.days ?? '?');
+        const dayWord = item.days === 1 ? 'day left' : 'days left';
+        return `
+          <article class="priority-card ${className}">
+            <div class="priority-top">
+              <div>
+                <h3 class="priority-title">${escapeHtml(item.subjectName)}</h3>
+                <div class="muted">${escapeHtml(item.event.title)} - ${escapeHtml(formatDate(item.event.startDate))}</div>
+              </div>
+              <div class="priority-days">${escapeHtml(daysLabel)}<span>${item.days === 0 ? 'exam day' : dayWord}</span></div>
+            </div>
+            <div class="priority-track" aria-label="Study priority ${item.priority}%">
+              <div class="priority-fill" style="--priority: ${item.priority}%; --priority-color: ${color};"></div>
+            </div>
+            <div class="priority-meta">
+              <span>${item.priority}% priority</span>
+              <span>${item.assigned ? `${item.mastery}% mastered` : 'Skill not set'}</span>
+              <span>${getStudyLoad(item.priority)}</span>
+            </div>
+          </article>
+        `;
+      }).join('');
     }
 
     async function createSubject() {
@@ -726,9 +1232,9 @@
 
       input.value = '';
       subjects.push(data.subject);
-      renderSubjects();
-      document.getElementById('subjectSelect').value = data.subject.id;
+      selectedSubjectId = data.subject.id;
       renderEvents();
+      renderSubjects();
       showMessage('Subject created.', 'success');
     }
 
@@ -753,6 +1259,56 @@
       subjects = subjects.map(item => item.id === data.subject.id ? data.subject : item);
       renderSubjects();
       showMessage('Events assigned to subject.', 'success');
+    }
+
+    async function saveSubjectMastery(value) {
+      const subject = getSelectedSubject();
+      if (!subject) return;
+
+      const mastery = Math.max(0, Math.min(100, Number(value) || 0));
+      subject.mastery = mastery;
+      renderPriorityWidgets();
+
+      window.clearTimeout(masterySaveTimer);
+      masterySaveTimer = window.setTimeout(async () => {
+        try {
+          const response = await apiFetch(`/study-trainer/subjects/${subject.id}`, {
+            method: 'PUT',
+            body: JSON.stringify({ mastery })
+          });
+          const data = await parseResponseJsonSafe(response);
+          if (!response.ok) throw new Error(data.error || 'Failed to save skill level');
+          subjects = subjects.map(item => item.id === data.subject.id ? data.subject : item);
+          renderSubjects();
+        } catch (error) {
+          showMessage(error.message || 'Failed to save skill level', 'error');
+        }
+      }, 450);
+    }
+
+    async function updateSubjectMasteryFromSession(session) {
+      if (!session?.subject_id || !Array.isArray(session.answers) || !session.answers.length) return;
+      const subject = subjects.find(item => item.id === session.subject_id);
+      if (!subject) return;
+
+      const averageScore = session.answers.reduce((sum, answer) => sum + Number(answer.score || 0), 0) / session.answers.length;
+      const analyzedMastery = Math.round(averageScore * 100);
+      const currentMastery = getSubjectMastery(subject);
+      const mastery = Math.max(0, Math.min(100, Math.round((currentMastery * 0.35) + (analyzedMastery * 0.65))));
+
+      try {
+        const response = await apiFetch(`/study-trainer/subjects/${subject.id}`, {
+          method: 'PUT',
+          body: JSON.stringify({ mastery })
+        });
+        const data = await parseResponseJsonSafe(response);
+        if (!response.ok) throw new Error(data.error || 'Failed to update skill level');
+        subjects = subjects.map(item => item.id === data.subject.id ? data.subject : item);
+        selectedSubjectId = data.subject.id;
+        renderSubjects();
+      } catch (error) {
+        showMessage(error.message || 'Answers were scored, but skill level could not be updated.', 'error');
+      }
     }
 
     async function completeSubject() {
@@ -943,6 +1499,7 @@
         if (!response.ok) throw new Error(data.error || 'Failed to analyze answers');
 
         renderSession(data.session);
+        await updateSubjectMasteryFromSession(data.session);
         await loadSessions();
         showMessage('Answers analyzed and progress saved.', 'success');
       } catch (error) {
@@ -1047,7 +1604,14 @@
     document.getElementById('createSubjectBtn').addEventListener('click', createSubject);
     document.getElementById('assignEventsBtn').addEventListener('click', assignEventsToSubject);
     document.getElementById('completeSubjectBtn').addEventListener('click', completeSubject);
-    document.getElementById('subjectSelect').addEventListener('change', renderEvents);
+    document.getElementById('masteryInput').addEventListener('input', event => {
+      const mastery = Math.max(0, Math.min(100, Number(event.target.value) || 0));
+      document.getElementById('masteryValue').textContent = `${mastery}%`;
+      const subject = getSelectedSubject();
+      if (subject) subject.mastery = mastery;
+      renderPriorityWidgets();
+      saveSubjectMastery(mastery);
+    });
     document.getElementById('subjectNameInput').addEventListener('keydown', event => {
       if (event.key === 'Enter') {
         createSubject();
@@ -1061,6 +1625,7 @@
       }
     });
   </script>
+  <script src="./studyTrainer.js"></script>
 </body>
 
 </html>
