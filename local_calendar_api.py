@@ -31,26 +31,18 @@ from werkzeug.utils import secure_filename
 #     "host": os.getenv("DB_HOST", "127.0.0.1"),
 #     "port": int(os.getenv("DB_PORT", "3306")),
 #     "user": os.getenv("DB_USER", "root"),
-#     "password": os.getenv("DB_PASSWORD", "Init1234"),
-#     "database": os.getenv("DB_NAME", "minker_calendar_test"),
+#     "password": os.getenv("DB_PASSWORD", "Init.1234"),
+#     "database": os.getenv("DB_NAME", "minker_calendar_prod2"),
 # }
 
+#PROD
 DB_CONFIG = {
     "host": os.getenv("DB_HOST", "127.0.0.1"),
     "port": int(os.getenv("DB_PORT", "3306")),
-    "user": os.getenv("DB_USER", "root"),
-    "password": os.getenv("DB_PASSWORD", "Init.1234"),
+    "user": os.getenv("DB_USER", "minker_api2"),
+    "password": os.getenv("DB_PASSWORD", "Init.12345!"),
     "database": os.getenv("DB_NAME", "minker_calendar_prod2"),
 }
-
-#PROD
-# DB_CONFIG = {
-#     "host": os.getenv("DB_HOST", "127.0.0.1"),
-#     "port": int(os.getenv("DB_PORT", "3306")),
-#     "user": os.getenv("DB_USER", "minker_api2"),
-#     "password": os.getenv("DB_PASSWORD", "Init.12345!"),
-#     "database": os.getenv("DB_NAME", "minker_calendar_prod2"),
-# }
 
 APP_PORT = int(os.getenv("APP_PORT", "5050"))
 TOKEN_DAYS = int(os.getenv("TOKEN_DAYS", "30"))

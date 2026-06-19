@@ -387,8 +387,9 @@
       min-height: 470px;
       padding: 30px;
       background:
-        linear-gradient(180deg, rgba(6, 4, 14, .08), rgba(6, 4, 14, .75)),
-        url("https://www.rockstargames.com/VI/_next/static/media/shard2.0n4e6vntuoxgf.png?akim=1&imwidth=3840") center / cover no-repeat;
+        linear-gradient(90deg, rgba(6, 4, 14, .96) 0%, rgba(6, 4, 14, .9) 44%, rgba(6, 4, 14, .34) 68%, rgba(6, 4, 14, .06) 100%),
+        linear-gradient(180deg, rgba(6, 4, 14, .06), rgba(6, 4, 14, .72)),
+        url("https://www.rockstargames.com/VI/_next/static/media/shard2.0n4e6vntuoxgf.png?akim=1&imwidth=3840") 68% center / cover no-repeat;
     }
 
     .mission-card::after,
@@ -405,6 +406,10 @@
     .key-inner {
       position: relative;
       z-index: 2;
+    }
+
+    .mission-inner {
+      max-width: 440px;
     }
 
     .chapter {
