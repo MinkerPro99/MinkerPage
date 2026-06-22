@@ -48,7 +48,10 @@ alexaCookie.generateAlexaCookie(config, (error, result) => {
         return;
     }
 
-    fs.writeFileSync(authPath, JSON.stringify(result, null, 2));
+    fs.writeFileSync(authPath, JSON.stringify({
+        ...result,
+        _jarvisSavedAt: new Date().toISOString()
+    }, null, 2));
     console.log('Alexa auth saved.');
     alexaCookie.stopProxyServer();
 });

@@ -34,6 +34,7 @@ const pcCommandResults = new Map();
 
 let alexaRemote = null;
 let alexaInitPromise = null;
+let alexaRefreshTimer = null;
 
 function requireJarvisCommandAuth(req, res, next) {
     const expected = process.env.JARVIS_COMMAND_TOKEN;
@@ -68,6 +69,59 @@ function alexaEnabled() {
     return process.env.ALEXA_ENABLED === 'true';
 }
 
+function getAlexaAuthPath() {
+    return process.env.ALEXA_AUTH_FILE || path.join(__dirname, 'alexa-auth.json');
+}
+
+function readAlexaAuthData() {
+    const authPath = getAlexaAuthPath();
+    if (!fs.existsSync(authPath)) return null;
+    return JSON.parse(fs.readFileSync(authPath, 'utf8'));
+}
+
+function writeAlexaAuthData(authData) {
+    if (!authData) return;
+    const authPath = getAlexaAuthPath();
+    const data = {
+        ...authData,
+        _jarvisSavedAt: new Date().toISOString()
+    };
+    fs.writeFileSync(authPath, JSON.stringify(data, null, 2));
+}
+
+function resetAlexaSession() {
+    alexaRemote = null;
+    alexaInitPromise = null;
+}
+
+function isAlexaAuthError(error) {
+    const message = String(error?.message || error || '').toLowerCase();
+    return message.includes('cookie') || message.includes('csrf') || message.includes('renew') || message.includes('unauthorized');
+}
+
+function getAlexaRefreshIntervalMs() {
+    const hours = Number(process.env.ALEXA_REFRESH_INTERVAL_HOURS || 12);
+    return Math.max(1, hours) * 60 * 60 * 1000;
+}
+
+function scheduleAlexaRefresh() {
+    if (!alexaEnabled() || alexaRefreshTimer) return;
+
+    alexaRefreshTimer = setInterval(async () => {
+        try {
+            console.log('[Alexa] Refreshing Echo auth session.');
+            resetAlexaSession();
+            await initAlexa();
+        } catch (error) {
+            console.error('[Alexa] Scheduled refresh failed:', error.message);
+        }
+    }, getAlexaRefreshIntervalMs());
+
+    if (typeof alexaRefreshTimer.unref === 'function') {
+        alexaRefreshTimer.unref();
+    }
+}
+
 function initAlexa() {
     if (!alexaEnabled()) return Promise.resolve(null);
     if (alexaRemote) return Promise.resolve(alexaRemote);
@@ -82,16 +136,13 @@ function initAlexa() {
             return;
         }
 
-        const authPath = process.env.ALEXA_AUTH_FILE || path.join(__dirname, 'alexa-auth.json');
-        let authData = null;
-        if (fs.existsSync(authPath)) {
-            authData = JSON.parse(fs.readFileSync(authPath, 'utf8'));
-        }
+        const authData = readAlexaAuthData();
 
         const remote = new AlexaRemote();
         remote.on('cookie', () => {
             if (remote.cookieData) {
-                fs.writeFileSync(authPath, JSON.stringify(remote.cookieData, null, 2));
+                writeAlexaAuthData(remote.cookieData);
+                console.log('[Alexa] Refreshed auth data saved.');
             }
         });
 
@@ -100,6 +151,7 @@ function initAlexa() {
             formerRegistrationData: authData || undefined,
             amazonPage: process.env.ALEXA_AMAZON_PAGE || 'amazon.de',
             acceptLanguage: process.env.ALEXA_ACCEPT_LANGUAGE || 'en-GB',
+            cookieRefreshInterval: Number(process.env.ALEXA_COOKIE_REFRESH_INTERVAL_DAYS || 1),
             useWsMqtt: true
         }, (error) => {
             if (error) {
@@ -108,6 +160,7 @@ function initAlexa() {
                 return;
             }
             alexaRemote = remote;
+            scheduleAlexaRefresh();
             resolve(remote);
         });
     });
@@ -147,6 +200,21 @@ async function speakOnAlexa(text) {
     const chunks = splitAlexaSpeech(text);
     console.log(`[Alexa] Speaking ${chunks.length} chunk(s).`);
 
+    try {
+        await speakAlexaChunks(remote, device, chunks);
+    } catch (error) {
+        if (!isAlexaAuthError(error)) throw error;
+
+        console.warn('[Alexa] Auth error while speaking; refreshing session and retrying once.');
+        resetAlexaSession();
+        const refreshedRemote = await initAlexa();
+        await speakAlexaChunks(refreshedRemote, device, chunks);
+    }
+
+    return { skipped: false };
+}
+
+async function speakAlexaChunks(remote, device, chunks) {
     for (const [index, chunk] of chunks.entries()) {
         await new Promise((resolve, reject) => {
             remote.sendSequenceCommand(device, 'speak', chunk, (error) => {
@@ -159,8 +227,6 @@ async function speakOnAlexa(text) {
             await new Promise(resolve => setTimeout(resolve, estimateAlexaSpeechMs(chunk)));
         }
     }
-
-    return { skipped: false };
 }
 
 function splitAlexaSpeech(text, maxLength = 248) {
