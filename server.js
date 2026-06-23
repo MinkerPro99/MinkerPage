@@ -35,6 +35,7 @@ const pcCommandResults = new Map();
 let alexaRemote = null;
 let alexaInitPromise = null;
 let alexaRefreshTimer = null;
+let alexaSpeechQueue = Promise.resolve();
 
 function requireJarvisCommandAuth(req, res, next) {
     const expected = process.env.JARVIS_COMMAND_TOKEN;
@@ -202,6 +203,15 @@ async function getJarvisScript(authorization) {
 }
 
 async function speakOnAlexa(text) {
+    alexaSpeechQueue = alexaSpeechQueue
+        .catch((error) => {
+            console.error('[Alexa] Previous speech job failed:', normalizeAlexaError(error).message);
+        })
+        .then(() => speakOnAlexaNow(text));
+    return alexaSpeechQueue;
+}
+
+async function speakOnAlexaNow(text) {
     const remote = await initAlexa();
     if (!remote) {
         console.log('[Alexa] Disabled; skipping Echo announcement.');
@@ -237,17 +247,24 @@ async function speakAlexaChunks(remote, device, chunks) {
         console.log(`[Alexa] Sending chunk ${index + 1}/${chunks.length}: ${chunk.length} chars.`);
         await new Promise((resolve, reject) => {
             remote.sendSequenceCommand(device, 'speak', chunk, (error) => {
-                if (error) reject(error);
-                else resolve();
+                if (error) {
+                    console.error(`[Alexa] Chunk ${index + 1}/${chunks.length} failed:`, error.message || error);
+                    reject(error);
+                } else {
+                    console.log(`[Alexa] Chunk ${index + 1}/${chunks.length} accepted.`);
+                    resolve();
+                }
             });
         });
 
-        if (index < chunks.length - 1) {
-            const waitMs = estimateAlexaSpeechMs(chunk);
-            console.log(`[Alexa] Waiting ${waitMs}ms before next chunk.`);
-            await new Promise(resolve => setTimeout(resolve, waitMs));
-        }
+        const waitMs = index < chunks.length - 1
+            ? estimateAlexaSpeechMs(chunk)
+            : getAlexaPostSpeechSettleMs();
+        console.log(`[Alexa] Waiting ${waitMs}ms after chunk ${index + 1}/${chunks.length}.`);
+        await new Promise(resolve => setTimeout(resolve, waitMs));
     }
+
+    console.log('[Alexa] Speech job complete.');
 }
 
 function splitAlexaSpeech(text, maxLength = 248) {
@@ -296,6 +313,10 @@ function estimateAlexaSpeechMs(text) {
     const words = text.trim().split(/\s+/).filter(Boolean).length;
     const estimated = (words / Math.max(0.5, wordsPerSecond)) * 1000;
     return Math.max(minimumMs, Math.min(maximumMs, Math.round(estimated + paddingMs)));
+}
+
+function getAlexaPostSpeechSettleMs() {
+    return Math.max(0, Number(process.env.ALEXA_SPEECH_SETTLE_MS || 1500));
 }
 
 async function announceJarvis(authorization) {
