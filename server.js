@@ -169,7 +169,7 @@ function initAlexa() {
             proxyPort: Number(process.env.ALEXA_PROXY_PORT || 3456),
             proxyListenBind: '127.0.0.1',
             cookieRefreshInterval: Number(process.env.ALEXA_COOKIE_REFRESH_INTERVAL_DAYS || 1),
-            useWsMqtt: true
+            useWsMqtt: process.env.ALEXA_USE_WS_MQTT === 'true'
         }, (error) => {
             if (error) {
                 alexaInitPromise = null;
