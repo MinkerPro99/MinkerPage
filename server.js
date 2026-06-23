@@ -234,6 +234,7 @@ async function speakOnAlexa(text) {
 
 async function speakAlexaChunks(remote, device, chunks) {
     for (const [index, chunk] of chunks.entries()) {
+        console.log(`[Alexa] Sending chunk ${index + 1}/${chunks.length}: ${chunk.length} chars.`);
         await new Promise((resolve, reject) => {
             remote.sendSequenceCommand(device, 'speak', chunk, (error) => {
                 if (error) reject(error);
@@ -242,7 +243,9 @@ async function speakAlexaChunks(remote, device, chunks) {
         });
 
         if (index < chunks.length - 1) {
-            await new Promise(resolve => setTimeout(resolve, estimateAlexaSpeechMs(chunk)));
+            const waitMs = estimateAlexaSpeechMs(chunk);
+            console.log(`[Alexa] Waiting ${waitMs}ms before next chunk.`);
+            await new Promise(resolve => setTimeout(resolve, waitMs));
         }
     }
 }
@@ -286,9 +289,13 @@ function splitAlexaSpeech(text, maxLength = 248) {
 }
 
 function estimateAlexaSpeechMs(text) {
+    const wordsPerSecond = Number(process.env.ALEXA_SPEECH_WORDS_PER_SECOND || 2.15);
+    const minimumMs = Number(process.env.ALEXA_SPEECH_MIN_WAIT_MS || 2500);
+    const maximumMs = Number(process.env.ALEXA_SPEECH_MAX_WAIT_MS || 30000);
+    const paddingMs = Number(process.env.ALEXA_SPEECH_PADDING_MS || 1800);
     const words = text.trim().split(/\s+/).filter(Boolean).length;
-    const estimated = (words / 2.7) * 1000;
-    return Math.max(1800, Math.min(9000, Math.round(estimated + 650)));
+    const estimated = (words / Math.max(0.5, wordsPerSecond)) * 1000;
+    return Math.max(minimumMs, Math.min(maximumMs, Math.round(estimated + paddingMs)));
 }
 
 async function announceJarvis(authorization) {
