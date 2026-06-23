@@ -29,6 +29,14 @@ function getSwitchBotHeaders() {
 const app = express();
 app.use(express.json());
 
+process.on('uncaughtException', (error) => {
+    if (error?.code === 'ERR_HTTP2_INVALID_SESSION') {
+        console.error('[Alexa] Ignored broken HTTP/2 push session:', error.message);
+        return;
+    }
+    throw error;
+});
+
 const pendingPcCommands = [];
 const pcCommandResults = new Map();
 
@@ -169,7 +177,8 @@ function initAlexa() {
             proxyPort: Number(process.env.ALEXA_PROXY_PORT || 3456),
             proxyListenBind: '127.0.0.1',
             cookieRefreshInterval: Number(process.env.ALEXA_COOKIE_REFRESH_INTERVAL_DAYS || 1),
-            useWsMqtt: process.env.ALEXA_USE_WS_MQTT === 'true'
+            useWsMqtt: process.env.ALEXA_USE_PUSH_CONNECTION === 'true',
+            usePushConnection: process.env.ALEXA_USE_PUSH_CONNECTION === 'true'
         }, (error) => {
             if (error) {
                 alexaInitPromise = null;
@@ -243,6 +252,15 @@ async function speakOnAlexaNow(text) {
 }
 
 async function speakAlexaChunks(remote, device, chunks) {
+    if (chunks.length > 1 && process.env.ALEXA_USE_MULTI_SEQUENCE === 'true') {
+        try {
+            await speakAlexaChunksAsSequence(remote, device, chunks);
+            return;
+        } catch (error) {
+            console.error('[Alexa] Multi-sequence speech failed; falling back to timed chunks:', error.message || error);
+        }
+    }
+
     for (const [index, chunk] of chunks.entries()) {
         console.log(`[Alexa] Sending chunk ${index + 1}/${chunks.length}: ${chunk.length} chars.`);
         await new Promise((resolve, reject) => {
@@ -264,6 +282,23 @@ async function speakAlexaChunks(remote, device, chunks) {
         await new Promise(resolve => setTimeout(resolve, waitMs));
     }
 
+    console.log('[Alexa] Speech job complete.');
+}
+
+async function speakAlexaChunksAsSequence(remote, device, chunks) {
+    console.log(`[Alexa] Sending ${chunks.length} chunks as one serial sequence.`);
+    const commands = chunks.map((chunk) => ({ command: 'speak', value: chunk }));
+
+    await new Promise((resolve, reject) => {
+        remote.sendMultiSequenceCommand(device, commands, 'SerialNode', undefined, (error) => {
+            if (error) reject(error);
+            else resolve();
+        });
+    });
+
+    const waitMs = chunks.reduce((total, chunk) => total + estimateAlexaSpeechMs(chunk), 0) + getAlexaPostSpeechSettleMs();
+    console.log(`[Alexa] Serial sequence accepted; reserving queue for ${waitMs}ms.`);
+    await new Promise(resolve => setTimeout(resolve, waitMs));
     console.log('[Alexa] Speech job complete.');
 }
 
@@ -306,17 +341,20 @@ function splitAlexaSpeech(text, maxLength = 248) {
 }
 
 function estimateAlexaSpeechMs(text) {
-    const wordsPerSecond = Number(process.env.ALEXA_SPEECH_WORDS_PER_SECOND || 2.15);
-    const minimumMs = Number(process.env.ALEXA_SPEECH_MIN_WAIT_MS || 2500);
-    const maximumMs = Number(process.env.ALEXA_SPEECH_MAX_WAIT_MS || 30000);
-    const paddingMs = Number(process.env.ALEXA_SPEECH_PADDING_MS || 1800);
+    const wordsPerSecond = Number(process.env.ALEXA_SPEECH_WORDS_PER_SECOND || 2.9);
+    const charsPerSecond = Number(process.env.ALEXA_SPEECH_CHARS_PER_SECOND || 17);
+    const minimumMs = Number(process.env.ALEXA_SPEECH_MIN_WAIT_MS || 1200);
+    const maximumMs = Number(process.env.ALEXA_SPEECH_MAX_WAIT_MS || 20000);
+    const paddingMs = Number(process.env.ALEXA_SPEECH_PADDING_MS || 700);
     const words = text.trim().split(/\s+/).filter(Boolean).length;
-    const estimated = (words / Math.max(0.5, wordsPerSecond)) * 1000;
+    const wordEstimate = (words / Math.max(0.5, wordsPerSecond)) * 1000;
+    const charEstimate = (text.length / Math.max(4, charsPerSecond)) * 1000;
+    const estimated = Math.max(wordEstimate, charEstimate);
     return Math.max(minimumMs, Math.min(maximumMs, Math.round(estimated + paddingMs)));
 }
 
 function getAlexaPostSpeechSettleMs() {
-    return Math.max(0, Number(process.env.ALEXA_SPEECH_SETTLE_MS || 1500));
+    return Math.max(0, Number(process.env.ALEXA_SPEECH_SETTLE_MS || 500));
 }
 
 async function announceJarvis(authorization) {
