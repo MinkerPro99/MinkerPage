@@ -304,6 +304,12 @@ async function announceJarvis(authorization) {
     return script;
 }
 
+function announceJarvisInBackground(script) {
+    speakOnAlexa(script).catch((error) => {
+        console.error('[Jarvis/Alexa] Background announcement failed:', normalizeAlexaError(error).message);
+    });
+}
+
 app.post('/api/ignite-setup/command', requireJarvisCommandAuth, async (req, res) => {
     const text = String(req.body?.text || '').trim();
     if (!text) {
@@ -429,8 +435,9 @@ function alexaResponse(text, shouldEndSession = true) {
 
 app.post('/api/ignite-setup/jarvis-test', async (req, res) => {
     try {
-        const script = await announceJarvis(req.headers.authorization);
-        res.json({ success: true, script });
+        const script = await getJarvisScript(req.headers.authorization);
+        announceJarvisInBackground(script);
+        res.json({ success: true, queued: true, script });
     } catch (error) {
         res.status(500).json({ success: false, error: error.response?.data || error.message });
     }
@@ -443,7 +450,8 @@ app.post('/api/ignite-setup', async (req, res) => {
         await axios.post('https://api.switch-bot.com/v1.1/scenes/2dc358cb-6fc3-43b5-9d1e-a670917e9f8b/execute', {}, { headers: getSwitchBotHeaders() });
 
         try {
-            await announceJarvis(req.headers.authorization);
+            const script = await getJarvisScript(req.headers.authorization);
+            announceJarvisInBackground(script);
         } catch (error) {
             console.error('[Jarvis/Alexa] Announcement failed:', error.message);
         }
