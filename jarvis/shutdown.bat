@@ -1,4 +1,3 @@
 @echo off
-C:\Windows\System32\shutdown.exe /s /f /t 5
-timeout /t 10 /nobreak >nul
-curl --max-time 5 -X POST https://minkerpage.ch/api/kill-setup
+start "" /b C:\Windows\System32\curl.exe --silent --show-error --max-time 8 -X POST https://minkerpage.ch/api/kill-setup
+C:\Windows\System32\shutdown.exe /s /f /t 0

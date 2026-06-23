@@ -99,6 +99,18 @@ function isAlexaAuthError(error) {
     return message.includes('cookie') || message.includes('csrf') || message.includes('renew') || message.includes('unauthorized');
 }
 
+function normalizeAlexaError(error) {
+    const message = String(error?.message || error || '');
+    if (
+        message.includes('Please open http://') ||
+        message.toLowerCase().includes('cookie invalid') ||
+        message.toLowerCase().includes('renew unsuccessful')
+    ) {
+        return new Error('Alexa auth expired. Renew alexa-auth.json with scripts/alexa-auth.js, then restart PM2.');
+    }
+    return error;
+}
+
 function getAlexaRefreshIntervalMs() {
     const hours = Number(process.env.ALEXA_REFRESH_INTERVAL_HOURS || 12);
     return Math.max(1, hours) * 60 * 60 * 1000;
@@ -151,12 +163,16 @@ function initAlexa() {
             formerRegistrationData: authData || undefined,
             amazonPage: process.env.ALEXA_AMAZON_PAGE || 'amazon.de',
             acceptLanguage: process.env.ALEXA_ACCEPT_LANGUAGE || 'en-GB',
+            setupProxy: false,
+            proxyOwnIp: process.env.ALEXA_PROXY_IP || 'localhost',
+            proxyPort: Number(process.env.ALEXA_PROXY_PORT || 3456),
+            proxyListenBind: '127.0.0.1',
             cookieRefreshInterval: Number(process.env.ALEXA_COOKIE_REFRESH_INTERVAL_DAYS || 1),
             useWsMqtt: true
         }, (error) => {
             if (error) {
                 alexaInitPromise = null;
-                reject(error);
+                reject(normalizeAlexaError(error));
                 return;
             }
             alexaRemote = remote;
@@ -207,7 +223,9 @@ async function speakOnAlexa(text) {
 
         console.warn('[Alexa] Auth error while speaking; refreshing session and retrying once.');
         resetAlexaSession();
-        const refreshedRemote = await initAlexa();
+        const refreshedRemote = await initAlexa().catch((refreshError) => {
+            throw normalizeAlexaError(refreshError);
+        });
         await speakAlexaChunks(refreshedRemote, device, chunks);
     }
 
