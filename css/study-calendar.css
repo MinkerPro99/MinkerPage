@@ -365,19 +365,37 @@
     }
 
     .install-btn {
-      background: transparent !important;
-      border: 1px solid rgba(255,255,255,0.15) !important;
-      color: #94a3b8 !important;
-      padding: 8px 14px !important;
-      border-radius: 10px !important;
-      font-size: 12px;
-      font-weight: bold;
-      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.03) !important;
+      border: 1px dashed rgba(255, 255, 255, 0.22) !important;
+      color: #e2e8f0 !important;
+      padding: 10px 24px !important;
+      border-radius: 12px !important;
+      font: inherit;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     }
+    .install-btn .bi {
+      color: #a600cf;
+      font-size: 1rem;
+      transition: transform 0.25s ease;
+    }
+
     .install-btn:hover {
+      transform: translateY(-2px);
+      background: rgba(166, 0, 207, 0.15) !important;
       border-color: rgba(166, 0, 207, 0.5) !important;
-      color: #fff !important;
-      background: rgba(166, 0, 207, 0.1) !important;
+      box-shadow: 0 8px 20px rgba(166, 0, 207, 0.2);
+      color: white !important;
+      text-decoration: none;
+    }
+
+    .install-btn:hover .bi {
+      transform: scale(1.1);
     }
 
     

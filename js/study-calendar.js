@@ -809,24 +809,49 @@
     });
 
     let deferredPrompt;
+    function isRunningAsInstalledPWA() {
+      return window.matchMedia('(display-mode: standalone)').matches
+        || window.matchMedia('(display-mode: fullscreen)').matches
+        || window.navigator.standalone === true
+        || document.referrer.includes('android-app://');
+    }
+
     function initializePWAInstall() {
       const installBtn = document.getElementById('installBtn');
+      if (!installBtn) {
+        return;
+      }
+
+      const hideInstallButton = () => {
+        installBtn.style.display = 'none';
+      };
+
+      if (isRunningAsInstalledPWA()) {
+        hideInstallButton();
+        return;
+      }
+
+      installBtn.addEventListener('click', installPWA);
       
       window.addEventListener('beforeinstallprompt', (e) => {
+        if (isRunningAsInstalledPWA()) {
+          hideInstallButton();
+          return;
+        }
+
         e.preventDefault();
         deferredPrompt = e;
         installBtn.style.display = 'block';
-        installBtn.addEventListener('click', installPWA);
       });
 
       window.addEventListener('appinstalled', () => {
-        installBtn.style.display = 'none';
+        hideInstallButton();
         deferredPrompt = null;
       });
 
-      if (window.matchMedia('(display-mode: standalone)').matches) {
-        installBtn.style.display = 'none';
-      }
+      window.matchMedia('(display-mode: standalone)').addEventListener('change', (event) => {
+        if (event.matches) hideInstallButton();
+      });
     }
 
     async function installPWA() {
