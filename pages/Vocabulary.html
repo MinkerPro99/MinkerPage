@@ -16,6 +16,7 @@
 </head>
 
 <body class="bg notranslate" translate="no">
+    <div class="color-circles"></div>
     <a class="main-home-link" href="../main.html" aria-label="Return to main page">Main Page</a>
 
     <div class="bg-logo"><img src="/img/1kIcon.png" alt="" aria-hidden="true"></div>
@@ -23,7 +24,12 @@
     <!-- Sets List View -->
     <div id="setsListView" class="view-section vocab-container">
         <div class="container-md">
-            <h1 class="w-txt mb-5 sets-header">My Vocabulary Sets</h1>
+            <header class="vocab-page-header">
+                <div>
+                    <h1 class="w-txt sets-header">Vocabulary</h1>
+                    <p class="vocab-subtitle">Create sets, train terms, and keep your progress in one focused workspace.</p>
+                </div>
+            </header>
             <div class="row mb-4 sets-actions">
                 <div class="col-md-6 col-lg-5">
                     <button class="btn vocab-btn w-100" id="createSetBtn" onclick="app.showCreateSetForm()">
@@ -34,8 +40,9 @@
             <div id="setsList" class="row g-4">
                 <!-- Set cards will be rendered here -->
             </div>
-            <div id="emptyMessage" style="text-align: center; padding: 60px 20px; color: rgba(255,255,255,0.6);">
-                <p style="font-size: 18px;">No vocabulary sets yet. Create one to get started!</p>
+            <div id="emptyMessage" class="vocab-empty-state">
+                <i class="bi bi-journal-plus" aria-hidden="true"></i>
+                <p>No vocabulary sets yet. Create one to get started!</p>
             </div>
         </div>
     </div>
@@ -43,11 +50,12 @@
     <!-- Set Editor View -->
     <div id="setEditorView" class="view-section vocab-container" style="display: none;">
         <div class="container-md">
-            <div class="row mb-4">
-                <div class="col-md-8">
+            <div class="vocab-page-header vocab-page-header-actions">
+                <div>
                     <h1 class="w-txt">Edit Set</h1>
+                    <p class="vocab-subtitle">Build a clean term list before starting a study session.</p>
                 </div>
-                <div class="col-md-4 text-end">
+                <div class="vocab-toolbar">
                     <button class="btn vocab-btn btn-secondary me-2" onclick="app.switchView('setsList')">Back</button>
                     <button class="btn vocab-btn" onclick="app.saveCurrentSet()">Save Set</button>
                 </div>
@@ -79,11 +87,12 @@
     <!-- Study Mode View -->
     <div id="studyModeView" class="view-section vocab-container" style="display: none;">
         <div class="container-md">
-            <div class="row mb-4">
-                <div class="col-md-8">
+            <div class="vocab-page-header vocab-page-header-actions">
+                <div>
                     <h1 class="w-txt" id="studySetTitle"></h1>
+                    <p class="vocab-subtitle">Choose a training mode and work through the set.</p>
                 </div>
-                <div class="col-md-4 text-end">
+                <div class="vocab-toolbar">
                     <button class="btn vocab-btn btn-secondary" onclick="app.switchView('setsList')">Back</button>
                 </div>
             </div>
