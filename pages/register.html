@@ -12,16 +12,19 @@
 </head>
 
 <body>
+  <div class="color-circles" aria-hidden="true"></div>
+  <div class="bg-logo"><img src="/img/1kIcon.png" alt="" aria-hidden="true"></div>
+
   <div class="login-screen">
     <div class="login-card">
-      <h2>📚 Study Calendar</h2>
+      <h2>Study Calendar</h2>
       <p>Create your account to start using the calendar</p>
 
       <div id="msg" class="msg"></div>
 
       <div class="auth-fields">
-        <input id="username" class="field" type="text" placeholder="Username" minlength="3" />
-        <input id="password" class="field" type="password" placeholder="Password (min 6 chars)" minlength="6" />
+        <input id="username" class="login-field" type="text" placeholder="Username" minlength="3" />
+        <input id="password" class="login-field" type="password" placeholder="Password (min 6 chars)" minlength="6" />
         <button id="registerBtn" class="login-btn">Register</button>
         <div class="hint">
           <a href="./studyCallendar.html">Back to login</a>
