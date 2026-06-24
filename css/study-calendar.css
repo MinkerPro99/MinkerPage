@@ -1,0 +1,423 @@
+* {
+      color-scheme: dark;
+      box-sizing: border-box;
+    }
+
+    body {
+      background-color: #1f1f1f !important;
+      color: #ffffff;
+      font-family: 'Roboto', sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+
+    
+    ::-webkit-scrollbar { 
+      width: 6px; 
+      height: 6px; 
+    }
+    ::-webkit-scrollbar-track { 
+      background: transparent; 
+    }
+    ::-webkit-scrollbar-thumb { 
+      background: rgba(255, 255, 255, 0.1); 
+      border-radius: 10px; 
+    }
+    ::-webkit-scrollbar-thumb:hover { 
+      background: rgba(166, 0, 207, 0.4); 
+    }
+
+    
+    .main-home-link {
+      position: fixed;
+      top: 14px;
+      right: 14px;
+      z-index: 1100;
+      padding: 8px 16px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(30, 30, 46, 0.65);
+      color: #e2e8f0;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 14px;
+      backdrop-filter: blur(12px);
+      transition: all 0.25s ease;
+    }
+
+    .main-home-link:hover {
+      background: rgba(166, 0, 207, 0.15);
+      border-color: rgba(166, 0, 207, 0.5);
+      box-shadow: 0 8px 20px rgba(166, 0, 207, 0.2);
+      color: #ffffff;
+    }
+
+    
+    .calendar-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 30px 20px;
+      min-height: 100vh;
+      position: relative;
+      z-index: 1;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+      flex-wrap: wrap;
+      gap: 15px;
+    }
+
+    .header h1 {
+      color: #ffffff;
+      font-weight: 700;
+      margin: 0;
+      letter-spacing: 0.5px;
+    }
+
+    
+    .login-btn, .logout-btn {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: #e2e8f0;
+      padding: 10px 24px;
+      border-radius: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .login-btn:hover, .logout-btn:hover {
+      transform: translateY(-2px);
+      background: rgba(166, 0, 207, 0.15);
+      border-color: rgba(166, 0, 207, 0.5);
+      box-shadow: 0 8px 20px rgba(166, 0, 207, 0.2);
+      color: white;
+      text-decoration: none;
+    }
+
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 15px;
+      background-color: rgba(30, 30, 46, 0.45);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 12px;
+    }
+
+    .user-name {
+      color: #ffffff;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    
+    .login-screen {
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+      z-index: 5;
+    }
+
+    .login-card {
+      border-radius: 20px;
+      background-color: rgba(22, 22, 30, 0.75) !important;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
+      padding: 45px;
+      text-align: center;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      max-width: 400px;
+      width: 90%;
+    }
+
+    .login-card h2 {
+      color: #ffffff;
+      margin-bottom: 12px;
+      font-weight: 700;
+    }
+
+    .login-card p {
+      color: #94a3b8;
+      margin-bottom: 24px;
+      font-size: 14px;
+    }
+
+    .login-field {
+      padding: 11px 14px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.1) !important;
+      background: rgba(0, 0, 0, 0.3) !important;
+      color: #fff !important;
+      font-weight: 600;
+      transition: all 0.2s ease;
+    }
+
+    .login-field:focus {
+      outline: none;
+      border-color: #a600cf !important;
+      box-shadow: 0 0 12px rgba(166, 0, 207, 0.3);
+    }
+
+    
+    #calendar {
+      background-color: rgba(22, 22, 30, 0.55) !important; 
+      
+      backdrop-filter: blur(2px) !important;
+      -webkit-backdrop-filter: blur(2px) !important;
+      border: 1px solid rgba(255, 255, 255, 0.08) !important;
+      padding: 24px;
+      border-radius: 20px !important; 
+      margin-bottom: 30px;
+      overflow: hidden; 
+    }
+
+    .fc {
+      color: #ffffff !important;
+    }
+
+    
+    .fc a {
+      color: #ffffff !important;
+      text-decoration: none !important;
+      box-shadow: none !important;
+    }
+    
+    .fc a:hover {
+      color: #a600cf !important;
+    }
+
+    .fc .fc-toolbar-title {
+      color: #ffffff !important;
+      font-weight: 700;
+    }
+
+    
+    .fc .fc-button-primary {
+      background-color: rgba(255, 255, 255, 0.04) !important;
+      border: 1px solid rgba(255, 255, 255, 0.08) !important;
+      color: #e2e8f0 !important;
+      text-transform: capitalize;
+      font-weight: 600 !important;
+      box-shadow: none !important;
+      transition: all 0.2s ease;
+    }
+
+    .fc .fc-button-primary:hover {
+      background-color: rgba(166, 0, 207, 0.15) !important;
+      border-color: rgba(166, 0, 207, 0.4) !important;
+      color: #fff !important;
+    }
+
+    .fc .fc-button-primary.fc-button-active, 
+    .fc .fc-button-primary:active {
+      background-color: #a600cf !important;
+      border-color: #a600cf !important;
+      color: #fff !important;
+    }
+
+    
+    .fc .fc-col-header-cell {
+      background-color: rgba(30, 30, 46, 0.85) !important; 
+      border-color: rgba(255, 255, 255, 0.08) !important;
+      padding: 12px 0 !important;
+    }
+    
+    .fc .fc-col-header-cell-cushion {
+      color: #ffffff !important;
+      font-weight: 600 !important;
+    }
+
+    
+    .fc-theme-standard td, 
+    .fc-theme-standard th,
+    .fc-theme-standard .fc-scrollgrid,
+    .fc-theme-standard .fc-scrollgrid-chunk table,
+    .fc-scrollgrid-section,
+    .fc-scrollgrid-section-body,
+    .fc-scrollgrid-section-table {
+      background: transparent !important;
+      background-color: transparent !important;
+      border-color: rgba(255, 255, 255, 0.08) !important;
+    }
+
+    
+    .fc .fc-daygrid-day {
+      background-color: rgba(0, 0, 0, 0.2) !important; 
+      border-color: rgba(255, 255, 255, 0.08) !important; 
+    }
+
+    .fc .fc-daygrid-day-number {
+      color: #ffffff !important; 
+      padding: 8px;
+      font-weight: 500;
+    }
+
+    
+    .fc .fc-daygrid-day.fc-day-other {
+      background-color: rgba(0, 0, 0, 0.55) !important; 
+      opacity: 0.3;
+    }
+
+    
+    .fc .fc-daygrid-day.fc-day-today {
+      background-color: rgba(166, 0, 207, 0.12) !important;
+      border: 2px solid #a600cf !important;
+    }
+
+    
+    .fc-theme-standard .fc-scrollgrid {
+      border: 1px solid rgba(255, 255, 255, 0.08) !important;
+      border-radius: 14px !important;
+      border-collapse: separate !important;
+      border-spacing: 0;
+      overflow: hidden;
+    }
+
+    
+    .fc .fc-event {
+      border-radius: 6px;
+      padding: 2px 4px;
+      font-size: 0.9em;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    }
+
+    .fc .fc-event-title {
+      font-weight: 600;
+    }
+
+    
+    .events-list {
+      background-color: rgba(22, 22, 30, 0.5);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 16px;
+      padding: 24px;
+      margin-top: 30px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    .events-list h3 {
+      color: #ffffff;
+      margin-bottom: 18px;
+      font-weight: 700;
+      font-size: 1.2rem;
+      letter-spacing: 0.3px;
+    }
+
+    .event-item, .event-item-exam, .event-item-vacation {
+      padding: 14px;
+      margin-bottom: 12px;
+      border-radius: 10px;
+      color: #e2e8f0;
+      font-size: 14px;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      border-left-width: 4px;
+      min-width: 0;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+
+    .event-item { border-left-color: #a600cf; }
+    .event-item-exam { border-left-color: #f19b06; }
+    .event-item-vacation { border-left-color: #2ecc71; }
+
+    .event-item-time {
+      color: #64748b;
+      font-size: 12px;
+      margin-top: 6px;
+      font-weight: 500;
+    }
+
+    #upcomingEvents {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .error-message, .success-message {
+      padding: 14px 18px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+      font-weight: 500;
+      font-size: 14px;
+      border: 1px solid transparent;
+    }
+    .error-message {
+      background-color: rgba(239, 68, 68, 0.12);
+      border-color: rgba(239, 68, 68, 0.25);
+      color: #fca5a5;
+    }
+    .success-message {
+      background-color: rgba(166, 0, 207, 0.12);
+      border-color: rgba(166, 0, 207, 0.25);
+      color: #f472b6;
+    }
+
+    .install-btn {
+      background: transparent !important;
+      border: 1px solid rgba(255,255,255,0.15) !important;
+      color: #94a3b8 !important;
+      padding: 8px 14px !important;
+      border-radius: 10px !important;
+      font-size: 12px;
+      font-weight: bold;
+      transition: all 0.2s ease;
+    }
+    .install-btn:hover {
+      border-color: rgba(166, 0, 207, 0.5) !important;
+      color: #fff !important;
+      background: rgba(166, 0, 207, 0.1) !important;
+    }
+
+    
+    @media (max-width: 768px) {
+      .login-card { padding: 30px 20px; }
+      .header { justify-content: center; }
+      .fc-col-header-cell { font-size: 0.75em; }
+      .fc-daygrid-day-number { font-size: 0.85em; }
+    }
+
+    @media (max-width: 600px) {
+      .main-home-link {
+        top: auto;
+        right: 10px;
+        bottom: calc(10px + env(safe-area-inset-bottom));
+        padding: 7px 12px;
+        font-size: 13px;
+      }
+      .calendar-container { padding: 12px; min-height: auto; }
+      .header { flex-direction: column; align-items: stretch; gap: 8px; }
+      .header h1 { font-size: 1.25rem; margin-bottom: 0; }
+      #userSection { width: 100%; display: flex; justify-content: space-between; align-items: center; }
+      #calendar { padding: 8px; border-radius: 12px; min-height: 480px; }
+      .events-list { margin-top: 16px; max-height: 240px; padding: 12px; }
+      .events-list { width: 100%; }
+      .fc .fc-button, .fc .fc-button-primary { padding: 8px 10px; font-size: 0.9rem; border-radius: 8px; }
+      .fc .fc-col-header-cell { font-size: 0.72em; }
+      .login-card { padding: 20px; width: 92vw; }
+      .login-btn, .logout-btn { padding: 12px 18px; border-radius: 12px; font-size: 15px; }
+      
+      .event-modal { max-width: 95vw !important; width: 95vw !important; padding: 18px !important; border-radius: 12px !important; }
+      .event-modal-buttons { flex-direction: column !important; }
+      .event-modal-buttons button { width: 100% !important; margin-bottom: 8px; }
+
+      .fc .fc-toolbar { display: flex; flex-direction: column; gap: 8px; align-items: stretch; }
+      .fc .fc-toolbar-chunk { display: flex; justify-content: space-between; align-items: center; gap: 8px; width: 100%; }
+      .fc .fc-toolbar-chunk:nth-child(1) { order: 1; }
+      .fc .fc-toolbar-chunk:nth-child(2) { order: 2; }
+      .fc .fc-toolbar-chunk:nth-child(3) { order: 3; }
+      .fc .fc-toolbar .fc-toolbar-chunk .fc-toolbar-title { font-size: 1.15rem; text-align: left; flex: 1; }
+      .fc .fc-toolbar-chunk:nth-child(3) { justify-content: flex-end; }
+      .fc .fc-button-group, .fc .fc-button { flex-wrap: wrap; }
+    }

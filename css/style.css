@@ -1,10 +1,7 @@
-/* ==========================================
-   1. BASE SYSTEM DEFAULTS & GLOBAL VARS
-   ========================================== */
 :root {
-  /* Dropped from 40% to 25% for a subtle, mature ambient vibe */
+  
   --transparency: 25%; 
-  --cyber-orange: #a600cf; /* This is our core accent purple */
+  --cyber-orange: #a600cf; 
   --glow-shadow: rgba(166, 0, 207, 0.35);
   --text-muted: #94a3b8;
 }
@@ -15,7 +12,7 @@ body {
   width: 100%;
   overflow-x: hidden;
   overflow-y: auto;
-  background-color: #1f1f1f; /* Your classic base color */
+  background-color: #1f1f1f; 
   font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 }
 
@@ -27,30 +24,34 @@ body {
   color: #ffffff;
 }
 
-/* ==========================================
-   2. BACKGROUND LOGO & AMBIENT AURA (The Real Flex)
-   ========================================== */
 .bg-logo {
   position: fixed;
   top: 50%;
   left: 50%;
-  width: 80vmin;   /* skaliert proportional */
+  width: 80vmin;   
   height: auto;
   transform: translate(-50%, -50%);
-  opacity: 0.15;   /* Tuned down slightly so text remains readable, no NPC visual clutter */
+  opacity: 0.15;   
   z-index: -1;
   pointer-events: none;
   animation: backgroundPulse 6s ease-in-out infinite alternate;
 }
 
-/* Your massive brain radial gradient background setup */
+.bg-logo img,
+.bg-logo svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  filter: grayscale(1) brightness(1.35);
+}
+
 .color-circles {
   position: fixed;
   top: 0;
   left: 0;
   height: 100vh;
   width: 100vw;
-  /* Reduced alpha channels from 0.45 to 0.22 so the background isn't aggressively bright */
+  
   background:
     radial-gradient(circle at 0 0, rgba(132, 24, 255, 0.22), transparent var(--var-transparency, 40%)),
     radial-gradient(circle at 100% 0, rgba(132, 24, 255, 0.22), transparent var(--var-transparency, 40%)),
@@ -62,10 +63,6 @@ body {
   animation: fadeIn 1.5s cubic-bezier(0.25, 1, 0.5, 1) forwards;
 }
 
-/* ==========================================
-   3. MAINFRAME CONTAINERS & CONTAINMENT UNITS
-   ========================================== */
-/* The layout wrapper replacing raw inline bootstrap hell */
 .launcher-container {
   display: flex;
   justify-content: center;
@@ -76,10 +73,9 @@ body {
   box-sizing: border-box;
 }
 
-/* Merged Dark Card + Glassmorphism Vibe */
 .dark-card, .glass-card {
   border-radius: 20px;
-  /* Darkened the card background slightly for better contrast against text */
+  
   background-color: rgba(22, 22, 30, 0.3) !important;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(16px);
@@ -93,7 +89,6 @@ body {
   box-shadow: 0 20px 40px rgba(132, 24, 255, 0.15);
 }
 
-/* Titles and Typography */
 .brand-title {
   font-weight: 900;
   letter-spacing: 3px;
@@ -105,33 +100,29 @@ body {
 
 .text-glow {
   color: var(--cyber-orange);
-  -webkit-text-fill-color: initial; /* Break out of gradient clip */
+  -webkit-text-fill-color: initial; 
   text-shadow: 0 0 15px var(--glow-shadow);
 }
 
-/* ==========================================
-   4. INTERACTIVE NODE ELEMENTS (Buttons & Inputs)
-   ========================================== */
-/* The Legendary Boot Button - Centered and Locked */
 .cyber-boot-btn {
   background: rgba(20, 20, 25, 0.8) !important;
   border: 2px solid var(--cyber-orange) !important;
   color: var(--cyber-orange) !important;
   border-radius: 50% !important;
   
-  /* Hard-locking the dimensions so Bootstrap can't stretch it */
+  
   width: 85px !important;
   height: 85px !important;
   min-width: 85px !important;
   min-height: 85px !important;
-  flex-shrink: 0 !important; /* Prevents the container from squeezing it into an oval */
+  flex-shrink: 0 !important; 
   
-  /* Internal flex mechanics for the SVG icon */
+  
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
   
-  margin: 1.5rem auto 0 auto !important; /* Forces perfect horizontal centering */
+  margin: 1.5rem auto 0 auto !important; 
   cursor: pointer;
   box-shadow: 0 0 15px rgba(166, 0, 207, 0.3);
   transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
@@ -144,7 +135,6 @@ body {
   box-shadow: 0 0 30px var(--glow-shadow);
 }
 
-/* Grid Layout for your main.html Quick Links */
 .quick-links-grid {
   display: grid;
   grid-template-columns: 1fr;
@@ -153,7 +143,6 @@ body {
   margin: 1rem 0;
 }
 
-/* Text Inputs that actually look secure */
 .auth-zone-input {
   width: 100%;
   background-color: rgba(15, 15, 20, 0.6) !important;
@@ -179,7 +168,6 @@ body {
   color: rgba(31, 31, 31, 0.1);
 }
 
-/* Master execution button replacement for btn-warning */
 .connect-execute-btn {
   width: 100%;
   background: var(--cyber-orange) !important;
@@ -198,7 +186,6 @@ body {
   filter: brightness(1.1);
 }
 
-/* Custom system statuses */
 .status-error {
   background-color: rgba(220, 53, 69, 0.2) !important;
   border: 1px solid rgba(220, 53, 69, 0.5) !important;
@@ -207,7 +194,6 @@ body {
   border-radius: 8px;
 }
 
-/* Minimalist Footer */
 .cyber-footer {
   position: fixed;
   bottom: 10px;
@@ -216,9 +202,50 @@ body {
   z-index: 10;
 }
 
-/* ==========================================
-   5. ANIMATIONS ENGINE
-   ========================================== */
+.launcher-copy {
+  font-size: 14px;
+  opacity: 0.85;
+}
+
+.site-footer {
+  position: fixed;
+  right: 15px;
+  bottom: 10px;
+  z-index: 20;
+  font-size: 12px;
+}
+
+.site-footer a {
+  color: #808080;
+  margin-right: 20px;
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+.site-footer a:last-child {
+  margin-right: 0;
+}
+
+.site-footer a:hover {
+  color: #0650f1;
+}
+
+.install-action-btn {
+  width: 100%;
+  height: 40px;
+  color: #94a3b8;
+  font-weight: 700;
+  border: 1px dashed rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  background: transparent;
+  transition: all 0.2s ease;
+}
+
+.install-action-btn:hover {
+  color: #ffffff;
+  border-color: rgba(166, 0, 207, 0.5);
+}
+
 .fade-in {
   opacity: 0;
   animation: fadeIn 1s cubic-bezier(0.25, 1, 0.5, 1) forwards;
