@@ -15,9 +15,11 @@ const routesByAccessKey = {
 
 // Hides the PWA install action when the site already runs as an installed app.
 function checkPwaStatus() {
-  const isStandalone = window.matchMedia('(display-mode: standalone)').matches
-    || window.navigator.standalone
-    || document.referrer.includes('android-app://');
+  const isStandalone = typeof isRunningAsInstalledPwa === 'function'
+    ? isRunningAsInstalledPwa()
+    : window.matchMedia('(display-mode: standalone)').matches
+      || window.navigator.standalone === true
+      || document.referrer.includes('android-app://');
 
   if (isStandalone) {
     document.getElementById('install_button')?.setAttribute('hidden', '');
