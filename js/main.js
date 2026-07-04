@@ -10,7 +10,7 @@ const routesByAccessKey = {
   StudyTrainer: 'pages/studyTrainer.html',
   SmartHome: 'pages/SmartHome.html',
   Voc: 'pages/Vocabulary.html',
-  TEST: 'pages/jan_18_gta6_premiere.html'
+  JÄNNER: 'pages/jan_18_gta6_premiere.html'
 };
 
 // Hides the PWA install action when the site already runs as an installed app.
