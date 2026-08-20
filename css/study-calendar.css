@@ -329,6 +329,11 @@
     }
 
     .event-item { border-left-color: #a600cf; }
+    .event-item-done {
+      opacity: 0.52;
+      border-left-color: rgba(166, 0, 207, 0.45);
+      background: rgba(255, 255, 255, 0.01);
+    }
     .event-item-exam { border-left-color: #f19b06; }
     .event-item-vacation { border-left-color: #2ecc71; }
 

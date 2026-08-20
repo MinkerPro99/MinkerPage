@@ -48,6 +48,7 @@ APP_PORT = int(os.getenv("APP_PORT", "5050"))
 TOKEN_DAYS = int(os.getenv("TOKEN_DAYS", "30"))
 STUDY_TRAINER_STORE = Path(os.getenv("STUDY_TRAINER_STORE", Path(__file__).with_name("data") / "study_trainer.json"))
 STUDY_TRAINER_MAX_TEXT = int(os.getenv("STUDY_TRAINER_MAX_TEXT", "60000"))
+DONE_MARKER = "\u2063\u2064\u2063"
 
 app = Flask(__name__)
 
@@ -111,6 +112,32 @@ def require_auth_user_id() -> int:
     if not user_id:
         raise PermissionError("Unauthorized")
     return user_id
+
+
+def purge_expired_calendar_events(cursor, user_id: int) -> None:
+    cursor.execute(
+        """
+        DELETE FROM calendar_events
+        WHERE user_id = %s
+          AND (
+            (
+              title LIKE %s
+              AND end_date < DATE_SUB(CURDATE(), INTERVAL 1 MONTH)
+            )
+            OR
+            (
+              (LOWER(title) LIKE %s OR LOWER(title) LIKE %s)
+              AND end_date < DATE_SUB(CURDATE(), INTERVAL 1 DAY)
+            )
+          )
+        """,
+        (
+            user_id,
+            f"%{DONE_MARKER}%",
+            "%prüfung%",
+            "%pruefung%",
+        ),
+    )
 
 
 @app.after_request
@@ -275,6 +302,8 @@ def list_events():
     try:
         conn = pool.get_connection()
         cursor = conn.cursor(dictionary=True)
+        purge_expired_calendar_events(cursor, user_id)
+        conn.commit()
 
         if start and end:
             parse_iso_date(start)
@@ -548,6 +577,8 @@ def _fetch_calendar_events_for_user(user_id: int, event_ids: list[int] | None = 
     try:
         conn = pool.get_connection()
         cursor = conn.cursor(dictionary=True)
+        purge_expired_calendar_events(cursor, user_id)
+        conn.commit()
 
         if event_ids:
             placeholders = ", ".join(["%s"] * len(event_ids))
