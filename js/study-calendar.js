@@ -324,6 +324,12 @@
 
         const addOneDayIso = (dateValue) => {
           if (!dateValue) return dateValue;
+          const formatLocalDate = (date) => {
+            const yyyy = date.getFullYear();
+            const mm = String(date.getMonth() + 1).padStart(2, '0');
+            const dd = String(date.getDate()).padStart(2, '0');
+            return `${yyyy}-${mm}-${dd}`;
+          };
           const d = /^\d{4}-\d{2}-\d{2}$/.test(dateValue)
             ? new Date(dateValue + 'T00:00:00')
             : new Date(dateValue);
@@ -331,7 +337,7 @@
             return '';
           }
           d.setDate(d.getDate() + 1);
-          return d.toISOString().slice(0, 10);
+          return formatLocalDate(d);
         };
         
         const formattedEvents = events.map(event => {
@@ -568,11 +574,6 @@
             border-radius: 8px;
             box-sizing: border-box;
           ">
-        </div>
-
-        <div style="margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
-          <input type="checkbox" id="allDayCheckbox" checked disabled style="cursor: not-allowed; opacity: 0.6; accent-color: #a600cf;">
-          <label for="allDayCheckbox" style="color: #94a3b8; cursor: default; margin: 0; font-size: 14px;">All-day event</label>
         </div>
 
         <div style="margin-bottom: 15px;">
