@@ -15,6 +15,28 @@
     let selectedDateRange = null;
     let formOpenTime = 0;
     let loggedIn = false;
+    const DONE_MARKER = '\u2063\u2064\u2063';
+
+    function parseEventTitle(rawTitle = '') {
+      const titleText = String(rawTitle || '');
+      const isDone = titleText.includes(DONE_MARKER);
+      const visibleTitle = titleText.split(DONE_MARKER).join('').trim();
+      const normalized = visibleTitle.toLowerCase();
+      const isExam = normalized.includes('prüfung') || normalized.includes('pruefung');
+      const isVacation = normalized.includes('ferien');
+      return {
+        rawTitle: titleText,
+        visibleTitle,
+        isDone,
+        isExam,
+        isVacation
+      };
+    }
+
+    function withDoneMarker(title, done) {
+      const cleanTitle = String(title || '').split(DONE_MARKER).join('').trim();
+      return done ? `${cleanTitle}${DONE_MARKER}` : cleanTitle;
+    }
 
     function setStoredAuth(token) {
       accessToken = token;
@@ -313,17 +335,21 @@
         };
         
         const formattedEvents = events.map(event => {
-          const summaryText = (event.summary || '').toLowerCase();
-          const isExam = summaryText.includes('prüfung') || summaryText.includes('pruefung');
-          const isVacation = summaryText.includes('ferien');
+          const titleMeta = parseEventTitle(event.summary || '');
+          const isExam = titleMeta.isExam;
+          const isVacation = titleMeta.isVacation;
+          const isDone = titleMeta.isDone && !isExam && !isVacation;
           
-          // Re-balanced contextual transparency loops to blend smoothly over our purple ecosystem
-          const eventColor = isVacation ? 'rgba(46, 204, 113, 0.2)' : (isExam ? 'rgba(241, 155, 6, 0.2)' : 'rgba(166, 0, 207, 0.2)');
-          const borderCtx = isVacation ? '#2ecc71' : (isExam ? '#f19b06' : '#a600cf');
+          const eventColor = isVacation
+            ? 'rgba(46, 204, 113, 0.2)'
+            : (isExam ? 'rgba(241, 155, 6, 0.2)' : (isDone ? 'rgba(166, 0, 207, 0.08)' : 'rgba(166, 0, 207, 0.2)'));
+          const borderCtx = isVacation
+            ? '#2ecc71'
+            : (isExam ? '#f19b06' : (isDone ? 'rgba(166, 0, 207, 0.45)' : '#a600cf'));
 
           return {
             id: event.id,
-            title: event.summary || 'No title',
+            title: titleMeta.visibleTitle || 'No title',
             start: event.start.dateTime || event.start.date,
             end: event.end.dateTime || addOneDayIso(event.end.date),
             backgroundColor: eventColor,
@@ -331,7 +357,11 @@
             extendedProps: {
               dbEventId: event.id,
               description: event.description,
-              location: event.location
+              location: event.location,
+              rawSummary: titleMeta.rawTitle,
+              isDone,
+              isExam,
+              isVacation
             }
           };
         });
@@ -409,27 +439,30 @@
           ? startTime.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
           : startTime.toLocaleString('en-US', { month: 'short', day: 'numeric' });
 
-        const isExam = event.summary.toLowerCase().includes("prüfung") || event.summary.toLowerCase().includes("pruefung");
-        const isVacation = event.summary.toLowerCase().includes("ferien");
+        const titleMeta = parseEventTitle(event.summary || '');
+        const isExam = titleMeta.isExam;
+        const isVacation = titleMeta.isVacation;
+        const isDone = titleMeta.isDone && !isExam && !isVacation;
+        const visibleTitle = titleMeta.visibleTitle || 'No title';
 
         if (isExam) {
           return `
             <div class="event-item-exam">
-              <strong>${event.summary || 'No title'}</strong>
+              <strong>${visibleTitle}</strong>
               <div class="event-item-time">${timeStr}</div>
             </div>
           `;
         } else if (isVacation) {
           return `
             <div class="event-item-vacation">
-              <strong>${event.summary || 'No title'}</strong>
+              <strong>${visibleTitle}</strong>
               <div class="event-item-time">${timeStr}</div>
             </div>
           `;
         } else {
           return `
-            <div class="event-item">
-              <strong>${event.summary || 'No title'}</strong>
+            <div class="event-item${isDone ? ' event-item-done' : ''}">
+              <strong>${visibleTitle}</strong>
               <div class="event-item-time">${timeStr}</div>
             </div>
           `;
@@ -458,7 +491,12 @@
       }
       formOpenTime = now;
       
-      const title = event ? event.title : '';
+      const eventMeta = event
+        ? parseEventTitle(event.extendedProps?.rawSummary || event.title || '')
+        : parseEventTitle('');
+      const title = event ? eventMeta.visibleTitle : '';
+      const canToggleDone = Boolean(event) && !eventMeta.isExam && !eventMeta.isVacation;
+      const isDoneTask = Boolean(eventMeta.isDone) && canToggleDone;
       const dateToLocalYYYYMMDD = (d) => {
         if (!d) return '';
         const date = new Date(d);
@@ -590,6 +628,16 @@
             cursor: pointer;
             font-weight: 600;
           ">Cancel</button>
+          ${canToggleDone ? `<button id="toggleDoneBtn" style="
+            flex: 0.9;
+            padding: 11px;
+            background: ${isDoneTask ? '#f59e0b' : '#16a34a'};
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 700;
+          ">${isDoneTask ? 'Undo' : 'Done'}</button>` : ''}
           ${event ? `<button id="deleteEventBtn" style="
             flex: 0.8;
             padding: 11px;
@@ -609,6 +657,7 @@
       const saveEventBtn = form.querySelector('#saveEventBtn');
       const cancelBtn = form.querySelector('#cancelBtn');
       const deleteBtn = form.querySelector('#deleteEventBtn');
+      const toggleDoneBtn = form.querySelector('#toggleDoneBtn');
       const multiDayCheckbox = form.querySelector('#multiDayCheckbox');
       const endDateContainer = form.querySelector('#endDateContainer');
 
@@ -649,8 +698,9 @@
             }
 
             if (event) {
+              const keepDoneFlag = Boolean(event.extendedProps?.isDone);
               const eventData = {
-                summary: titleInput,
+                summary: withDoneMarker(titleInput, keepDoneFlag),
                 start: { date: startDateInput },
                 end: { date: endDateInput }
               };
@@ -693,6 +743,45 @@
             if (modal && modal.parentNode) {
               modal.parentNode.removeChild(modal);
             }
+          }
+        });
+      }
+
+      if (toggleDoneBtn && event) {
+        toggleDoneBtn.addEventListener('click', async () => {
+          try {
+            const titleInput = form.querySelector('#eventTitle').value;
+            const startDateInput = form.querySelector('#eventStart').value;
+            let endDateInput = form.querySelector('#eventEnd').value;
+
+            if (!titleInput || !startDateInput) {
+              showMessage('Please fill in all fields', 'error');
+              return;
+            }
+
+            if (!multiDayCheckbox.checked) {
+              endDateInput = startDateInput;
+            }
+
+            if (!endDateInput) {
+              showMessage('Please select an end date', 'error');
+              return;
+            }
+
+            const nextDoneState = !Boolean(event.extendedProps?.isDone);
+            const eventData = {
+              summary: withDoneMarker(titleInput, nextDoneState),
+              start: { date: startDateInput },
+              end: { date: endDateInput }
+            };
+
+            const updated = await updateEvent(event.id, eventData);
+            if (updated && modal && modal.parentNode) {
+              modal.parentNode.removeChild(modal);
+            }
+          } catch (e) {
+            console.error('Error toggling done state:', e);
+            showMessage('Error updating task status: ' + e.message, 'error');
           }
         });
       }
