@@ -39,7 +39,7 @@ from werkzeug.utils import secure_filename
 #     "database": os.getenv("DB_NAME", "minker_calendar_prod2"),
 # }
 
-PROD
+# PROD
 DB_CONFIG = {
     "host": os.getenv("DB_HOST", "127.0.0.1"),
     "port": int(os.getenv("DB_PORT", "3306")),
