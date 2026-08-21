@@ -114,7 +114,9 @@ def codes_match(stored_hash: str, purpose: str, email: str, code: str) -> bool:
 
 
 class EmailDeliveryError(RuntimeError):
-    pass
+    def __init__(self, log_message: str, public_message: str = "Email delivery is unavailable. Please try again later."):
+        super().__init__(log_message)
+        self.public_message = public_message
 
 
 def build_verification_email_html(*, title: str, intro: str, code: str, ttl_minutes: int) -> str:
@@ -142,9 +144,15 @@ def build_verification_email_html(*, title: str, intro: str, code: str, ttl_minu
 def send_resend_email(to_email: str, subject: str, text_body: str, html_body: str | None) -> None:
     api_key = os.getenv("RESEND_API_KEY", "").strip()
     if not api_key:
-        raise EmailDeliveryError("RESEND_API_KEY is not configured")
+        raise EmailDeliveryError(
+            "RESEND_API_KEY is not configured",
+            "Resend is not configured on the server. Add RESEND_API_KEY and restart the backend.",
+        )
     if not EMAIL_FROM:
-        raise EmailDeliveryError("EMAIL_FROM is not configured")
+        raise EmailDeliveryError(
+            "EMAIL_FROM is not configured",
+            "Resend sender is not configured on the server. Add EMAIL_FROM and restart the backend.",
+        )
 
     payload = {
         "from": EMAIL_FROM,
@@ -166,11 +174,21 @@ def send_resend_email(to_email: str, subject: str, text_body: str, html_body: st
             timeout=15,
         )
     except http_requests.RequestException as exc:
-        raise EmailDeliveryError("Resend API request failed") from exc
+        raise EmailDeliveryError(
+            "Resend API request failed",
+            "The server could not reach Resend. Check outbound HTTPS/network access from the backend.",
+        ) from exc
 
     if response.status_code >= 400:
         detail = response.text[:500]
-        raise EmailDeliveryError(f"Resend API returned HTTP {response.status_code}: {detail}")
+        public_message = "Resend rejected the email request. Check your sender domain and API key."
+        if response.status_code == 401:
+            public_message = "Resend rejected the API key. Check RESEND_API_KEY and restart the backend."
+        elif response.status_code in {403, 422}:
+            public_message = "Resend rejected the sender or recipient. Verify your sending domain/email in Resend and check EMAIL_FROM."
+        elif response.status_code == 429:
+            public_message = "Resend rate limit or quota was reached. Try again later or check your Resend plan."
+        raise EmailDeliveryError(f"Resend API returned HTTP {response.status_code}: {detail}", public_message)
 
 
 def send_smtp_email(to_email: str, subject: str, text_body: str, html_body: str | None) -> None:
@@ -606,7 +624,7 @@ def request_email_link_code():
         if conn:
             conn.rollback()
         app.logger.exception("Email delivery unavailable")
-        return jsonify({"ok": False, "error": "Email delivery is unavailable. Please configure Resend and try again."}), 503
+        return jsonify({"ok": False, "error": exc.public_message}), 503
     except Error as exc:
         if conn:
             conn.rollback()
@@ -854,7 +872,7 @@ def forgot_password():
         if conn:
             conn.rollback()
         app.logger.exception("Password reset email delivery unavailable")
-        return jsonify({"ok": False, "error": "Email delivery is unavailable. Please configure Resend and try again."}), 503
+        return jsonify({"ok": False, "error": exc.public_message}), 503
     except Error as exc:
         if conn:
             conn.rollback()
