@@ -235,6 +235,24 @@
       updateAuthorizedState();
     }
 
+    let settingsOpenedAt = 0;
+
+    function bindSettingsTrigger() {
+      const openFromTrigger = (event) => {
+        const trigger = event.target?.closest?.('#settingsBtn');
+        if (!trigger) return;
+        event.preventDefault();
+        event.stopPropagation();
+        const now = Date.now();
+        if (now - settingsOpenedAt < 350) return;
+        settingsOpenedAt = now;
+        openSettingsModal();
+      };
+
+      document.addEventListener('click', openFromTrigger);
+      document.addEventListener('touchend', openFromTrigger, { passive: false });
+    }
+
     function openForgotPasswordModal() {
       const modal = document.createElement('div');
       modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.65);display:flex;justify-content:center;align-items:center;z-index:10000;padding:16px;';
@@ -584,7 +602,7 @@
 
       bootBtn?.addEventListener('click', runSmartHomeSequence);
       document.getElementById('logoutBtn')?.addEventListener('click', logout);
-      document.getElementById('settingsBtn')?.addEventListener('click', openSettingsModal);
+      bindSettingsTrigger();
       document.getElementById('forgotPasswordBtn')?.addEventListener('click', openForgotPasswordModal);
 
       await checkExistingAuth();

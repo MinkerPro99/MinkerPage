@@ -30,8 +30,8 @@
     
     .main-home-link {
       position: fixed;
-      top: 14px;
       right: 14px;
+      bottom: calc(14px + env(safe-area-inset-bottom));
       z-index: 1100;
       padding: 8px 16px;
       border-radius: 12px;
@@ -434,7 +434,6 @@
 
     @media (max-width: 600px) {
       .main-home-link {
-        top: auto;
         right: 10px;
         bottom: calc(10px + env(safe-area-inset-bottom));
         padding: 7px 12px;
