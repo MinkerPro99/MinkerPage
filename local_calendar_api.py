@@ -115,7 +115,11 @@ def send_email_message(to_email: str, subject: str, body: str) -> None:
     if not smtp_host:
         raise RuntimeError("SMTP_HOST is not configured")
 
-    smtp_port = int(os.getenv("SMTP_PORT", "587"))
+    try:
+        smtp_port = int(os.getenv("SMTP_PORT", "587"))
+    except ValueError as exc:
+        raise RuntimeError("SMTP_PORT must be a number") from exc
+
     smtp_user = os.getenv("SMTP_USER", "").strip()
     smtp_password = os.getenv("SMTP_PASSWORD", "")
     smtp_from = os.getenv("SMTP_FROM", smtp_user or "no-reply@minkerpage.local").strip()
@@ -127,14 +131,17 @@ def send_email_message(to_email: str, subject: str, body: str) -> None:
     message["Subject"] = subject
     message.set_content(body)
 
-    with smtplib.SMTP(smtp_host, smtp_port, timeout=15) as smtp:
-        smtp.ehlo()
-        if use_tls:
-            smtp.starttls()
+    try:
+        with smtplib.SMTP(smtp_host, smtp_port, timeout=15) as smtp:
             smtp.ehlo()
-        if smtp_user and smtp_password:
-            smtp.login(smtp_user, smtp_password)
-        smtp.send_message(message)
+            if use_tls:
+                smtp.starttls()
+                smtp.ehlo()
+            if smtp_user and smtp_password:
+                smtp.login(smtp_user, smtp_password)
+            smtp.send_message(message)
+    except (OSError, smtplib.SMTPException) as exc:
+        raise RuntimeError("SMTP delivery failed") from exc
 
 
 def create_and_store_email_code(

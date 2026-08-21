@@ -57,6 +57,35 @@
       return false;
     }
 
+    let modalLockCount = 0;
+    let previousBodyOverflow = '';
+
+    function lockModalScroll() {
+      if (modalLockCount === 0) {
+        previousBodyOverflow = document.body.style.overflow || '';
+        document.body.style.overflow = 'hidden';
+      }
+      modalLockCount += 1;
+    }
+
+    function closeOverlayModal(modal) {
+      if (!modal || !modal.parentNode) return;
+      modal.remove();
+      modalLockCount = Math.max(0, modalLockCount - 1);
+      if (modalLockCount === 0) {
+        document.body.style.overflow = previousBodyOverflow;
+      }
+    }
+
+    function setupOverlayModal(modal) {
+      lockModalScroll();
+      modal.addEventListener('click', (event) => {
+        if (event.target === modal) {
+          closeOverlayModal(modal);
+        }
+      });
+    }
+
     async function apiFetch(path, options = {}) {
       const headers = {
         'Content-Type': 'application/json',
@@ -935,6 +964,7 @@
           <div id="settingsMsg" style="font-size:13px;color:#c4b5fd;"></div>
         </div>
       `;
+      setupOverlayModal(modal);
       document.body.appendChild(modal);
 
       const messageEl = modal.querySelector('#settingsMsg');
@@ -963,8 +993,9 @@
         const child = document.createElement('div');
         child.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;justify-content:center;align-items:center;z-index:10001;padding:16px;';
         child.innerHTML = html;
+        setupOverlayModal(child);
         document.body.appendChild(child);
-        child.querySelector('[data-close-child]')?.addEventListener('click', () => child.remove());
+        child.querySelector('[data-close-child]')?.addEventListener('click', () => closeOverlayModal(child));
         bindHandlers(child);
       };
 
@@ -1044,7 +1075,7 @@
             userProfile.email = data.email;
             refreshSettingsSummary();
             setSettingsMessage('Email linked successfully.');
-            child.remove();
+            closeOverlayModal(child);
           });
         });
       };
@@ -1088,7 +1119,7 @@
             updateUserInfo();
             refreshSettingsSummary();
             setSettingsMessage('Username updated.');
-            child.remove();
+            closeOverlayModal(child);
           });
         });
       };
@@ -1131,7 +1162,7 @@
               return;
             }
             setSettingsMessage(data.message || 'Password updated.');
-            child.remove();
+            closeOverlayModal(child);
           });
         });
       };
@@ -1140,7 +1171,7 @@
       modal.querySelector('#changeEmailBtn')?.addEventListener('click', openEmailDialog);
       usernameBtn?.addEventListener('click', openUsernameDialog);
       passwordBtn?.addEventListener('click', openPasswordDialog);
-      modal.querySelector('#closeSettingsBtn')?.addEventListener('click', () => modal.remove());
+      modal.querySelector('#closeSettingsBtn')?.addEventListener('click', () => closeOverlayModal(modal));
     }
 
     document.addEventListener('DOMContentLoaded', async () => {
