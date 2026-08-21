@@ -22,22 +22,39 @@ def _load_env_file(path: str, *, override_file_values: bool = False) -> None:
     if not os.path.exists(path):
         return
 
-    with open(path) as env_file:
-        for line in env_file:
-            line = line.strip()
-            if not line or line.startswith("#") or "=" not in line:
-                continue
-            key, value = line.split("=", 1)
-            key = key.strip()
-            value = value.strip().strip('"').strip("'")
-            if key not in os.environ or (override_file_values and key in _loaded_env_file_keys):
-                os.environ[key] = value
-                _loaded_env_file_keys.add(key)
+    try:
+        with open(path) as env_file:
+            for line in env_file:
+                line = line.strip()
+                if not line or line.startswith("#") or "=" not in line:
+                    continue
+                key, value = line.split("=", 1)
+                key = key.strip()
+                value = value.strip().strip('"').strip("'")
+                if not key:
+                    continue
+                if key not in os.environ or (override_file_values and key in _loaded_env_file_keys):
+                    os.environ[key] = value
+                    _loaded_env_file_keys.add(key)
+    except OSError as exc:
+        print(f"Warning: failed to load env file {path}: {exc}")
+
+
+def env_int(name: str, default: int) -> int:
+    raw_value = os.getenv(name, "").strip()
+    if not raw_value:
+        return default
+    try:
+        return int(raw_value)
+    except ValueError:
+        print(f"Warning: invalid integer for {name}; using {default}")
+        return default
 
 
 _env_dir = Path(__file__).resolve().parent
 for _env_file in sorted(_env_dir.glob(".env*")):
     if _env_file.is_file():
+        print(f"Loading env file: {_env_file.name}")
         _load_env_file(str(_env_file), override_file_values=True)
 
 import requests as http_requests
@@ -49,7 +66,7 @@ from werkzeug.utils import secure_filename
 #TEST
 # DB_CONFIG = {
 #     "host": os.getenv("DB_HOST", "127.0.0.1"),
-#     "port": int(os.getenv("DB_PORT", "3306")),
+#     "port": env_int("DB_PORT", 3306),
 #     "user": os.getenv("DB_USER", "root"),
 #     "password": os.getenv("DB_PASSWORD", "Init.1234"),
 #     "database": os.getenv("DB_NAME", "minker_calendar_prod2"),
@@ -58,23 +75,23 @@ from werkzeug.utils import secure_filename
 #PROD
 DB_CONFIG = {
     "host": os.getenv("DB_HOST", "127.0.0.1"),
-    "port": int(os.getenv("DB_PORT", "3306")),
+    "port": env_int("DB_PORT", 3306),
     "user": os.getenv("DB_USER", "minker_api2"),
     "password": os.getenv("DB_PASSWORD", "Init.12345!"),
     "database": os.getenv("DB_NAME", "minker_calendar_prod2"),
 }
 
-APP_PORT = int(os.getenv("APP_PORT", "5050"))
-TOKEN_DAYS = int(os.getenv("TOKEN_DAYS", "30"))
-EMAIL_CODE_TTL_MINUTES = int(os.getenv("EMAIL_CODE_TTL_MINUTES", "10"))
-PASSWORD_RESET_TTL_MINUTES = int(os.getenv("PASSWORD_RESET_TTL_MINUTES", "15"))
-MAX_EMAIL_CODE_ATTEMPTS = int(os.getenv("MAX_EMAIL_CODE_ATTEMPTS", "5"))
+APP_PORT = env_int("APP_PORT", 5050)
+TOKEN_DAYS = env_int("TOKEN_DAYS", 30)
+EMAIL_CODE_TTL_MINUTES = env_int("EMAIL_CODE_TTL_MINUTES", 10)
+PASSWORD_RESET_TTL_MINUTES = env_int("PASSWORD_RESET_TTL_MINUTES", 15)
+MAX_EMAIL_CODE_ATTEMPTS = env_int("MAX_EMAIL_CODE_ATTEMPTS", 5)
 EMAIL_CODE_SIGNING_SECRET = os.getenv("EMAIL_CODE_SIGNING_SECRET", "minker-local-email-secret")
 EMAIL_PROVIDER = os.getenv("EMAIL_PROVIDER", "resend").strip().lower()
 EMAIL_FROM = os.getenv("EMAIL_FROM", os.getenv("RESEND_FROM", "MinkerPage <onboarding@resend.dev>")).strip()
 RESEND_API_URL = os.getenv("RESEND_API_URL", "https://api.resend.com/emails").strip()
 STUDY_TRAINER_STORE = Path(os.getenv("STUDY_TRAINER_STORE", Path(__file__).with_name("data") / "study_trainer.json"))
-STUDY_TRAINER_MAX_TEXT = int(os.getenv("STUDY_TRAINER_MAX_TEXT", "60000"))
+STUDY_TRAINER_MAX_TEXT = env_int("STUDY_TRAINER_MAX_TEXT", 60000)
 DONE_MARKER = "\u2063\u2064\u2063"
 
 app = Flask(__name__)
