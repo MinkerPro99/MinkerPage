@@ -116,9 +116,11 @@
       transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
-    .account-settings-trigger .bi {
-      color: #c4b5fd;
-      font-size: 1rem;
+    .account-settings-trigger .settings-cog {
+      width: 16px;
+      height: 16px;
+      fill: #ffffff;
+      flex: 0 0 auto;
     }
 
     .account-settings-trigger:hover {
@@ -131,7 +133,7 @@
     .user-name {
       color: #ffffff;
       font-size: 14px;
-      font-weight: 500;
+      font-weight: 700;
     }
 
     
