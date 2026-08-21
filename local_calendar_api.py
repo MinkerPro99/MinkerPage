@@ -177,8 +177,19 @@ def build_verification_email_html(*, title: str, intro: str, code: str, ttl_minu
         <p style="margin:0 0 18px;color:#cbd5e1;font-size:15px;line-height:1.6;">{intro}</p>
         <div style="margin:18px 0;padding:18px;border-radius:12px;background:rgba(166,0,207,.14);border:1px solid rgba(166,0,207,.36);text-align:center;">
           <div style="color:#94a3b8;font-size:12px;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">Verification code</div>
-          <div style="display:inline-block;padding:10px 14px;border-radius:10px;background:#12121a;border:1px solid rgba(255,255,255,.14);font-family:'Courier New',Courier,monospace;font-size:34px;line-height:1;font-weight:800;letter-spacing:.18em;color:#ffffff;user-select:all;">{code}</div>
-          <div style="margin-top:10px;color:#a5b4fc;font-size:12px;font-weight:700;">Select the code to copy it</div>
+          <table role="presentation" cellspacing="0" cellpadding="0" style="margin:0 auto;border-collapse:separate;border-spacing:8px 0;">
+            <tr>
+              <td style="padding:10px 14px;border-radius:10px;background:#12121a;border:1px solid rgba(255,255,255,.14);font-family:'Courier New',Courier,monospace;font-size:34px;line-height:1;font-weight:800;letter-spacing:.18em;color:#ffffff;user-select:all;">{code}</td>
+              <td>
+                <a href="#" aria-label="Copy verification code" style="display:inline-block;width:44px;height:44px;border-radius:10px;background:#a600cf;border:1px solid rgba(255,255,255,.18);text-align:center;text-decoration:none;line-height:44px;">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="vertical-align:middle;">
+                    <rect x="9" y="9" width="10" height="10" rx="2" stroke="#ffffff" stroke-width="2"/>
+                    <path d="M5 15V7a2 2 0 0 1 2-2h8" stroke="#ffffff" stroke-width="2" stroke-linecap="round"/>
+                  </svg>
+                </a>
+              </td>
+            </tr>
+          </table>
         </div>
         <p style="margin:0;color:#94a3b8;font-size:13px;line-height:1.5;">This code expires in {ttl_minutes} minutes. If you did not request it, you can ignore this email.</p>
       </div>

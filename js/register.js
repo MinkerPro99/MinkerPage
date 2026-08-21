@@ -34,27 +34,6 @@ async function parseResponseJsonSafe(response) {
   }
 }
 
-async function copyInputValue(input, setMessage, successMessage = 'Code copied.') {
-  const value = (input?.value || '').trim();
-  if (!value) {
-    setMessage('Enter or paste the code first.');
-    return;
-  }
-
-  try {
-    if (navigator.clipboard?.writeText && window.isSecureContext) {
-      await navigator.clipboard.writeText(value);
-    } else {
-      input.focus();
-      input.select();
-      document.execCommand('copy');
-    }
-    setMessage(successMessage);
-  } catch (error) {
-    setMessage('Could not copy automatically. Select the code and copy it manually.');
-  }
-}
-
 async function register() {
   const username = usernameEl.value.trim();
   const password = passwordEl.value;
@@ -106,10 +85,7 @@ function openForgotPasswordModal() {
       <h3 style="margin:0;">Reset password</h3>
       <input id="resetEmail" type="email" placeholder="Email" style="padding:10px;border-radius:8px;border:1px solid #444;background:#12121a;color:#fff;">
       <button id="sendResetCode" class="login-btn" type="button">Send reset code</button>
-      <div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;">
-        <input id="resetCode" type="text" inputmode="numeric" maxlength="6" placeholder="6-digit code" style="min-width:0;padding:10px;border-radius:8px;border:1px solid #444;background:#12121a;color:#fff;">
-        <button id="copyResetCodeBtn" class="login-btn" type="button" style="width:auto;padding:10px 12px;white-space:nowrap;">Copy</button>
-      </div>
+      <input id="resetCode" type="text" inputmode="numeric" maxlength="6" placeholder="6-digit code" style="padding:10px;border-radius:8px;border:1px solid #444;background:#12121a;color:#fff;">
       <input id="resetPasswordA" type="password" placeholder="New password" style="padding:10px;border-radius:8px;border:1px solid #444;background:#12121a;color:#fff;">
       <input id="resetPasswordB" type="password" placeholder="Repeat new password" style="padding:10px;border-radius:8px;border:1px solid #444;background:#12121a;color:#fff;">
       <button id="confirmReset" class="login-btn" type="button">Reset password</button>
@@ -125,10 +101,6 @@ function openForgotPasswordModal() {
   };
 
   modal.querySelector('#closeReset')?.addEventListener('click', () => modal.remove());
-
-  modal.querySelector('#copyResetCodeBtn')?.addEventListener('click', () => {
-    copyInputValue(modal.querySelector('#resetCode'), setModalMessage);
-  });
 
   modal.querySelector('#sendResetCode')?.addEventListener('click', async () => {
     const email = (modal.querySelector('#resetEmail')?.value || '').trim();
