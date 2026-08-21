@@ -54,6 +54,9 @@ EMAIL_CODE_TTL_MINUTES = int(os.getenv("EMAIL_CODE_TTL_MINUTES", "10"))
 PASSWORD_RESET_TTL_MINUTES = int(os.getenv("PASSWORD_RESET_TTL_MINUTES", "15"))
 MAX_EMAIL_CODE_ATTEMPTS = int(os.getenv("MAX_EMAIL_CODE_ATTEMPTS", "5"))
 EMAIL_CODE_SIGNING_SECRET = os.getenv("EMAIL_CODE_SIGNING_SECRET", "minker-local-email-secret")
+EMAIL_PROVIDER = os.getenv("EMAIL_PROVIDER", "resend").strip().lower()
+EMAIL_FROM = os.getenv("EMAIL_FROM", os.getenv("RESEND_FROM", "MinkerPage <onboarding@resend.dev>")).strip()
+RESEND_API_URL = os.getenv("RESEND_API_URL", "https://api.resend.com/emails").strip()
 STUDY_TRAINER_STORE = Path(os.getenv("STUDY_TRAINER_STORE", Path(__file__).with_name("data") / "study_trainer.json"))
 STUDY_TRAINER_MAX_TEXT = int(os.getenv("STUDY_TRAINER_MAX_TEXT", "60000"))
 DONE_MARKER = "\u2063\u2064\u2063"
@@ -110,26 +113,88 @@ def codes_match(stored_hash: str, purpose: str, email: str, code: str) -> bool:
     return hmac.compare_digest(stored_hash, expected_hash)
 
 
-def send_email_message(to_email: str, subject: str, body: str) -> None:
+class EmailDeliveryError(RuntimeError):
+    pass
+
+
+def build_verification_email_html(*, title: str, intro: str, code: str, ttl_minutes: int) -> str:
+    return f"""<!doctype html>
+<html>
+  <body style="margin:0;background:#111118;padding:28px;font-family:Arial,Helvetica,sans-serif;color:#f8fafc;">
+    <div style="max-width:520px;margin:0 auto;background:#1f1f2a;border:1px solid rgba(255,255,255,.10);border-radius:14px;overflow:hidden;box-shadow:0 18px 42px rgba(0,0,0,.35);">
+      <div style="padding:22px 24px;border-bottom:1px solid rgba(255,255,255,.08);background:#181822;">
+        <div style="font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:#c4b5fd;font-weight:700;">MinkerPage</div>
+        <h1 style="margin:8px 0 0;color:#ffffff;font-size:24px;line-height:1.2;">{title}</h1>
+      </div>
+      <div style="padding:24px;">
+        <p style="margin:0 0 18px;color:#cbd5e1;font-size:15px;line-height:1.6;">{intro}</p>
+        <div style="margin:18px 0;padding:18px;border-radius:12px;background:rgba(166,0,207,.14);border:1px solid rgba(166,0,207,.36);text-align:center;">
+          <div style="color:#94a3b8;font-size:12px;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">Verification code</div>
+          <div style="font-size:34px;line-height:1;font-weight:800;letter-spacing:.18em;color:#ffffff;">{code}</div>
+        </div>
+        <p style="margin:0;color:#94a3b8;font-size:13px;line-height:1.5;">This code expires in {ttl_minutes} minutes. If you did not request it, you can ignore this email.</p>
+      </div>
+    </div>
+  </body>
+</html>"""
+
+
+def send_resend_email(to_email: str, subject: str, text_body: str, html_body: str | None) -> None:
+    api_key = os.getenv("RESEND_API_KEY", "").strip()
+    if not api_key:
+        raise EmailDeliveryError("RESEND_API_KEY is not configured")
+    if not EMAIL_FROM:
+        raise EmailDeliveryError("EMAIL_FROM is not configured")
+
+    payload = {
+        "from": EMAIL_FROM,
+        "to": [to_email],
+        "subject": subject,
+        "text": text_body,
+    }
+    if html_body:
+        payload["html"] = html_body
+
+    try:
+        response = http_requests.post(
+            RESEND_API_URL,
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            },
+            json=payload,
+            timeout=15,
+        )
+    except http_requests.RequestException as exc:
+        raise EmailDeliveryError("Resend API request failed") from exc
+
+    if response.status_code >= 400:
+        detail = response.text[:500]
+        raise EmailDeliveryError(f"Resend API returned HTTP {response.status_code}: {detail}")
+
+
+def send_smtp_email(to_email: str, subject: str, text_body: str, html_body: str | None) -> None:
     smtp_host = os.getenv("SMTP_HOST", "").strip()
     if not smtp_host:
-        raise RuntimeError("SMTP_HOST is not configured")
+        raise EmailDeliveryError("SMTP_HOST is not configured")
 
     try:
         smtp_port = int(os.getenv("SMTP_PORT", "587"))
     except ValueError as exc:
-        raise RuntimeError("SMTP_PORT must be a number") from exc
+        raise EmailDeliveryError("SMTP_PORT must be a number") from exc
 
     smtp_user = os.getenv("SMTP_USER", "").strip()
     smtp_password = os.getenv("SMTP_PASSWORD", "")
-    smtp_from = os.getenv("SMTP_FROM", smtp_user or "no-reply@minkerpage.local").strip()
+    smtp_from = os.getenv("SMTP_FROM", EMAIL_FROM or smtp_user or "no-reply@minkerpage.local").strip()
     use_tls = os.getenv("SMTP_USE_TLS", "true").strip().lower() not in {"0", "false", "no"}
 
     message = EmailMessage()
     message["From"] = smtp_from
     message["To"] = to_email
     message["Subject"] = subject
-    message.set_content(body)
+    message.set_content(text_body)
+    if html_body:
+        message.add_alternative(html_body, subtype="html")
 
     try:
         with smtplib.SMTP(smtp_host, smtp_port, timeout=15) as smtp:
@@ -141,7 +206,17 @@ def send_email_message(to_email: str, subject: str, body: str) -> None:
                 smtp.login(smtp_user, smtp_password)
             smtp.send_message(message)
     except (OSError, smtplib.SMTPException) as exc:
-        raise RuntimeError("SMTP delivery failed") from exc
+        raise EmailDeliveryError("SMTP delivery failed") from exc
+
+
+def send_email_message(to_email: str, subject: str, text_body: str, html_body: str | None = None) -> None:
+    if EMAIL_PROVIDER == "resend":
+        send_resend_email(to_email, subject, text_body, html_body)
+        return
+    if EMAIL_PROVIDER == "smtp":
+        send_smtp_email(to_email, subject, text_body, html_body)
+        return
+    raise EmailDeliveryError(f"Unsupported EMAIL_PROVIDER: {EMAIL_PROVIDER}")
 
 
 def create_and_store_email_code(
@@ -510,21 +585,28 @@ def request_email_link_code():
             purpose="link_email",
             ttl_minutes=EMAIL_CODE_TTL_MINUTES,
         )
+        text_body = (
+            f"Use this 6-digit code to link your email to your MinkerPage account: {code}\n\n"
+            f"This code expires in {EMAIL_CODE_TTL_MINUTES} minutes."
+        )
         send_email_message(
             email,
             "Your MinkerPage verification code",
-            (
-                f"Use this 6-digit code to link your email to your MinkerPage account: {code}\n\n"
-                f"This code expires in {EMAIL_CODE_TTL_MINUTES} minutes."
+            text_body,
+            build_verification_email_html(
+                title="Verify your email",
+                intro="Use this 6-digit code to link your email to your MinkerPage account.",
+                code=code,
+                ttl_minutes=EMAIL_CODE_TTL_MINUTES,
             ),
         )
         conn.commit()
         return jsonify({"ok": True, "message": "Verification code sent"})
-    except RuntimeError as exc:
+    except EmailDeliveryError as exc:
         if conn:
             conn.rollback()
         app.logger.exception("Email delivery unavailable")
-        return jsonify({"ok": False, "error": "Email delivery is unavailable. Please check SMTP settings and try again."}), 503
+        return jsonify({"ok": False, "error": "Email delivery is unavailable. Please configure Resend and try again."}), 503
     except Error as exc:
         if conn:
             conn.rollback()
@@ -751,21 +833,28 @@ def forgot_password():
             purpose="reset_password",
             ttl_minutes=PASSWORD_RESET_TTL_MINUTES,
         )
+        text_body = (
+            f"Use this 6-digit code to reset your MinkerPage password: {code}\n\n"
+            f"This code expires in {PASSWORD_RESET_TTL_MINUTES} minutes."
+        )
         send_email_message(
             email,
             "Your MinkerPage password reset code",
-            (
-                f"Use this 6-digit code to reset your MinkerPage password: {code}\n\n"
-                f"This code expires in {PASSWORD_RESET_TTL_MINUTES} minutes."
+            text_body,
+            build_verification_email_html(
+                title="Reset your password",
+                intro="Use this 6-digit code to reset your MinkerPage password.",
+                code=code,
+                ttl_minutes=PASSWORD_RESET_TTL_MINUTES,
             ),
         )
         conn.commit()
         return jsonify(generic_response)
-    except RuntimeError as exc:
+    except EmailDeliveryError as exc:
         if conn:
             conn.rollback()
         app.logger.exception("Password reset email delivery unavailable")
-        return jsonify({"ok": False, "error": "Email delivery is unavailable. Please check SMTP settings and try again."}), 503
+        return jsonify({"ok": False, "error": "Email delivery is unavailable. Please configure Resend and try again."}), 503
     except Error as exc:
         if conn:
             conn.rollback()
