@@ -65,11 +65,9 @@ pool = pooling.MySQLConnectionPool(
     **DB_CONFIG,
 )
 
-EMAIL_PATTERN = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
-
-
 def json_error(message: str, status: int = 400):
-    return jsonify({"ok": False, "error": message}), status
+    safe_message = message if status < 500 else "Internal server error"
+    return jsonify({"ok": False, "error": safe_message}), status
 
 
 def parse_iso_date(date_value: str) -> datetime.date:
@@ -81,7 +79,16 @@ def normalize_email(value: str | None) -> str:
 
 
 def is_valid_email(value: str) -> bool:
-    return bool(EMAIL_PATTERN.match(value))
+    if not value or len(value) > 255 or any(ch.isspace() for ch in value):
+        return False
+    if value.count("@") != 1:
+        return False
+    local_part, domain = value.split("@", 1)
+    if not local_part or not domain or domain.startswith(".") or domain.endswith("."):
+        return False
+    if "." not in domain:
+        return False
+    return True
 
 
 def generate_six_digit_code() -> str:
