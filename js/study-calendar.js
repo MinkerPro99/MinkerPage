@@ -905,42 +905,32 @@
       const modal = document.createElement('div');
       modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.65);display:flex;justify-content:center;align-items:center;z-index:10000;padding:16px;';
       modal.innerHTML = `
-        <div style="width:min(520px,100%);max-height:90vh;overflow:auto;background:#1f1f2a;border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:18px;color:#fff;display:grid;gap:12px;">
+        <div style="width:min(520px,100%);max-height:90vh;overflow:auto;background:#1f1f2a;border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:18px;color:#fff;display:grid;gap:14px;">
           <h3 style="margin:0;">Account settings</h3>
-          <div style="font-size:12px;color:#c4b5fd;">Link an email first to unlock username and password changes.</div>
-          <label style="display:grid;gap:6px;">
-            <span>Email</span>
-            <input id="settingsEmail" type="email" placeholder="Email" style="padding:10px;border-radius:8px;border:1px solid #444;background:#12121a;color:#fff;">
-          </label>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;">
-            <button id="sendEmailCodeBtn" class="login-btn" type="button" style="width:auto;padding:10px 14px;">Send code</button>
-            <input id="emailCodeInput" type="text" inputmode="numeric" maxlength="6" placeholder="6-digit code" style="flex:1;min-width:140px;padding:10px;border-radius:8px;border:1px solid #444;background:#12121a;color:#fff;">
-            <button id="verifyEmailBtn" class="login-btn" type="button" style="width:auto;padding:10px 14px;">Verify email</button>
+          <div id="settingsNotice" style="font-size:12px;color:#c4b5fd;"></div>
+          <div style="display:grid;gap:10px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px;border:1px solid rgba(255,255,255,.08);border-radius:8px;background:#181822;">
+              <div style="display:grid;gap:4px;min-width:0;">
+                <span style="font-size:12px;color:#94a3b8;">Email</span>
+                <strong id="settingsEmailValue" style="font-size:14px;overflow-wrap:anywhere;"></strong>
+              </div>
+              <button id="changeEmailBtn" class="login-btn" type="button" style="width:auto;padding:9px 12px;">Change</button>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px;border:1px solid rgba(255,255,255,.08);border-radius:8px;background:#181822;">
+              <div style="display:grid;gap:4px;min-width:0;">
+                <span style="font-size:12px;color:#94a3b8;">Username</span>
+                <strong id="settingsUsernameValue" style="font-size:14px;overflow-wrap:anywhere;"></strong>
+              </div>
+              <button id="changeUsernameBtn" class="login-btn" type="button" style="width:auto;padding:9px 12px;">Change</button>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px;border:1px solid rgba(255,255,255,.08);border-radius:8px;background:#181822;">
+              <div style="display:grid;gap:4px;min-width:0;">
+                <span style="font-size:12px;color:#94a3b8;">Password</span>
+                <strong style="font-size:14px;">Stored</strong>
+              </div>
+              <button id="changePasswordBtn" class="login-btn" type="button" style="width:auto;padding:9px 12px;">Change</button>
+            </div>
           </div>
-          <hr style="border-color:rgba(255,255,255,.1);">
-          <label style="display:grid;gap:6px;">
-            <span>New username</span>
-            <input id="newUsernameA" type="text" placeholder="New username" style="padding:10px;border-radius:8px;border:1px solid #444;background:#12121a;color:#fff;">
-          </label>
-          <label style="display:grid;gap:6px;">
-            <span>Repeat new username</span>
-            <input id="newUsernameB" type="text" placeholder="Repeat new username" style="padding:10px;border-radius:8px;border:1px solid #444;background:#12121a;color:#fff;">
-          </label>
-          <button id="updateUsernameBtn" class="login-btn" type="button">Update username</button>
-          <hr style="border-color:rgba(255,255,255,.1);">
-          <label style="display:grid;gap:6px;">
-            <span>Old password</span>
-            <input id="oldPassword" type="password" placeholder="Old password" style="padding:10px;border-radius:8px;border:1px solid #444;background:#12121a;color:#fff;">
-          </label>
-          <label style="display:grid;gap:6px;">
-            <span>New password</span>
-            <input id="newPasswordA" type="password" placeholder="New password" style="padding:10px;border-radius:8px;border:1px solid #444;background:#12121a;color:#fff;">
-          </label>
-          <label style="display:grid;gap:6px;">
-            <span>Repeat new password</span>
-            <input id="newPasswordB" type="password" placeholder="Repeat new password" style="padding:10px;border-radius:8px;border:1px solid #444;background:#12121a;color:#fff;">
-          </label>
-          <button id="updatePasswordBtn" class="login-btn" type="button">Update password</button>
           <button id="closeSettingsBtn" class="login-btn" type="button" style="background:#333;">Close</button>
           <div id="settingsMsg" style="font-size:13px;color:#c4b5fd;"></div>
         </div>
@@ -948,102 +938,209 @@
       document.body.appendChild(modal);
 
       const messageEl = modal.querySelector('#settingsMsg');
-      const emailInput = modal.querySelector('#settingsEmail');
+      const noticeEl = modal.querySelector('#settingsNotice');
+      const emailValueEl = modal.querySelector('#settingsEmailValue');
+      const usernameValueEl = modal.querySelector('#settingsUsernameValue');
+      const usernameBtn = modal.querySelector('#changeUsernameBtn');
+      const passwordBtn = modal.querySelector('#changePasswordBtn');
       const setSettingsMessage = (text) => { messageEl.textContent = text; };
 
-      emailInput.value = userProfile?.email || '';
-
-      const toggleCredentialFields = () => {
-        const linked = Boolean(userProfile?.email);
-        ['newUsernameA', 'newUsernameB', 'updateUsernameBtn', 'oldPassword', 'newPasswordA', 'newPasswordB', 'updatePasswordBtn']
-          .forEach((id) => {
-            const el = modal.querySelector(`#${id}`);
-            if (el) el.disabled = !linked;
-          });
+      const refreshSettingsSummary = () => {
+        const hasEmail = Boolean(userProfile?.email);
+        emailValueEl.textContent = hasEmail ? userProfile.email : 'Not linked';
+        usernameValueEl.textContent = userProfile?.username || 'Unknown user';
+        noticeEl.textContent = hasEmail
+          ? 'Email is linked. Username and password changes are unlocked.'
+          : 'Link an email first to unlock username and password changes.';
+        [usernameBtn, passwordBtn].forEach((btn) => {
+          btn.disabled = !hasEmail;
+          btn.style.opacity = hasEmail ? '1' : '.45';
+          btn.style.cursor = hasEmail ? 'pointer' : 'not-allowed';
+        });
       };
-      toggleCredentialFields();
 
+      const openChildDialog = (html, bindHandlers) => {
+        const child = document.createElement('div');
+        child.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;justify-content:center;align-items:center;z-index:10001;padding:16px;';
+        child.innerHTML = html;
+        document.body.appendChild(child);
+        child.querySelector('[data-close-child]')?.addEventListener('click', () => child.remove());
+        bindHandlers(child);
+      };
+
+      const openEmailDialog = () => {
+        openChildDialog(`
+          <div style="width:min(440px,100%);background:#1f1f2a;border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:18px;color:#fff;display:grid;gap:12px;">
+            <h3 style="margin:0;">Change email</h3>
+            <label style="display:grid;gap:6px;">
+              <span>Email</span>
+              <input id="changeEmailInput" type="email" placeholder="Email" style="padding:10px;border-radius:8px;border:1px solid #444;background:#12121a;color:#fff;">
+            </label>
+            <button id="sendEmailCodeBtn" class="login-btn" type="button">Send code</button>
+            <div id="emailCodeStep" style="display:none;gap:8px;">
+              <input id="emailCodeInput" type="text" inputmode="numeric" maxlength="6" placeholder="6-digit code" style="width:100%;padding:10px;border-radius:8px;border:1px solid #444;background:#12121a;color:#fff;">
+              <button id="verifyEmailBtn" class="login-btn" type="button" style="width:100%;">Verify email</button>
+            </div>
+            <button data-close-child class="login-btn" type="button" style="background:#333;">Close</button>
+            <div id="emailChangeMsg" style="font-size:13px;color:#c4b5fd;"></div>
+          </div>
+        `, (child) => {
+          const msg = child.querySelector('#emailChangeMsg');
+          const emailInput = child.querySelector('#changeEmailInput');
+          emailInput.value = userProfile?.email || '';
+          const codeStep = child.querySelector('#emailCodeStep');
+          const sendBtn = child.querySelector('#sendEmailCodeBtn');
+          const setMessage = (text) => { msg.textContent = text; };
+          let pendingEmail = '';
+
+          sendBtn?.addEventListener('click', async () => {
+            const email = (emailInput.value || '').trim();
+            if (!email) {
+              setMessage('Please enter an email.');
+              return;
+            }
+            setMessage('Sending verification code...');
+            sendBtn.disabled = true;
+            try {
+              const response = await apiFetch('/auth/email/request-link-code', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email })
+              });
+              const data = await parseResponseJsonSafe(response);
+              if (!response.ok) {
+                setMessage(data.error || 'Could not send verification code.');
+                sendBtn.disabled = false;
+                return;
+              }
+              pendingEmail = email;
+              emailInput.disabled = true;
+              codeStep.style.display = 'grid';
+              sendBtn.textContent = 'Code sent';
+              setMessage('Code sent. Enter the 6-digit code from your email.');
+            } catch (error) {
+              setMessage(error.message || 'Could not send verification code.');
+              sendBtn.disabled = false;
+            }
+          });
+
+          child.querySelector('#verifyEmailBtn')?.addEventListener('click', async () => {
+            const code = (child.querySelector('#emailCodeInput')?.value || '').trim();
+            if (!pendingEmail || !code) {
+              setMessage('Please enter the 6-digit code.');
+              return;
+            }
+            setMessage('Verifying...');
+            const response = await apiFetch('/auth/email/verify-link-code', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email: pendingEmail, code })
+            });
+            const data = await parseResponseJsonSafe(response);
+            if (!response.ok) {
+              setMessage(data.error || 'Verification failed.');
+              return;
+            }
+            userProfile.email = data.email;
+            refreshSettingsSummary();
+            setSettingsMessage('Email linked successfully.');
+            child.remove();
+          });
+        });
+      };
+
+      const openUsernameDialog = () => {
+        if (!userProfile?.email) {
+          setSettingsMessage('Link an email before changing your username.');
+          return;
+        }
+        openChildDialog(`
+          <div style="width:min(420px,100%);background:#1f1f2a;border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:18px;color:#fff;display:grid;gap:12px;">
+            <h3 style="margin:0;">Change username</h3>
+            <input id="newUsernameA" type="text" placeholder="New username" style="padding:10px;border-radius:8px;border:1px solid #444;background:#12121a;color:#fff;">
+            <input id="newUsernameB" type="text" placeholder="Repeat new username" style="padding:10px;border-radius:8px;border:1px solid #444;background:#12121a;color:#fff;">
+            <button id="saveUsernameBtn" class="login-btn" type="button">Update username</button>
+            <button data-close-child class="login-btn" type="button" style="background:#333;">Close</button>
+            <div id="usernameChangeMsg" style="font-size:13px;color:#c4b5fd;"></div>
+          </div>
+        `, (child) => {
+          const msg = child.querySelector('#usernameChangeMsg');
+          const setMessage = (text) => { msg.textContent = text; };
+          child.querySelector('#saveUsernameBtn')?.addEventListener('click', async () => {
+            const newUsername = (child.querySelector('#newUsernameA')?.value || '').trim();
+            const confirmUsername = (child.querySelector('#newUsernameB')?.value || '').trim();
+            if (!newUsername || !confirmUsername) {
+              setMessage('Please fill both username fields.');
+              return;
+            }
+            setMessage('Updating username...');
+            const response = await apiFetch('/auth/settings/username', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ new_username: newUsername, confirm_username: confirmUsername })
+            });
+            const data = await parseResponseJsonSafe(response);
+            if (!response.ok) {
+              setMessage(data.error || 'Failed to update username.');
+              return;
+            }
+            userProfile.username = data.username || userProfile.username;
+            updateUserInfo();
+            refreshSettingsSummary();
+            setSettingsMessage('Username updated.');
+            child.remove();
+          });
+        });
+      };
+
+      const openPasswordDialog = () => {
+        if (!userProfile?.email) {
+          setSettingsMessage('Link an email before changing your password.');
+          return;
+        }
+        openChildDialog(`
+          <div style="width:min(420px,100%);background:#1f1f2a;border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:18px;color:#fff;display:grid;gap:12px;">
+            <h3 style="margin:0;">Change password</h3>
+            <input id="oldPassword" type="password" placeholder="Old password" style="padding:10px;border-radius:8px;border:1px solid #444;background:#12121a;color:#fff;">
+            <input id="newPasswordA" type="password" placeholder="New password" style="padding:10px;border-radius:8px;border:1px solid #444;background:#12121a;color:#fff;">
+            <input id="newPasswordB" type="password" placeholder="Repeat new password" style="padding:10px;border-radius:8px;border:1px solid #444;background:#12121a;color:#fff;">
+            <button id="savePasswordBtn" class="login-btn" type="button">Update password</button>
+            <button data-close-child class="login-btn" type="button" style="background:#333;">Close</button>
+            <div id="passwordChangeMsg" style="font-size:13px;color:#c4b5fd;"></div>
+          </div>
+        `, (child) => {
+          const msg = child.querySelector('#passwordChangeMsg');
+          const setMessage = (text) => { msg.textContent = text; };
+          child.querySelector('#savePasswordBtn')?.addEventListener('click', async () => {
+            const oldPassword = child.querySelector('#oldPassword')?.value || '';
+            const newPassword = child.querySelector('#newPasswordA')?.value || '';
+            const confirmPassword = child.querySelector('#newPasswordB')?.value || '';
+            if (!oldPassword || !newPassword || !confirmPassword) {
+              setMessage('Please fill all password fields.');
+              return;
+            }
+            setMessage('Updating password...');
+            const response = await apiFetch('/auth/settings/password', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ old_password: oldPassword, new_password: newPassword, confirm_password: confirmPassword })
+            });
+            const data = await parseResponseJsonSafe(response);
+            if (!response.ok) {
+              setMessage(data.error || 'Failed to update password.');
+              return;
+            }
+            setSettingsMessage(data.message || 'Password updated.');
+            child.remove();
+          });
+        });
+      };
+
+      refreshSettingsSummary();
+      modal.querySelector('#changeEmailBtn')?.addEventListener('click', openEmailDialog);
+      usernameBtn?.addEventListener('click', openUsernameDialog);
+      passwordBtn?.addEventListener('click', openPasswordDialog);
       modal.querySelector('#closeSettingsBtn')?.addEventListener('click', () => modal.remove());
-
-      modal.querySelector('#sendEmailCodeBtn')?.addEventListener('click', async () => {
-        const email = (emailInput.value || '').trim();
-        if (!email) {
-          setSettingsMessage('Please enter an email.');
-          return;
-        }
-        setSettingsMessage('Sending verification code...');
-        const response = await apiFetch('/auth/email/request-link-code', {
-          method: 'POST',
-          body: JSON.stringify({ email })
-        });
-        const data = await parseResponseJsonSafe(response);
-        setSettingsMessage(data.message || data.error || 'Request sent.');
-      });
-
-      modal.querySelector('#verifyEmailBtn')?.addEventListener('click', async () => {
-        const email = (emailInput.value || '').trim();
-        const code = (modal.querySelector('#emailCodeInput')?.value || '').trim();
-        if (!email || !code) {
-          setSettingsMessage('Please provide email and code.');
-          return;
-        }
-        setSettingsMessage('Verifying...');
-        const response = await apiFetch('/auth/email/verify-link-code', {
-          method: 'POST',
-          body: JSON.stringify({ email, code })
-        });
-        const data = await parseResponseJsonSafe(response);
-        if (!response.ok) {
-          setSettingsMessage(data.error || 'Verification failed.');
-          return;
-        }
-        userProfile.email = data.email;
-        setSettingsMessage('Email linked successfully.');
-        toggleCredentialFields();
-      });
-
-      modal.querySelector('#updateUsernameBtn')?.addEventListener('click', async () => {
-        const newUsername = (modal.querySelector('#newUsernameA')?.value || '').trim();
-        const confirmUsername = (modal.querySelector('#newUsernameB')?.value || '').trim();
-        if (!newUsername || !confirmUsername) {
-          setSettingsMessage('Please fill both username fields.');
-          return;
-        }
-        setSettingsMessage('Updating username...');
-        const response = await apiFetch('/auth/settings/username', {
-          method: 'POST',
-          body: JSON.stringify({ new_username: newUsername, confirm_username: confirmUsername })
-        });
-        const data = await parseResponseJsonSafe(response);
-        if (!response.ok) {
-          setSettingsMessage(data.error || 'Failed to update username.');
-          return;
-        }
-        userProfile.username = data.username || userProfile.username;
-        updateUserInfo();
-        setSettingsMessage('Username updated.');
-      });
-
-      modal.querySelector('#updatePasswordBtn')?.addEventListener('click', async () => {
-        const oldPassword = modal.querySelector('#oldPassword')?.value || '';
-        const newPassword = modal.querySelector('#newPasswordA')?.value || '';
-        const confirmPassword = modal.querySelector('#newPasswordB')?.value || '';
-        if (!oldPassword || !newPassword || !confirmPassword) {
-          setSettingsMessage('Please fill all password fields.');
-          return;
-        }
-        setSettingsMessage('Updating password...');
-        const response = await apiFetch('/auth/settings/password', {
-          method: 'POST',
-          body: JSON.stringify({ old_password: oldPassword, new_password: newPassword, confirm_password: confirmPassword })
-        });
-        const data = await parseResponseJsonSafe(response);
-        if (!response.ok) {
-          setSettingsMessage(data.error || 'Failed to update password.');
-          return;
-        }
-        setSettingsMessage('Password updated.');
-      });
     }
 
     document.addEventListener('DOMContentLoaded', async () => {

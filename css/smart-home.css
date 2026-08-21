@@ -46,7 +46,10 @@ html, body { min-height: 100%; color: white; }
       display: inline-flex; align-items: center; gap: 8px; margin-top: 16px; padding: 8px 14px; border-radius: 999px;
       background: rgba(166,0,207,.14); border: 1px solid rgba(166,0,207,.28); color: #f5d0fe; font-size: 13px; font-weight: 700;
     }
-    .user-info { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: rgba(30,30,46,.45); border: 1px solid rgba(255,255,255,.06); border-radius: 12px; }
+    .user-info { display: inline-flex; align-items: center; gap: 10px; padding: 10px 14px; background: rgba(30,30,46,.45); border: 1px solid rgba(255,255,255,.06); border-radius: 12px; }
+    .account-settings-trigger { color: #fff; cursor: pointer; font: inherit; transition: all .25s ease; }
+    .account-settings-trigger .bi { color: #c4b5fd; font-size: 1rem; }
+    .account-settings-trigger:hover { transform: translateY(-2px); background: rgba(166,0,207,.15); border-color: rgba(166,0,207,.5); box-shadow: 0 8px 20px rgba(166,0,207,.2); }
     .user-name { color: #fff; font-size: 14px; font-weight: 600; }
     .hidden { display: none !important; }
     .boot-zone {
