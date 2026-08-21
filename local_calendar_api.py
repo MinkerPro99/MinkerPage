@@ -180,14 +180,7 @@ def build_verification_email_html(*, title: str, intro: str, code: str, ttl_minu
           <table role="presentation" cellspacing="0" cellpadding="0" style="margin:0 auto;border-collapse:separate;border-spacing:8px 0;">
             <tr>
               <td style="padding:10px 14px;border-radius:10px;background:#12121a;border:1px solid rgba(255,255,255,.14);font-family:'Courier New',Courier,monospace;font-size:34px;line-height:1;font-weight:800;letter-spacing:.18em;color:#ffffff;user-select:all;">{code}</td>
-              <td>
-                <a href="#" aria-label="Copy verification code" style="display:inline-block;width:44px;height:44px;border-radius:10px;background:#a600cf;border:1px solid rgba(255,255,255,.18);text-align:center;text-decoration:none;line-height:44px;">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="vertical-align:middle;">
-                    <rect x="9" y="9" width="10" height="10" rx="2" stroke="#ffffff" stroke-width="2"/>
-                    <path d="M5 15V7a2 2 0 0 1 2-2h8" stroke="#ffffff" stroke-width="2" stroke-linecap="round"/>
-                  </svg>
-                </a>
-              </td>
+              <td style="width:44px;height:44px;border-radius:10px;background:#a600cf;border:1px solid rgba(255,255,255,.18);text-align:center;vertical-align:middle;color:#ffffff;font-size:22px;font-weight:700;line-height:1;" aria-label="Copy verification code">&#x2398;</td>
             </tr>
           </table>
         </div>
