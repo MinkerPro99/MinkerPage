@@ -14,15 +14,31 @@ from email.message import EmailMessage
 from pathlib import Path
 from typing import Any
 
-# Load .env if present
-_env_path = os.path.join(os.path.dirname(__file__), ".env")
-if os.path.exists(_env_path):
-    with open(_env_path) as _f:
-        for _line in _f:
-            _line = _line.strip()
-            if _line and not _line.startswith("#") and "=" in _line:
-                _k, _v = _line.split("=", 1)
-                os.environ.setdefault(_k.strip(), _v.strip())
+# Load local env files if present. Real process env vars keep priority.
+_loaded_env_file_keys: set[str] = set()
+
+
+def _load_env_file(path: str, *, override_file_values: bool = False) -> None:
+    if not os.path.exists(path):
+        return
+
+    with open(path) as env_file:
+        for line in env_file:
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, value = line.split("=", 1)
+            key = key.strip()
+            value = value.strip().strip('"').strip("'")
+            if key not in os.environ or (override_file_values and key in _loaded_env_file_keys):
+                os.environ[key] = value
+                _loaded_env_file_keys.add(key)
+
+
+_env_dir = Path(__file__).resolve().parent
+for _env_file in sorted(_env_dir.glob(".env*")):
+    if _env_file.is_file():
+        _load_env_file(str(_env_file), override_file_values=True)
 
 import requests as http_requests
 from flask import Flask, jsonify, request, send_file
