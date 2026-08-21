@@ -523,8 +523,8 @@ def request_email_link_code():
     except RuntimeError as exc:
         if conn:
             conn.rollback()
-        app.logger.warning("Email delivery unavailable: %s", exc)
-        return json_error("Email delivery is unavailable. Please try again later.", 503)
+        app.logger.exception("Email delivery unavailable")
+        return jsonify({"ok": False, "error": "Email delivery is unavailable. Please check SMTP settings and try again."}), 503
     except Error as exc:
         if conn:
             conn.rollback()
@@ -764,8 +764,8 @@ def forgot_password():
     except RuntimeError as exc:
         if conn:
             conn.rollback()
-        app.logger.warning("Password reset email delivery unavailable: %s", exc)
-        return json_error("Email delivery is unavailable. Please try again later.", 503)
+        app.logger.exception("Password reset email delivery unavailable")
+        return jsonify({"ok": False, "error": "Email delivery is unavailable. Please check SMTP settings and try again."}), 503
     except Error as exc:
         if conn:
             conn.rollback()
