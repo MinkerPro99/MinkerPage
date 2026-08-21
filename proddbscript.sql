@@ -73,6 +73,41 @@ CREATE TABLE IF NOT EXISTS auth_email_codes (
 		ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Migration-safe schema upgrades for existing production databases
+-- This block is compatible with older MySQL versions where
+-- `ADD COLUMN IF NOT EXISTS` is not supported.
+SET @has_users_email := (
+	SELECT COUNT(*)
+	FROM information_schema.COLUMNS
+	WHERE TABLE_SCHEMA = DATABASE()
+	  AND TABLE_NAME = 'users'
+	  AND COLUMN_NAME = 'email'
+);
+SET @sql_users_email := IF(
+	@has_users_email = 0,
+	'ALTER TABLE users ADD COLUMN email VARCHAR(255) NULL',
+	'SELECT 1'
+);
+PREPARE stmt_users_email FROM @sql_users_email;
+EXECUTE stmt_users_email;
+DEALLOCATE PREPARE stmt_users_email;
+
+SET @users_email_idx_exists := (
+	SELECT COUNT(*)
+	FROM information_schema.STATISTICS
+	WHERE TABLE_SCHEMA = DATABASE()
+	  AND TABLE_NAME = 'users'
+	  AND INDEX_NAME = 'uq_users_email'
+);
+SET @sql_users_email_idx := IF(
+	@users_email_idx_exists = 0,
+	'ALTER TABLE users ADD UNIQUE KEY uq_users_email (email)',
+	'SELECT 1'
+);
+PREPARE stmt_users_email_idx FROM @sql_users_email_idx;
+EXECUTE stmt_users_email_idx;
+DEALLOCATE PREPARE stmt_users_email_idx;
+
 -- Optional cleanup helper for expired sessions
 -- DELETE FROM auth_tokens WHERE expires_at <= UTC_TIMESTAMP();
 

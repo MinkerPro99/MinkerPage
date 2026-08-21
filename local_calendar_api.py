@@ -1,6 +1,7 @@
 import asyncio
 import datetime as dt
 import hashlib
+import hmac
 import io
 import json
 import os
@@ -39,13 +40,13 @@ from werkzeug.utils import secure_filename
 # }
 
 #PROD
-DB_CONFIG = {
-    "host": os.getenv("DB_HOST", "127.0.0.1"),
-    "port": int(os.getenv("DB_PORT", "3306")),
-    "user": os.getenv("DB_USER", "minker_api2"),
-    "password": os.getenv("DB_PASSWORD", "Init.12345!"),
-    "database": os.getenv("DB_NAME", "minker_calendar_prod2"),
-}
+# DB_CONFIG = {
+#     "host": os.getenv("DB_HOST", "127.0.0.1"),
+#     "port": int(os.getenv("DB_PORT", "3306")),
+#     "user": os.getenv("DB_USER", "minker_api2"),
+#     "password": os.getenv("DB_PASSWORD", "Init.12345!"),
+#     "database": os.getenv("DB_NAME", "minker_calendar_prod2"),
+# }
 
 APP_PORT = int(os.getenv("APP_PORT", "5050"))
 TOKEN_DAYS = int(os.getenv("TOKEN_DAYS", "30"))
@@ -66,7 +67,7 @@ pool = pooling.MySQLConnectionPool(
 )
 
 def json_error(message: str, status: int = 400):
-    safe_message = "Request failed" if status < 500 else "Internal server error"
+    safe_message = "Internal server error" if status >= 500 else message
     return jsonify({"ok": False, "error": safe_message}), status
 
 
@@ -96,8 +97,17 @@ def generate_six_digit_code() -> str:
 
 
 def hash_one_time_code(purpose: str, email: str, code: str) -> str:
-    payload = f"{purpose}|{email}|{code}|{EMAIL_CODE_SIGNING_SECRET}"
-    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+    payload = f"{purpose}|{email}|{code}"
+    return hmac.new(
+        EMAIL_CODE_SIGNING_SECRET.encode("utf-8"),
+        payload.encode("utf-8"),
+        hashlib.sha256,
+    ).hexdigest()
+
+
+def codes_match(stored_hash: str, purpose: str, email: str, code: str) -> bool:
+    expected_hash = hash_one_time_code(purpose, email, code)
+    return hmac.compare_digest(stored_hash, expected_hash)
 
 
 def send_email_message(to_email: str, subject: str, body: str) -> None:
@@ -135,6 +145,17 @@ def create_and_store_email_code(
     purpose: str,
     ttl_minutes: int,
 ) -> str:
+    cursor.execute(
+        """
+        UPDATE auth_email_codes
+        SET used_at = UTC_TIMESTAMP()
+        WHERE user_id = %s
+          AND email = %s
+          AND purpose = %s
+          AND used_at IS NULL
+        """,
+        (user_id, email, purpose),
+    )
     code = generate_six_digit_code()
     code_hash = hash_one_time_code(purpose, email, code)
     cursor.execute(
@@ -145,6 +166,22 @@ def create_and_store_email_code(
         (user_id, email, purpose, code_hash, ttl_minutes, MAX_EMAIL_CODE_ATTEMPTS),
     )
     return code
+
+
+def has_recent_email_code_request(cursor, *, user_id: int, email: str, purpose: str) -> bool:
+    cursor.execute(
+        """
+        SELECT COUNT(*) AS request_count
+        FROM auth_email_codes
+        WHERE user_id = %s
+          AND email = %s
+          AND purpose = %s
+          AND created_at > DATE_SUB(UTC_TIMESTAMP(), INTERVAL 1 MINUTE)
+        """,
+        (user_id, email, purpose),
+    )
+    row = cursor.fetchone() or {}
+    return int(row.get("request_count", 0)) > 0
 
 
 def ensure_auth_schema() -> None:
@@ -456,6 +493,9 @@ def request_email_link_code():
         if owner and int(owner["user_id"]) != user_id:
             return json_error("Email is already in use", 409)
 
+        if has_recent_email_code_request(cursor, user_id=user_id, email=email, purpose="link_email"):
+            return json_error("Please wait before requesting another code.", 429)
+
         code = create_and_store_email_code(
             cursor,
             user_id=user_id,
@@ -476,14 +516,17 @@ def request_email_link_code():
     except RuntimeError as exc:
         if conn:
             conn.rollback()
-        return json_error(f"Email delivery unavailable: {exc}", 503)
+        app.logger.warning("Email delivery unavailable: %s", exc)
+        return json_error("Email delivery is unavailable. Please try again later.", 503)
     except Error as exc:
         if conn:
             conn.rollback()
+        app.logger.exception("Failed to request verification code")
         return json_error(f"Failed to request verification code: {exc}", 500)
     except Exception as exc:
         if conn:
             conn.rollback()
+        app.logger.exception("Failed to send verification code")
         return json_error(f"Failed to send verification code: {exc}", 500)
     finally:
         if cursor:
@@ -533,8 +576,7 @@ def verify_email_link_code():
         if int(row["attempt_count"]) >= int(row["max_attempts"]):
             return json_error("Too many invalid attempts. Request a new code.", 429)
 
-        expected_hash = hash_one_time_code("link_email", email, code)
-        if row["code_hash"] != expected_hash:
+        if not codes_match(row["code_hash"], "link_email", email, code):
             cursor.execute(
                 "UPDATE auth_email_codes SET attempt_count = attempt_count + 1 WHERE code_id = %s",
                 (row["code_id"],),
@@ -691,9 +733,13 @@ def forgot_password():
         if not user_row:
             return jsonify(generic_response)
 
+        user_id = int(user_row["user_id"])
+        if has_recent_email_code_request(cursor, user_id=user_id, email=email, purpose="reset_password"):
+            return jsonify(generic_response)
+
         code = create_and_store_email_code(
             cursor,
-            user_id=int(user_row["user_id"]),
+            user_id=user_id,
             email=email,
             purpose="reset_password",
             ttl_minutes=PASSWORD_RESET_TTL_MINUTES,
@@ -711,14 +757,17 @@ def forgot_password():
     except RuntimeError as exc:
         if conn:
             conn.rollback()
-        return json_error(f"Email delivery unavailable: {exc}", 503)
+        app.logger.warning("Password reset email delivery unavailable: %s", exc)
+        return json_error("Email delivery is unavailable. Please try again later.", 503)
     except Error as exc:
         if conn:
             conn.rollback()
+        app.logger.exception("Failed to process password reset request")
         return json_error(f"Failed to process password reset request: {exc}", 500)
     except Exception as exc:
         if conn:
             conn.rollback()
+        app.logger.exception("Failed to send password reset email")
         return json_error(f"Failed to send password reset email: {exc}", 500)
     finally:
         if cursor:
@@ -775,8 +824,7 @@ def reset_password_with_code():
         if int(code_row["attempt_count"]) >= int(code_row["max_attempts"]):
             return json_error("Too many invalid attempts. Request a new code.", 429)
 
-        expected_hash = hash_one_time_code("reset_password", email, code)
-        if code_row["code_hash"] != expected_hash:
+        if not codes_match(code_row["code_hash"], "reset_password", email, code):
             cursor.execute(
                 "UPDATE auth_email_codes SET attempt_count = attempt_count + 1 WHERE code_id = %s",
                 (code_row["code_id"],),
