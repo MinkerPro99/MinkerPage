@@ -66,7 +66,7 @@ pool = pooling.MySQLConnectionPool(
 )
 
 def json_error(message: str, status: int = 400):
-    safe_message = message if status < 500 else "Internal server error"
+    safe_message = "Request failed" if status < 500 else "Internal server error"
     return jsonify({"ok": False, "error": safe_message}), status
 
 
