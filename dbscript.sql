@@ -13,9 +13,11 @@ CREATE TABLE IF NOT EXISTS users (
 	user_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
 	username VARCHAR(60) NOT NULL,
 	password_hash VARCHAR(255) NOT NULL,
+	email VARCHAR(255) NULL,
 	created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	PRIMARY KEY (user_id),
-	UNIQUE KEY uq_users_username (username)
+	UNIQUE KEY uq_users_username (username),
+	UNIQUE KEY uq_users_email (email)
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS auth_tokens (
@@ -47,6 +49,23 @@ CREATE TABLE IF NOT EXISTS calendar_events (
 	CONSTRAINT chk_event_date_range CHECK (end_date >= start_date)
 ) ENGINE=InnoDB;
 
+CREATE TABLE IF NOT EXISTS auth_email_codes (
+	code_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+	user_id BIGINT UNSIGNED NOT NULL,
+	email VARCHAR(255) NOT NULL,
+	purpose VARCHAR(40) NOT NULL,
+	code_hash CHAR(64) NOT NULL,
+	attempt_count INT UNSIGNED NOT NULL DEFAULT 0,
+	max_attempts INT UNSIGNED NOT NULL DEFAULT 5,
+	expires_at DATETIME NOT NULL,
+	used_at DATETIME NULL,
+	created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	PRIMARY KEY (code_id),
+	KEY idx_auth_email_codes_user_id (user_id),
+	KEY idx_auth_email_codes_lookup (user_id, email, purpose, expires_at),
+	CONSTRAINT fk_auth_email_codes_user FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
 -- 3) Migration-safe schema upgrades for existing databases
 -- This block is compatible with older MySQL versions where
 -- `ADD COLUMN IF NOT EXISTS` is not supported.
@@ -67,6 +86,39 @@ SET @sql_user_id := IF(
 PREPARE stmt_user_id FROM @sql_user_id;
 EXECUTE stmt_user_id;
 DEALLOCATE PREPARE stmt_user_id;
+
+-- add users.email if missing
+SET @has_users_email := (
+	SELECT COUNT(*)
+	FROM information_schema.COLUMNS
+	WHERE TABLE_SCHEMA = DATABASE()
+	  AND TABLE_NAME = 'users'
+	  AND COLUMN_NAME = 'email'
+);
+SET @sql_users_email := IF(
+	@has_users_email = 0,
+	'ALTER TABLE users ADD COLUMN email VARCHAR(255) NULL',
+	'SELECT 1'
+);
+PREPARE stmt_users_email FROM @sql_users_email;
+EXECUTE stmt_users_email;
+DEALLOCATE PREPARE stmt_users_email;
+
+SET @users_email_idx_exists := (
+	SELECT COUNT(*)
+	FROM information_schema.STATISTICS
+	WHERE TABLE_SCHEMA = DATABASE()
+	  AND TABLE_NAME = 'users'
+	  AND INDEX_NAME = 'uq_users_email'
+);
+SET @sql_users_email_idx := IF(
+	@users_email_idx_exists = 0,
+	'ALTER TABLE users ADD UNIQUE KEY uq_users_email (email)',
+	'SELECT 1'
+);
+PREPARE stmt_users_email_idx FROM @sql_users_email_idx;
+EXECUTE stmt_users_email_idx;
+DEALLOCATE PREPARE stmt_users_email_idx;
 
 -- add indexes only if missing
 SET @idx_start_exists := (

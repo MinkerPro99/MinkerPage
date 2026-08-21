@@ -29,6 +29,7 @@
         <input id="passwordInput" type="password" placeholder="Password" class="login-field">
         <div id="loginErrorMessage" class="login-error"></div>
         <button id="loginBtn" class="login-btn">Login</button>
+        <button id="forgotPasswordBtn" class="login-btn" type="button" style="background: transparent; border: 1px solid rgba(166, 0, 207, 0.5); color: #c4b5fd;">Forgot password?</button>
       </div>
     </div>
   </div>
@@ -43,6 +44,9 @@
         </div>
         <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
           <div class="user-info"><span id="userName" class="user-name"></span></div>
+          <button id="settingsBtn" class="login-btn" type="button" style="width: auto; padding: 10px 14px;" title="Settings" aria-label="Open settings">
+            <i class="bi bi-gear-fill" aria-hidden="true"></i>
+          </button>
           <button id="logoutBtn" class="logout-btn">Logout</button>
         </div>
       </div>

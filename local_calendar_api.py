@@ -1,12 +1,15 @@
 import asyncio
 import datetime as dt
+import hashlib
 import io
 import json
 import os
 import re
 import secrets
+import smtplib
 import uuid
 from datetime import datetime
+from email.message import EmailMessage
 from pathlib import Path
 from typing import Any
 
@@ -46,6 +49,10 @@ DB_CONFIG = {
 
 APP_PORT = int(os.getenv("APP_PORT", "5050"))
 TOKEN_DAYS = int(os.getenv("TOKEN_DAYS", "30"))
+EMAIL_CODE_TTL_MINUTES = int(os.getenv("EMAIL_CODE_TTL_MINUTES", "10"))
+PASSWORD_RESET_TTL_MINUTES = int(os.getenv("PASSWORD_RESET_TTL_MINUTES", "15"))
+MAX_EMAIL_CODE_ATTEMPTS = int(os.getenv("MAX_EMAIL_CODE_ATTEMPTS", "5"))
+EMAIL_CODE_SIGNING_SECRET = os.getenv("EMAIL_CODE_SIGNING_SECRET", "minker-local-email-secret")
 STUDY_TRAINER_STORE = Path(os.getenv("STUDY_TRAINER_STORE", Path(__file__).with_name("data") / "study_trainer.json"))
 STUDY_TRAINER_MAX_TEXT = int(os.getenv("STUDY_TRAINER_MAX_TEXT", "60000"))
 DONE_MARKER = "\u2063\u2064\u2063"
@@ -58,6 +65,8 @@ pool = pooling.MySQLConnectionPool(
     **DB_CONFIG,
 )
 
+EMAIL_PATTERN = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
 
 def json_error(message: str, status: int = 400):
     return jsonify({"ok": False, "error": message}), status
@@ -67,6 +76,134 @@ def parse_iso_date(date_value: str) -> datetime.date:
     return datetime.strptime(date_value, "%Y-%m-%d").date()
 
 
+def normalize_email(value: str | None) -> str:
+    return (value or "").strip().lower()
+
+
+def is_valid_email(value: str) -> bool:
+    return bool(EMAIL_PATTERN.match(value))
+
+
+def generate_six_digit_code() -> str:
+    return f"{secrets.randbelow(1_000_000):06d}"
+
+
+def hash_one_time_code(purpose: str, email: str, code: str) -> str:
+    payload = f"{purpose}|{email}|{code}|{EMAIL_CODE_SIGNING_SECRET}"
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def send_email_message(to_email: str, subject: str, body: str) -> None:
+    smtp_host = os.getenv("SMTP_HOST", "").strip()
+    if not smtp_host:
+        raise RuntimeError("SMTP_HOST is not configured")
+
+    smtp_port = int(os.getenv("SMTP_PORT", "587"))
+    smtp_user = os.getenv("SMTP_USER", "").strip()
+    smtp_password = os.getenv("SMTP_PASSWORD", "")
+    smtp_from = os.getenv("SMTP_FROM", smtp_user or "no-reply@minkerpage.local").strip()
+    use_tls = os.getenv("SMTP_USE_TLS", "true").strip().lower() not in {"0", "false", "no"}
+
+    message = EmailMessage()
+    message["From"] = smtp_from
+    message["To"] = to_email
+    message["Subject"] = subject
+    message.set_content(body)
+
+    with smtplib.SMTP(smtp_host, smtp_port, timeout=15) as smtp:
+        smtp.ehlo()
+        if use_tls:
+            smtp.starttls()
+            smtp.ehlo()
+        if smtp_user and smtp_password:
+            smtp.login(smtp_user, smtp_password)
+        smtp.send_message(message)
+
+
+def create_and_store_email_code(
+    cursor,
+    *,
+    user_id: int,
+    email: str,
+    purpose: str,
+    ttl_minutes: int,
+) -> str:
+    code = generate_six_digit_code()
+    code_hash = hash_one_time_code(purpose, email, code)
+    cursor.execute(
+        """
+        INSERT INTO auth_email_codes (user_id, email, purpose, code_hash, expires_at, max_attempts)
+        VALUES (%s, %s, %s, %s, DATE_ADD(UTC_TIMESTAMP(), INTERVAL %s MINUTE), %s)
+        """,
+        (user_id, email, purpose, code_hash, ttl_minutes, MAX_EMAIL_CODE_ATTEMPTS),
+    )
+    return code
+
+
+def ensure_auth_schema() -> None:
+    conn = None
+    cursor = None
+    try:
+        conn = pool.get_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            SELECT COUNT(*)
+            FROM information_schema.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'users'
+              AND COLUMN_NAME = 'email'
+            """
+        )
+        has_email = int((cursor.fetchone() or [0])[0]) > 0
+        if not has_email:
+            cursor.execute("ALTER TABLE users ADD COLUMN email VARCHAR(255) NULL")
+
+        cursor.execute(
+            """
+            SELECT COUNT(*)
+            FROM information_schema.STATISTICS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'users'
+              AND INDEX_NAME = 'uq_users_email'
+            """
+        )
+        has_email_index = int((cursor.fetchone() or [0])[0]) > 0
+        if not has_email_index:
+            cursor.execute("ALTER TABLE users ADD UNIQUE KEY uq_users_email (email)")
+
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS auth_email_codes (
+                code_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+                user_id BIGINT UNSIGNED NOT NULL,
+                email VARCHAR(255) NOT NULL,
+                purpose VARCHAR(40) NOT NULL,
+                code_hash CHAR(64) NOT NULL,
+                attempt_count INT UNSIGNED NOT NULL DEFAULT 0,
+                max_attempts INT UNSIGNED NOT NULL DEFAULT 5,
+                expires_at DATETIME NOT NULL,
+                used_at DATETIME NULL,
+                created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (code_id),
+                KEY idx_auth_email_codes_user_id (user_id),
+                KEY idx_auth_email_codes_lookup (user_id, email, purpose, expires_at),
+                CONSTRAINT fk_auth_email_codes_user
+                    FOREIGN KEY (user_id) REFERENCES users(user_id)
+                    ON DELETE CASCADE
+            ) ENGINE=InnoDB
+            """
+        )
+
+        conn.commit()
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+
+ensure_auth_schema()
 def parse_bearer_token() -> str | None:
     auth = request.headers.get("Authorization", "")
     if not auth.startswith("Bearer "):
@@ -194,13 +331,13 @@ def register_user():
         pwd_hash = generate_password_hash(password)
         cursor.execute(
             """
-            INSERT INTO users (username, password_hash)
-            VALUES (%s, %s)
+            INSERT INTO users (username, password_hash, email)
+            VALUES (%s, %s, NULL)
             """,
             (username, pwd_hash),
         )
         conn.commit()
-        return jsonify({"ok": True, "user_id": cursor.lastrowid, "username": username}), 201
+        return jsonify({"ok": True, "user_id": cursor.lastrowid, "username": username, "email": None}), 201
     except Error as exc:
         return json_error(f"Failed to register user: {exc}", 500)
     finally:
@@ -223,7 +360,7 @@ def login_user():
         cursor = conn.cursor(dictionary=True)
         cursor.execute(
             """
-            SELECT user_id, username, password_hash
+            SELECT user_id, username, email, password_hash
             FROM users
             WHERE username = %s
             LIMIT 1
@@ -249,7 +386,7 @@ def login_user():
                 "ok": True,
                 "token": token,
                 "expires_in_days": TOKEN_DAYS,
-                "user": {"user_id": row["user_id"], "username": row["username"]},
+                "user": {"user_id": row["user_id"], "username": row["username"], "email": row.get("email")},
             }
         )
     except Error as exc:
@@ -273,7 +410,7 @@ def who_am_i():
         conn = pool.get_connection()
         cursor = conn.cursor(dictionary=True)
         cursor.execute(
-            "SELECT user_id, username, created_at FROM users WHERE user_id = %s LIMIT 1",
+            "SELECT user_id, username, email, created_at FROM users WHERE user_id = %s LIMIT 1",
             (user_id,),
         )
         row = cursor.fetchone()
@@ -282,6 +419,376 @@ def who_am_i():
         return jsonify({"ok": True, "user": row})
     except Error as exc:
         return json_error(f"Failed to fetch profile: {exc}", 500)
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+
+@app.route("/api/auth/email/request-link-code", methods=["POST"])
+def request_email_link_code():
+    try:
+        user_id = require_auth_user_id()
+    except PermissionError:
+        return json_error("Unauthorized", 401)
+
+    data: dict[str, Any] = request.get_json(silent=True) or {}
+    email = normalize_email(data.get("email"))
+    if not is_valid_email(email):
+        return json_error("Please provide a valid email address")
+
+    conn = None
+    cursor = None
+    try:
+        conn = pool.get_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        cursor.execute("SELECT user_id FROM users WHERE email = %s LIMIT 1", (email,))
+        owner = cursor.fetchone()
+        if owner and int(owner["user_id"]) != user_id:
+            return json_error("Email is already in use", 409)
+
+        code = create_and_store_email_code(
+            cursor,
+            user_id=user_id,
+            email=email,
+            purpose="link_email",
+            ttl_minutes=EMAIL_CODE_TTL_MINUTES,
+        )
+        send_email_message(
+            email,
+            "Your MinkerPage verification code",
+            (
+                f"Use this 6-digit code to link your email to your MinkerPage account: {code}\n\n"
+                f"This code expires in {EMAIL_CODE_TTL_MINUTES} minutes."
+            ),
+        )
+        conn.commit()
+        return jsonify({"ok": True, "message": "Verification code sent"})
+    except RuntimeError as exc:
+        if conn:
+            conn.rollback()
+        return json_error(f"Email delivery unavailable: {exc}", 503)
+    except Error as exc:
+        if conn:
+            conn.rollback()
+        return json_error(f"Failed to request verification code: {exc}", 500)
+    except Exception as exc:
+        if conn:
+            conn.rollback()
+        return json_error(f"Failed to send verification code: {exc}", 500)
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+
+@app.route("/api/auth/email/verify-link-code", methods=["POST"])
+def verify_email_link_code():
+    try:
+        user_id = require_auth_user_id()
+    except PermissionError:
+        return json_error("Unauthorized", 401)
+
+    data: dict[str, Any] = request.get_json(silent=True) or {}
+    email = normalize_email(data.get("email"))
+    code = (data.get("code") or "").strip()
+
+    if not is_valid_email(email):
+        return json_error("Please provide a valid email address")
+    if not re.fullmatch(r"\d{6}", code):
+        return json_error("Verification code must be 6 digits")
+
+    conn = None
+    cursor = None
+    try:
+        conn = pool.get_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute(
+            """
+            SELECT code_id, code_hash, attempt_count, max_attempts
+            FROM auth_email_codes
+            WHERE user_id = %s
+              AND email = %s
+              AND purpose = 'link_email'
+              AND used_at IS NULL
+              AND expires_at > UTC_TIMESTAMP()
+            ORDER BY created_at DESC
+            LIMIT 1
+            """,
+            (user_id, email),
+        )
+        row = cursor.fetchone()
+        if not row:
+            return json_error("Verification code is invalid or expired", 400)
+        if int(row["attempt_count"]) >= int(row["max_attempts"]):
+            return json_error("Too many invalid attempts. Request a new code.", 429)
+
+        expected_hash = hash_one_time_code("link_email", email, code)
+        if row["code_hash"] != expected_hash:
+            cursor.execute(
+                "UPDATE auth_email_codes SET attempt_count = attempt_count + 1 WHERE code_id = %s",
+                (row["code_id"],),
+            )
+            conn.commit()
+            return json_error("Verification code is invalid", 400)
+
+        cursor.execute("UPDATE users SET email = %s WHERE user_id = %s", (email, user_id))
+        cursor.execute("UPDATE auth_email_codes SET used_at = UTC_TIMESTAMP() WHERE code_id = %s", (row["code_id"],))
+        conn.commit()
+        return jsonify({"ok": True, "email": email})
+    except Error as exc:
+        if conn:
+            conn.rollback()
+        if getattr(exc, "errno", None) == 1062:
+            return json_error("Email is already in use", 409)
+        return json_error(f"Failed to verify email: {exc}", 500)
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+
+def require_email_linked(cursor, user_id: int):
+    cursor.execute("SELECT username, email, password_hash FROM users WHERE user_id = %s LIMIT 1", (user_id,))
+    user_row = cursor.fetchone()
+    if not user_row:
+        return None, json_error("User not found", 404)
+    if not user_row.get("email"):
+        return None, json_error("Please link an email before changing credentials", 403)
+    return user_row, None
+
+
+@app.route("/api/auth/settings/username", methods=["POST"])
+def update_username():
+    try:
+        user_id = require_auth_user_id()
+    except PermissionError:
+        return json_error("Unauthorized", 401)
+
+    data: dict[str, Any] = request.get_json(silent=True) or {}
+    new_username = (data.get("new_username") or "").strip().lower()
+    confirm_username = (data.get("confirm_username") or "").strip().lower()
+    if len(new_username) < 3:
+        return json_error("username must be at least 3 characters")
+    if new_username != confirm_username:
+        return json_error("username entries do not match")
+
+    conn = None
+    cursor = None
+    try:
+        conn = pool.get_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        _, denied = require_email_linked(cursor, user_id)
+        if denied:
+            return denied
+
+        cursor.execute(
+            "SELECT user_id FROM users WHERE username = %s AND user_id <> %s LIMIT 1",
+            (new_username, user_id),
+        )
+        if cursor.fetchone():
+            return json_error("username already exists", 409)
+
+        cursor.execute("UPDATE users SET username = %s WHERE user_id = %s", (new_username, user_id))
+        conn.commit()
+        return jsonify({"ok": True, "username": new_username})
+    except Error as exc:
+        if conn:
+            conn.rollback()
+        return json_error(f"Failed to update username: {exc}", 500)
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+
+@app.route("/api/auth/settings/password", methods=["POST"])
+def update_password():
+    try:
+        user_id = require_auth_user_id()
+    except PermissionError:
+        return json_error("Unauthorized", 401)
+
+    data: dict[str, Any] = request.get_json(silent=True) or {}
+    old_password = data.get("old_password") or ""
+    new_password = data.get("new_password") or ""
+    confirm_password = data.get("confirm_password") or ""
+    if len(new_password) < 6:
+        return json_error("new password must be at least 6 characters")
+    if new_password != confirm_password:
+        return json_error("new password entries do not match")
+
+    conn = None
+    cursor = None
+    try:
+        conn = pool.get_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        user_row, denied = require_email_linked(cursor, user_id)
+        if denied:
+            return denied
+
+        if not check_password_hash(user_row["password_hash"], old_password):
+            return json_error("old password is incorrect", 401)
+
+        password_hash = generate_password_hash(new_password)
+        cursor.execute("UPDATE users SET password_hash = %s WHERE user_id = %s", (password_hash, user_id))
+
+        current_token = parse_bearer_token()
+        if current_token:
+            cursor.execute(
+                "DELETE FROM auth_tokens WHERE user_id = %s AND token <> %s",
+                (user_id, current_token),
+            )
+        else:
+            cursor.execute("DELETE FROM auth_tokens WHERE user_id = %s", (user_id,))
+
+        conn.commit()
+        return jsonify({"ok": True, "message": "Password updated"})
+    except Error as exc:
+        if conn:
+            conn.rollback()
+        return json_error(f"Failed to update password: {exc}", 500)
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+
+@app.route("/api/auth/password/forgot", methods=["POST"])
+def forgot_password():
+    data: dict[str, Any] = request.get_json(silent=True) or {}
+    email = normalize_email(data.get("email"))
+    generic_response = {
+        "ok": True,
+        "message": "If this email exists, a reset code has been sent.",
+    }
+
+    if not is_valid_email(email):
+        return jsonify(generic_response)
+
+    conn = None
+    cursor = None
+    try:
+        conn = pool.get_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT user_id FROM users WHERE email = %s LIMIT 1", (email,))
+        user_row = cursor.fetchone()
+        if not user_row:
+            return jsonify(generic_response)
+
+        code = create_and_store_email_code(
+            cursor,
+            user_id=int(user_row["user_id"]),
+            email=email,
+            purpose="reset_password",
+            ttl_minutes=PASSWORD_RESET_TTL_MINUTES,
+        )
+        send_email_message(
+            email,
+            "Your MinkerPage password reset code",
+            (
+                f"Use this 6-digit code to reset your MinkerPage password: {code}\n\n"
+                f"This code expires in {PASSWORD_RESET_TTL_MINUTES} minutes."
+            ),
+        )
+        conn.commit()
+        return jsonify(generic_response)
+    except RuntimeError as exc:
+        if conn:
+            conn.rollback()
+        return json_error(f"Email delivery unavailable: {exc}", 503)
+    except Error as exc:
+        if conn:
+            conn.rollback()
+        return json_error(f"Failed to process password reset request: {exc}", 500)
+    except Exception as exc:
+        if conn:
+            conn.rollback()
+        return json_error(f"Failed to send password reset email: {exc}", 500)
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+
+@app.route("/api/auth/password/reset", methods=["POST"])
+def reset_password_with_code():
+    data: dict[str, Any] = request.get_json(silent=True) or {}
+    email = normalize_email(data.get("email"))
+    code = (data.get("code") or "").strip()
+    new_password = data.get("new_password") or ""
+    confirm_password = data.get("confirm_password") or ""
+
+    if not is_valid_email(email):
+        return json_error("Please provide a valid email address")
+    if not re.fullmatch(r"\d{6}", code):
+        return json_error("Reset code must be 6 digits")
+    if len(new_password) < 6:
+        return json_error("password must be at least 6 characters")
+    if new_password != confirm_password:
+        return json_error("password entries do not match")
+
+    conn = None
+    cursor = None
+    try:
+        conn = pool.get_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT user_id FROM users WHERE email = %s LIMIT 1", (email,))
+        user_row = cursor.fetchone()
+        if not user_row:
+            return json_error("Invalid reset code or expired request", 400)
+        user_id = int(user_row["user_id"])
+
+        cursor.execute(
+            """
+            SELECT code_id, code_hash, attempt_count, max_attempts
+            FROM auth_email_codes
+            WHERE user_id = %s
+              AND email = %s
+              AND purpose = 'reset_password'
+              AND used_at IS NULL
+              AND expires_at > UTC_TIMESTAMP()
+            ORDER BY created_at DESC
+            LIMIT 1
+            """,
+            (user_id, email),
+        )
+        code_row = cursor.fetchone()
+        if not code_row:
+            return json_error("Invalid reset code or expired request", 400)
+        if int(code_row["attempt_count"]) >= int(code_row["max_attempts"]):
+            return json_error("Too many invalid attempts. Request a new code.", 429)
+
+        expected_hash = hash_one_time_code("reset_password", email, code)
+        if code_row["code_hash"] != expected_hash:
+            cursor.execute(
+                "UPDATE auth_email_codes SET attempt_count = attempt_count + 1 WHERE code_id = %s",
+                (code_row["code_id"],),
+            )
+            conn.commit()
+            return json_error("Invalid reset code", 400)
+
+        cursor.execute(
+            "UPDATE users SET password_hash = %s WHERE user_id = %s",
+            (generate_password_hash(new_password), user_id),
+        )
+        cursor.execute("DELETE FROM auth_tokens WHERE user_id = %s", (user_id,))
+        cursor.execute("UPDATE auth_email_codes SET used_at = UTC_TIMESTAMP() WHERE code_id = %s", (code_row["code_id"],))
+        conn.commit()
+        return jsonify({"ok": True, "message": "Password reset successful. Please log in."})
+    except Error as exc:
+        if conn:
+            conn.rollback()
+        return json_error(f"Failed to reset password: {exc}", 500)
     finally:
         if cursor:
             cursor.close()

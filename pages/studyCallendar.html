@@ -36,6 +36,7 @@
         <input id="passwordInput" type="password" placeholder="Password" class="login-field">
         <div id="loginErrorMessage" style="display: none; padding: 10px; border-radius: 8px; background: rgba(239, 68, 68, 0.1); border: 1px solid #ef4444; color: #fecaca; font-size: 14px;"></div>
         <button id="loginBtn" class="login-btn">Login</button>
+        <button id="forgotPasswordBtn" class="login-btn" type="button" style="background: transparent; border: 1px solid rgba(166, 0, 207, 0.5); color: #c4b5fd;">Forgot password?</button>
         <a href="./register.html" style="color: #a600cf; text-decoration: none; font-size: 14px; font-weight: 600;">Create account</a>
       </div>
     </div>
@@ -53,6 +54,10 @@
           <div id="userInfo" class="user-info">
             <span id="userName" class="user-name"></span>
           </div>
+          <button id="settingsBtn" class="install-btn" type="button" title="Settings" aria-label="Open settings">
+            <i class="bi bi-gear-fill" aria-hidden="true"></i>
+            <span>Settings</span>
+          </button>
           <button id="logoutBtn" class="logout-btn">Logout</button>
         </div>
       </div>
