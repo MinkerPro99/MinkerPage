@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import asyncio
 import datetime as dt
 import hashlib
@@ -53,9 +55,12 @@ def env_int(name: str, default: int) -> int:
 
 _env_dir = Path(__file__).resolve().parent
 for _env_file in sorted(_env_dir.glob(".env*")):
-    if _env_file.is_file():
-        print(f"Loading env file: {_env_file.name}")
-        _load_env_file(str(_env_file), override_file_values=True)
+    if not _env_file.is_file():
+        continue
+    if _env_file.name.endswith((".example", ".sample", ".template")):
+        continue
+    print(f"Loading env file: {_env_file.name}")
+    _load_env_file(str(_env_file), override_file_values=True)
 
 import requests as http_requests
 from flask import Flask, jsonify, request, send_file
@@ -96,11 +101,18 @@ DONE_MARKER = "\u2063\u2064\u2063"
 
 app = Flask(__name__)
 
-pool = pooling.MySQLConnectionPool(
-    pool_name="minker_calendar_pool",
-    pool_size=5,
-    **DB_CONFIG,
-)
+pool = None
+
+
+def get_db_connection():
+    global pool
+    if pool is None:
+        pool = pooling.MySQLConnectionPool(
+            pool_name="minker_calendar_pool",
+            pool_size=5,
+            **DB_CONFIG,
+        )
+    return pool.get_connection()
 
 def json_error(message: str, status: int = 400):
     safe_message = "Internal server error" if status >= 500 else message
@@ -321,7 +333,7 @@ def ensure_auth_schema() -> None:
     conn = None
     cursor = None
     try:
-        conn = pool.get_connection()
+        conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute(
             """
@@ -380,7 +392,12 @@ def ensure_auth_schema() -> None:
             conn.close()
 
 
-ensure_auth_schema()
+try:
+    ensure_auth_schema()
+except Error as exc:
+    print(f"Warning: auth schema migration skipped: {exc}")
+
+
 def parse_bearer_token() -> str | None:
     auth = request.headers.get("Authorization", "")
     if not auth.startswith("Bearer "):
@@ -396,7 +413,7 @@ def get_authenticated_user_id() -> int | None:
     conn = None
     cursor = None
     try:
-        conn = pool.get_connection()
+        conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
         cursor.execute(
             """
@@ -473,7 +490,7 @@ def handle_preflight():
 @app.route("/api/health-db", methods=["GET"])
 def health_db():
     try:
-        conn = pool.get_connection()
+        conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
         cursor.execute("SELECT 1 AS ok, CURRENT_TIMESTAMP AS now_ts")
         row = cursor.fetchone()
@@ -498,7 +515,7 @@ def register_user():
     conn = None
     cursor = None
     try:
-        conn = pool.get_connection()
+        conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
 
         cursor.execute("SELECT user_id FROM users WHERE username = %s LIMIT 1", (username,))
@@ -533,7 +550,7 @@ def login_user():
     conn = None
     cursor = None
     try:
-        conn = pool.get_connection()
+        conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
         cursor.execute(
             """
@@ -584,7 +601,7 @@ def who_am_i():
     conn = None
     cursor = None
     try:
-        conn = pool.get_connection()
+        conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
         cursor.execute(
             "SELECT user_id, username, email, created_at FROM users WHERE user_id = %s LIMIT 1",
@@ -618,7 +635,7 @@ def request_email_link_code():
     conn = None
     cursor = None
     try:
-        conn = pool.get_connection()
+        conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
 
         cursor.execute("SELECT user_id FROM users WHERE email = %s LIMIT 1", (email,))
@@ -694,7 +711,7 @@ def verify_email_link_code():
     conn = None
     cursor = None
     try:
-        conn = pool.get_connection()
+        conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
         cursor.execute(
             """
@@ -769,7 +786,7 @@ def update_username():
     conn = None
     cursor = None
     try:
-        conn = pool.get_connection()
+        conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
 
         _, denied = require_email_linked(cursor, user_id)
@@ -816,7 +833,7 @@ def update_password():
     conn = None
     cursor = None
     try:
-        conn = pool.get_connection()
+        conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
 
         user_row, denied = require_email_linked(cursor, user_id)
@@ -866,7 +883,7 @@ def forgot_password():
     conn = None
     cursor = None
     try:
-        conn = pool.get_connection()
+        conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
         cursor.execute("SELECT user_id FROM users WHERE email = %s LIMIT 1", (email,))
         user_row = cursor.fetchone()
@@ -943,7 +960,7 @@ def reset_password_with_code():
     conn = None
     cursor = None
     try:
-        conn = pool.get_connection()
+        conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
         cursor.execute("SELECT user_id FROM users WHERE email = %s LIMIT 1", (email,))
         user_row = cursor.fetchone()
@@ -1009,7 +1026,7 @@ def list_events():
     end = request.args.get("end")
 
     try:
-        conn = pool.get_connection()
+        conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
         purge_expired_calendar_events(cursor, user_id)
         conn.commit()
@@ -1072,7 +1089,7 @@ def create_event():
         if e_date < s_date:
             return json_error("end_date must be >= start_date")
 
-        conn = pool.get_connection()
+        conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute(
             """
@@ -1119,7 +1136,7 @@ def update_event(event_id: int):
         if e_date < s_date:
             return json_error("end_date must be >= start_date")
 
-        conn = pool.get_connection()
+        conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute(
             """
@@ -1152,7 +1169,7 @@ def delete_event(event_id: int):
         return json_error("Unauthorized", 401)
 
     try:
-        conn = pool.get_connection()
+        conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute(
             "DELETE FROM calendar_events WHERE event_id = %s AND user_id = %s",
@@ -1284,7 +1301,7 @@ def _fetch_calendar_events_for_user(user_id: int, event_ids: list[int] | None = 
     conn = None
     cursor = None
     try:
-        conn = pool.get_connection()
+        conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
         purge_expired_calendar_events(cursor, user_id)
         conn.commit()
@@ -2139,7 +2156,7 @@ def _jarvis_calendar(user_id: int) -> str:
     try:
         today = dt.date.today()
         end   = today + dt.timedelta(days=7)
-        conn   = pool.get_connection()
+        conn   = get_db_connection()
         cursor = conn.cursor(dictionary=True)
         cursor.execute("""
             SELECT title, start_date, description FROM calendar_events

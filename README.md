@@ -5,7 +5,7 @@ Refresh after pull: sudo touch /var/www/vhosts/minkerpage.ch/httpdocs/tmp/restar
 ## Email verification setup
 
 Account email verification and password reset emails use Resend by default.
-Create a Resend API key, then provide these environment variables to the Python backend before restarting it. The backend loads every `.env*` file from the same directory as `local_calendar_api.py`, in filename order:
+Create a Resend API key, then provide these environment variables to the Python backend before restarting it. The backend loads real `.env*` files from the same directory as `local_calendar_api.py`, in filename order. Template files ending in `.example`, `.sample`, or `.template` are ignored:
 
 ```env
 EMAIL_PROVIDER=resend
