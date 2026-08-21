@@ -16,8 +16,22 @@ from email.message import EmailMessage
 from pathlib import Path
 from typing import Any
 
-# Load local env files if present. Real process env vars keep priority.
+# Load local env files if present. Real process env vars keep priority except mail overrides.
 _loaded_env_file_keys: set[str] = set()
+_loaded_env_file_names: set[str] = set()
+_EMAIL_ENV_FILE_OVERRIDE_KEYS = {
+    "EMAIL_PROVIDER",
+    "EMAIL_FROM",
+    "RESEND_FROM",
+    "RESEND_API_KEY",
+    "RESEND_API_URL",
+    "SMTP_HOST",
+    "SMTP_PORT",
+    "SMTP_USER",
+    "SMTP_PASSWORD",
+    "SMTP_FROM",
+    "SMTP_USE_TLS",
+}
 
 
 def _load_env_file(path: str, *, override_file_values: bool = False) -> None:
@@ -35,7 +49,8 @@ def _load_env_file(path: str, *, override_file_values: bool = False) -> None:
                 value = value.strip().strip('"').strip("'")
                 if not key:
                     continue
-                if key not in os.environ or (override_file_values and key in _loaded_env_file_keys):
+                can_override = key in _loaded_env_file_keys or key in _EMAIL_ENV_FILE_OVERRIDE_KEYS
+                if key not in os.environ or (override_file_values and can_override):
                     os.environ[key] = value
                     _loaded_env_file_keys.add(key)
     except OSError as exc:
@@ -54,13 +69,21 @@ def env_int(name: str, default: int) -> int:
 
 
 _env_dir = Path(__file__).resolve().parent
-for _env_file in sorted(_env_dir.glob(".env*")):
-    if not _env_file.is_file():
-        continue
-    if _env_file.name.endswith((".example", ".sample", ".template")):
-        continue
-    print(f"Loading env file: {_env_file.name}")
-    _load_env_file(str(_env_file), override_file_values=True)
+
+
+def load_env_files() -> None:
+    for env_file in sorted(_env_dir.glob(".env*")):
+        if not env_file.is_file():
+            continue
+        if env_file.name.endswith((".example", ".sample", ".template")):
+            continue
+        if env_file.name not in _loaded_env_file_names:
+            print(f"Loading env file: {env_file.name}")
+            _loaded_env_file_names.add(env_file.name)
+        _load_env_file(str(env_file), override_file_values=True)
+
+
+load_env_files()
 
 import requests as http_requests
 from flask import Flask, jsonify, request, send_file
@@ -92,9 +115,22 @@ EMAIL_CODE_TTL_MINUTES = env_int("EMAIL_CODE_TTL_MINUTES", 10)
 PASSWORD_RESET_TTL_MINUTES = env_int("PASSWORD_RESET_TTL_MINUTES", 15)
 MAX_EMAIL_CODE_ATTEMPTS = env_int("MAX_EMAIL_CODE_ATTEMPTS", 5)
 EMAIL_CODE_SIGNING_SECRET = os.getenv("EMAIL_CODE_SIGNING_SECRET", "minker-local-email-secret")
-EMAIL_PROVIDER = os.getenv("EMAIL_PROVIDER", "resend").strip().lower()
-EMAIL_FROM = os.getenv("EMAIL_FROM", os.getenv("RESEND_FROM", "MinkerPage <onboarding@resend.dev>")).strip()
-RESEND_API_URL = os.getenv("RESEND_API_URL", "https://api.resend.com/emails").strip()
+def get_email_provider() -> str:
+    return os.getenv("EMAIL_PROVIDER", "resend").strip().lower()
+
+
+def get_email_from() -> str:
+    return os.getenv("EMAIL_FROM", os.getenv("RESEND_FROM", "MinkerPage <onboarding@resend.dev>")).strip()
+
+
+def get_resend_api_url() -> str:
+    return os.getenv("RESEND_API_URL", "https://api.resend.com/emails").strip()
+
+
+def describe_email_address(value: str) -> str:
+    if "@" not in value:
+        return "unknown-domain"
+    return f"***@{value.rsplit('@', 1)[-1].rstrip('>')}"
 STUDY_TRAINER_STORE = Path(os.getenv("STUDY_TRAINER_STORE", Path(__file__).with_name("data") / "study_trainer.json"))
 STUDY_TRAINER_MAX_TEXT = env_int("STUDY_TRAINER_MAX_TEXT", 60000)
 DONE_MARKER = "\u2063\u2064\u2063"
@@ -198,14 +234,15 @@ def send_resend_email(to_email: str, subject: str, text_body: str, html_body: st
             "RESEND_API_KEY is not configured",
             "Resend is not configured on the server. Add RESEND_API_KEY and restart the backend.",
         )
-    if not EMAIL_FROM:
+    email_from = get_email_from()
+    if not email_from:
         raise EmailDeliveryError(
             "EMAIL_FROM is not configured",
             "Resend sender is not configured on the server. Add EMAIL_FROM and restart the backend.",
         )
 
     payload = {
-        "from": EMAIL_FROM,
+        "from": email_from,
         "to": [to_email],
         "subject": subject,
         "text": text_body,
@@ -214,8 +251,9 @@ def send_resend_email(to_email: str, subject: str, text_body: str, html_body: st
         payload["html"] = html_body
 
     try:
+        app.logger.info("Sending Resend email to %s from %s", describe_email_address(to_email), describe_email_address(email_from))
         response = http_requests.post(
-            RESEND_API_URL,
+            get_resend_api_url(),
             headers={
                 "Authorization": f"Bearer {api_key}",
                 "Content-Type": "application/json",
@@ -228,6 +266,8 @@ def send_resend_email(to_email: str, subject: str, text_body: str, html_body: st
             "Resend API request failed",
             "The server could not reach Resend. Check outbound HTTPS/network access from the backend.",
         ) from exc
+
+    app.logger.info("Resend email request returned HTTP %s", response.status_code)
 
     if response.status_code >= 400:
         detail = response.text[:500]
@@ -253,7 +293,7 @@ def send_smtp_email(to_email: str, subject: str, text_body: str, html_body: str 
 
     smtp_user = os.getenv("SMTP_USER", "").strip()
     smtp_password = os.getenv("SMTP_PASSWORD", "")
-    smtp_from = os.getenv("SMTP_FROM", EMAIL_FROM or smtp_user or "no-reply@minkerpage.local").strip()
+    smtp_from = os.getenv("SMTP_FROM", get_email_from() or smtp_user or "no-reply@minkerpage.local").strip()
     use_tls = os.getenv("SMTP_USE_TLS", "true").strip().lower() not in {"0", "false", "no"}
 
     message = EmailMessage()
@@ -278,13 +318,16 @@ def send_smtp_email(to_email: str, subject: str, text_body: str, html_body: str 
 
 
 def send_email_message(to_email: str, subject: str, text_body: str, html_body: str | None = None) -> None:
-    if EMAIL_PROVIDER == "resend":
+    load_env_files()
+    provider = get_email_provider()
+    app.logger.info("Email delivery requested via provider=%s", provider)
+    if provider == "resend":
         send_resend_email(to_email, subject, text_body, html_body)
         return
-    if EMAIL_PROVIDER == "smtp":
+    if provider == "smtp":
         send_smtp_email(to_email, subject, text_body, html_body)
         return
-    raise EmailDeliveryError(f"Unsupported EMAIL_PROVIDER: {EMAIL_PROVIDER}")
+    raise EmailDeliveryError(f"Unsupported EMAIL_PROVIDER: {provider}")
 
 
 def create_and_store_email_code(
@@ -504,6 +547,21 @@ def health_db():
         return jsonify({"ok": True, "db": row})
     except Error as exc:
         return json_error(f"DB connection failed: {exc}", 500)
+
+
+@app.route("/api/health-email", methods=["GET"])
+def health_email():
+    load_env_files()
+    email_from = get_email_from()
+    return jsonify({
+        "ok": True,
+        "provider": get_email_provider(),
+        "resend_api_key_configured": bool(os.getenv("RESEND_API_KEY", "").strip()),
+        "email_from_configured": bool(email_from),
+        "email_from_domain": email_from.rsplit("@", 1)[-1].rstrip(">") if "@" in email_from else "",
+        "resend_api_url": get_resend_api_url(),
+        "loaded_env_files": sorted(_loaded_env_file_names),
+    })
 
 
 @app.route("/api/auth/register", methods=["POST"])
