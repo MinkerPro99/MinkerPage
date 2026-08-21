@@ -86,6 +86,27 @@
       });
     }
 
+    async function copyInputValue(input, setMessage, successMessage = 'Code copied.') {
+      const value = (input?.value || '').trim();
+      if (!value) {
+        setMessage('Enter or paste the code first.');
+        return;
+      }
+
+      try {
+        if (navigator.clipboard?.writeText && window.isSecureContext) {
+          await navigator.clipboard.writeText(value);
+        } else {
+          input.focus();
+          input.select();
+          document.execCommand('copy');
+        }
+        setMessage(successMessage);
+      } catch (error) {
+        setMessage('Could not copy automatically. Select the code and copy it manually.');
+      }
+    }
+
     async function apiFetch(path, options = {}) {
       const headers = {
         'Content-Type': 'application/json',
@@ -889,7 +910,10 @@
           <h3 style="margin:0;">Reset password</h3>
           <input id="resetEmail" type="email" placeholder="Email" style="padding:10px;border-radius:8px;border:1px solid #444;background:#12121a;color:#fff;">
           <button id="sendResetCode" class="login-btn" type="button">Send reset code</button>
-          <input id="resetCode" type="text" inputmode="numeric" maxlength="6" placeholder="6-digit code" style="padding:10px;border-radius:8px;border:1px solid #444;background:#12121a;color:#fff;">
+          <div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;">
+            <input id="resetCode" type="text" inputmode="numeric" maxlength="6" placeholder="6-digit code" style="min-width:0;padding:10px;border-radius:8px;border:1px solid #444;background:#12121a;color:#fff;">
+            <button id="copyResetCodeBtn" class="login-btn" type="button" style="width:auto;padding:10px 12px;white-space:nowrap;">Copy</button>
+          </div>
           <input id="resetPasswordA" type="password" placeholder="New password" style="padding:10px;border-radius:8px;border:1px solid #444;background:#12121a;color:#fff;">
           <input id="resetPasswordB" type="password" placeholder="Repeat new password" style="padding:10px;border-radius:8px;border:1px solid #444;background:#12121a;color:#fff;">
           <button id="confirmReset" class="login-btn" type="button">Reset password</button>
@@ -902,6 +926,10 @@
       const msg = modal.querySelector('#resetMsg');
       const setModalMessage = (text) => { msg.textContent = text; };
       modal.querySelector('#closeReset')?.addEventListener('click', () => modal.remove());
+
+      modal.querySelector('#copyResetCodeBtn')?.addEventListener('click', () => {
+        copyInputValue(modal.querySelector('#resetCode'), setModalMessage);
+      });
 
       modal.querySelector('#sendResetCode')?.addEventListener('click', async () => {
         const email = (modal.querySelector('#resetEmail')?.value || '').trim();
@@ -1027,7 +1055,10 @@
             </label>
             <button id="sendEmailCodeBtn" class="login-btn" type="button">Send code</button>
             <div id="emailCodeStep" style="display:none;gap:8px;">
-              <input id="emailCodeInput" type="text" inputmode="numeric" maxlength="6" placeholder="6-digit code" style="width:100%;padding:10px;border-radius:8px;border:1px solid #444;background:#12121a;color:#fff;">
+              <div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;">
+                <input id="emailCodeInput" type="text" inputmode="numeric" maxlength="6" placeholder="6-digit code" style="min-width:0;width:100%;padding:10px;border-radius:8px;border:1px solid #444;background:#12121a;color:#fff;">
+                <button id="copyEmailCodeBtn" class="login-btn" type="button" style="width:auto;padding:10px 12px;white-space:nowrap;">Copy</button>
+              </div>
               <button id="verifyEmailBtn" class="login-btn" type="button" style="width:100%;">Verify email</button>
             </div>
             <button data-close-child class="login-btn" type="button" style="background:#333;">Close</button>
@@ -1071,6 +1102,10 @@
               setMessage(error.message || 'Could not send verification code.');
               sendBtn.disabled = false;
             }
+          });
+
+          child.querySelector('#copyEmailCodeBtn')?.addEventListener('click', () => {
+            copyInputValue(child.querySelector('#emailCodeInput'), setMessage);
           });
 
           child.querySelector('#verifyEmailBtn')?.addEventListener('click', async () => {

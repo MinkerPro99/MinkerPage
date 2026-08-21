@@ -177,7 +177,8 @@ def build_verification_email_html(*, title: str, intro: str, code: str, ttl_minu
         <p style="margin:0 0 18px;color:#cbd5e1;font-size:15px;line-height:1.6;">{intro}</p>
         <div style="margin:18px 0;padding:18px;border-radius:12px;background:rgba(166,0,207,.14);border:1px solid rgba(166,0,207,.36);text-align:center;">
           <div style="color:#94a3b8;font-size:12px;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">Verification code</div>
-          <div style="font-size:34px;line-height:1;font-weight:800;letter-spacing:.18em;color:#ffffff;">{code}</div>
+          <div style="display:inline-block;padding:10px 14px;border-radius:10px;background:#12121a;border:1px solid rgba(255,255,255,.14);font-family:'Courier New',Courier,monospace;font-size:34px;line-height:1;font-weight:800;letter-spacing:.18em;color:#ffffff;user-select:all;">{code}</div>
+          <div style="margin-top:10px;color:#a5b4fc;font-size:12px;font-weight:700;">Select the code to copy it</div>
         </div>
         <p style="margin:0;color:#94a3b8;font-size:13px;line-height:1.5;">This code expires in {ttl_minutes} minutes. If you did not request it, you can ignore this email.</p>
       </div>
